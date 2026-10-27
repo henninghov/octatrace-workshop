@@ -1,0 +1,17 @@
+{
+  "scope": "simulated clickable prototype only",
+  "passed": [
+    "article revision replaces separate hardware field",
+    "new article revision retains previous definition",
+    "D/R/O share twelve-digit numeric sequence",
+    "interrupted installation retains UUID and serial",
+    "readback requires explicit observation",
+    "offline registry blocks completion",
+    "device remains unclaimed",
+    "device retains selected article revision",
+    "passwordless magic-link login design",
+    "existing flows retained",
+    "no browser errors"
+  ],
+  "errors": []
+}

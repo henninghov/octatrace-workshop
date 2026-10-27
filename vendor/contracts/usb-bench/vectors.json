@@ -1,0 +1,173 @@
+[
+  {
+    "name": "identity",
+    "request": "1 1 identity\n",
+    "response": {
+      "v": 1,
+      "id": 1,
+      "ok": true,
+      "type": "identity",
+      "role": "${ROLE}",
+      "build": "${BUILD}",
+      "board_target": "HT-n5262",
+      "contract": "0.1.0-draft",
+      "provisioned": false,
+      "device_id": null,
+      "serial": null,
+      "hardware_revision": null,
+      "external_flash": "unknown"
+    }
+  },
+  {
+    "name": "status",
+    "request": "1 2 status\n",
+    "response": {
+      "v": 1,
+      "id": 2,
+      "ok": true,
+      "type": "status",
+      "role": "${ROLE}",
+      "build": "${BUILD}",
+      "uptime_ms": 123,
+      "usb_connected": true,
+      "capabilities": [
+        "usb_status"
+      ],
+      "storage": "not_initialized"
+    }
+  },
+  {
+    "name": "unsupported_version",
+    "request": "2 3 status\n",
+    "response": {
+      "v": 1,
+      "id": 3,
+      "ok": false,
+      "error": "unsupported_version"
+    }
+  },
+  {
+    "name": "unknown_command",
+    "request": "1 4 erase\n",
+    "response": {
+      "v": 1,
+      "id": 4,
+      "ok": false,
+      "error": "unknown_command"
+    }
+  },
+  {
+    "name": "bad_request",
+    "request": "bad\n",
+    "response": {
+      "v": 1,
+      "id": null,
+      "ok": false,
+      "error": "bad_request"
+    }
+  },
+  {
+    "name": "bad_request",
+    "request": "1 0 status\n",
+    "response": {
+      "v": 1,
+      "id": null,
+      "ok": false,
+      "error": "bad_request"
+    }
+  },
+  {
+    "name": "request_too_large",
+    "request": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n",
+    "response": {
+      "v": 1,
+      "id": null,
+      "ok": false,
+      "error": "request_too_large"
+    }
+  },
+  {
+    "name": "test registry before a run",
+    "request": "1 1 tests\n",
+    "response": {
+      "v": 1,
+      "id": 1,
+      "ok": true,
+      "type": "tests",
+      "role": "Link",
+      "build": "0000000000000000000000000000000000000000000000000000000000000000",
+      "run_id": 0,
+      "running": false,
+      "results": [
+        {
+          "id": "configuration",
+          "result": "not_run"
+        },
+        {
+          "id": "clock",
+          "result": "not_run"
+        },
+        {
+          "id": "usb_parser",
+          "result": "not_run"
+        },
+        {
+          "id": "display_init",
+          "result": "not_run"
+        }
+      ]
+    }
+  },
+  {
+    "name": "individual clock accepted asynchronously",
+    "request": "1 2 test-clock\n",
+    "response": {
+      "v": 1,
+      "id": 2,
+      "ok": true,
+      "type": "tests",
+      "role": "Link",
+      "build": "0000000000000000000000000000000000000000000000000000000000000000",
+      "run_id": 1,
+      "running": true,
+      "results": [
+        {
+          "id": "configuration",
+          "result": "not_run"
+        },
+        {
+          "id": "clock",
+          "result": "not_run"
+        },
+        {
+          "id": "usb_parser",
+          "result": "not_run"
+        },
+        {
+          "id": "display_init",
+          "result": "not_run"
+        }
+      ]
+    }
+  },
+  {
+    "name": "unknown test is explicit",
+    "request": "1 3 test-absent\n",
+    "response": {
+      "v": 1,
+      "id": 3,
+      "ok": false,
+      "error": "unknown_test"
+    }
+  },
+  {
+    "name": "button_unavailable_without_adapter",
+    "request": "1 91 button\n",
+    "response": {
+      "v": 1,
+      "id": 91,
+      "ok": false,
+      "error": "button_unavailable"
+    }
+  }
+]

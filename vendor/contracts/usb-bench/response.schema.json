@@ -1,0 +1,403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://octatrace.com/contracts/usb-bench-response-v1",
+  "title": "Octatrace USB bench v1 response",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "type",
+        "role",
+        "build",
+        "board_target",
+        "contract",
+        "provisioned",
+        "device_id",
+        "serial",
+        "hardware_revision",
+        "external_flash"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": true
+        },
+        "type": {
+          "const": "identity"
+        },
+        "role": {
+          "enum": [
+            "Link",
+            "Core"
+          ]
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "board_target": {
+          "const": "HT-n5262"
+        },
+        "contract": {
+          "const": "0.1.0-draft"
+        },
+        "provisioned": {
+          "const": false
+        },
+        "device_id": {
+          "type": "null"
+        },
+        "serial": {
+          "type": "null"
+        },
+        "hardware_revision": {
+          "type": "null"
+        },
+        "external_flash": {
+          "const": "unknown"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "type",
+        "role",
+        "build",
+        "uptime_ms",
+        "usb_connected",
+        "capabilities",
+        "storage"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": true
+        },
+        "type": {
+          "const": "status"
+        },
+        "role": {
+          "enum": [
+            "Link",
+            "Core"
+          ]
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "uptime_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "usb_connected": {
+          "const": true
+        },
+        "capabilities": {
+          "const": [
+            "usb_status"
+          ]
+        },
+        "storage": {
+          "const": "not_initialized"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "error"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "enum": [
+            "bad_request",
+            "unknown_command",
+            "unsupported_version",
+            "request_too_large",
+            "request_timeout",
+            "tests_busy",
+            "unknown_test",
+            "tests_unavailable",
+            "button_unavailable"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "role",
+        "build",
+        "type",
+        "run_id",
+        "running",
+        "results"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": true
+        },
+        "role": {
+          "enum": [
+            "Link",
+            "Core"
+          ]
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "type": {
+          "const": "tests"
+        },
+        "run_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "results": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "type": "object",
+              "required": [
+                "id",
+                "result"
+              ],
+              "properties": {
+                "id": {
+                  "const": "configuration"
+                },
+                "result": {
+                  "enum": [
+                    "not_run",
+                    "pending",
+                    "passed",
+                    "failed",
+                    "timed_out",
+                    "unavailable"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "id",
+                "result"
+              ],
+              "properties": {
+                "id": {
+                  "const": "clock"
+                },
+                "result": {
+                  "enum": [
+                    "not_run",
+                    "pending",
+                    "passed",
+                    "failed",
+                    "timed_out",
+                    "unavailable"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "id",
+                "result"
+              ],
+              "properties": {
+                "id": {
+                  "const": "usb_parser"
+                },
+                "result": {
+                  "enum": [
+                    "not_run",
+                    "pending",
+                    "passed",
+                    "failed",
+                    "timed_out",
+                    "unavailable"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "id",
+                "result"
+              ],
+              "properties": {
+                "id": {
+                  "const": "display_init"
+                },
+                "result": {
+                  "enum": [
+                    "not_run",
+                    "pending",
+                    "passed",
+                    "failed",
+                    "timed_out",
+                    "unavailable"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "items": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "type",
+        "role",
+        "build",
+        "gpio",
+        "active_low",
+        "raw_pressed",
+        "pressed",
+        "presses",
+        "releases",
+        "held_ms",
+        "last_hold_ms"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": true
+        },
+        "type": {
+          "const": "button"
+        },
+        "role": {
+          "const": "Link"
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "gpio": {
+          "const": 42
+        },
+        "active_low": {
+          "const": true
+        },
+        "raw_pressed": {
+          "type": "boolean"
+        },
+        "pressed": {
+          "type": "boolean"
+        },
+        "presses": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "releases": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "held_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "last_hold_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "format": "octatrace-usb-bench",
+  "version": 1,
+  "scope": "USB debug status and startup diagnostics; not operational BLE/radio protocol",
+  "request": {
+    "encoding": "ASCII",
+    "framing": "LF, optional final CR",
+    "syntax": "<version> <request_id> <command>",
+    "versions": [
+      1
+    ],
+    "request_id_min": 1,
+    "request_id_max": 4294967295,
+    "commands": [
+      "identity",
+      "status",
+      "tests",
+      "test-all",
+      "test-configuration",
+      "test-clock",
+      "test-usb_parser",
+      "test-display_init",
+      "button"
+    ],
+    "max_bytes_excluding_lf": 96,
+    "inactivity_timeout_ms": 2000
+  },
+  "response": {
+    "encoding": "ASCII JSON with LF",
+    "max_bytes_including_lf": 512,
+    "timeout_seconds": 3,
+    "success_types": [
+      "identity",
+      "status",
+      "tests",
+      "button"
+    ],
+    "error_codes": [
+      "bad_request",
+      "unknown_command",
+      "unsupported_version",
+      "request_too_large",
+      "request_timeout",
+      "tests_busy",
+      "unknown_test",
+      "tests_unavailable",
+      "button_unavailable"
+    ]
+  },
+  "loop": {
+    "read_budget_bytes": 64,
+    "write_budget_bytes": 64
+  },
+  "identity": {
+    "provisioned": false,
+    "device_id": null,
+    "serial": null,
+    "hardware_revision": null,
+    "external_flash": "unknown"
+  },
+  "state_changes": "Only startup-diagnostic run/results in RAM. No reset, provisioning, storage initialization, configuration or flash command.",
+  "self_tests": {
+    "registry": [
+      {
+        "id": "configuration",
+        "timeout_ms": 100
+      },
+      {
+        "id": "clock",
+        "timeout_ms": 100
+      },
+      {
+        "id": "usb_parser",
+        "timeout_ms": 100
+      },
+      {
+        "id": "display_init",
+        "timeout_ms": 2000
+      }
+    ],
+    "execution": "One check or all, fail fast; no concurrency; unavailable is not success. Running diagnostics survives USB disconnect. A new run replaces the previous result snapshot; run_id identifies it. Startup outcome remains latched.",
+    "states": [
+      "not_run",
+      "pending",
+      "passed",
+      "failed",
+      "timed_out",
+      "unavailable"
+    ],
+    "clock": "Unsigned 32-bit elapsed milliseconds; advancing-clock check cannot detect a completely stopped system clock without an independent watchdog.",
+    "display_init": "Only scheduled initialization command completion; no panel readback or physical-health claim. Individual execution checks completion and does not reset the panel.",
+    "startup": "Manual runs return tests_busy until the initial display sequence settles. tests reads the current snapshot without starting a run."
+  },
+  "button": {
+    "scope": "Read-only GPIO42 USER candidate, independent of USB host; physical mapping pending",
+    "pin": 42,
+    "active_low": true,
+    "debounce_ms": 30,
+    "fields": [
+      "raw_pressed",
+      "pressed",
+      "presses",
+      "releases",
+      "held_ms",
+      "last_hold_ms"
+    ],
+    "held_ms": "From debounced press; zero when released. last_hold_ms retained until next release. Unsigned32 wrapping clock; counters modulo2^32; RAM resets on reboot.",
+    "unavailable": "Core/no input adapter returns button_unavailable",
+    "actions": "None: no pairing, reset, provisioning or storage writes. GPIO11 remains TFT CS."
+  }
+}

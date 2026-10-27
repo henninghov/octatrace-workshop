@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "scope": "USB-only debug protocol; operational protocol.lock.json unchanged",
+  "files": {
+    "contracts/usb-bench/contract.json": "5c1471adb7311e1b2a4d25088f02786a1cbeca3c3eb8b480d137f30b7ef31cf1",
+    "contracts/usb-bench/response.schema.json": "f78872034e7d260f6df5d44527e106b4e78f4c75312c8852c9b8fad6b8117e34",
+    "contracts/usb-bench/vectors.json": "d52df8079b91261c1c8322214931cf236fba715e61f9ba0e31569e3baf641336"
+  }
+}
