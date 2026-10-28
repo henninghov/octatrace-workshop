@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 
 import 'domain/workshop_controller.dart';
 import 'services/bench_runner.dart';
+import 'services/provisioning_runner.dart';
 import 'services/magic_links.dart';
 import 'services/supabase_gateway.dart';
 import 'services/evidence_journal.dart';
@@ -22,6 +23,9 @@ void main() {
       valid?.scheme == 'https' &&
       valid?.host.isNotEmpty == true &&
       key.isNotEmpty;
+  final evidenceRoot = Directory(
+    '${Platform.environment['HOME']}/Library/Application Support/com.octatrace.workshop/evidence/${sha256.convert(utf8.encode(configured ? valid!.origin : 'unconfigured'))}',
+  );
   runApp(
     WorkshopApp(
       links: configured ? nativeMagicLinks() : null,
@@ -29,11 +33,8 @@ void main() {
           ? WorkshopController(
               SupabaseGateway(url, key),
               ProcessBenchRunner(firmware),
-              EvidenceJournal(
-                Directory(
-                  '${Platform.environment['HOME']}/Library/Application Support/com.octatrace.workshop/evidence/${sha256.convert(utf8.encode(valid!.origin))}',
-                ),
-              ),
+              EvidenceJournal(evidenceRoot),
+              provisioner: ProcessProvisioningRunner(firmware, evidenceRoot),
             )
           : null,
     ),

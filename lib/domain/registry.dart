@@ -24,9 +24,10 @@ final class DeviceRecord {
       revisionId = j['article_revision_id'] as String,
       state = j['provisioning_state'] as String,
       ownerId = j['owner_user_id'] as String?,
-      firmwareVersion = j['firmware_version'] as String?;
+      firmwareVersion = j['firmware_version'] as String?,
+      hardwareUid = j['hardware_uid'] as String?;
   final String id, serial, revisionId, state;
-  final String? ownerId, firmwareVersion;
+  final String? ownerId, firmwareVersion, hardwareUid;
 }
 
 final class Registry {
@@ -63,7 +64,7 @@ abstract interface class WorkshopGateway {
     required String caseVersion,
     required List<Json> parts,
   });
-  Future<void> reserve({
+  Future<String> reserve({
     required String requestId,
     required String revisionId,
     required String serialClass,

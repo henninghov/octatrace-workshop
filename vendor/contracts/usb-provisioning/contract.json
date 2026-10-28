@@ -1,0 +1,69 @@
+{
+  "format": "octatrace-usb-provisioning",
+  "version": 1,
+  "development_only": true,
+  "roles": [
+    "Link",
+    "Core"
+  ],
+  "serial_classes": [
+    "D"
+  ],
+  "framing": {
+    "prefix": "P1",
+    "encoding": "ASCII",
+    "terminator": "LF",
+    "request_limit_bytes": 320,
+    "response_limit_bytes": 1280,
+    "inactivity_ms": 2000,
+    "io_budget_bytes": 64
+  },
+  "commands": {
+    "info": "P1 <id> info",
+    "create": "P1 <id> create <device_uuid_hex32> <serial> <article_uuid_hex32> <revision_uuid_hex32> <hardware_hex16>",
+    "prove": "P1 <id> prove <server_challenge_hex64>",
+    "reboot": "P1 <id> reboot",
+    "storage": "P1 <id> storage",
+    "initialize": "P1 <id> initialize <hardware_hex16> <current_boot_hex32>"
+  },
+  "algorithm": {
+    "name": "P256-SHA256",
+    "curve": "secp256r1",
+    "public_key": "65-byte uncompressed SEC1 point, hexadecimal",
+    "signature": "64-byte big-endian r || s, hexadecimal",
+    "private_key": "generated and retained on device; never a protocol field"
+  },
+  "proof": {
+    "prefix": "OCTATRACE-USB-PROVISIONING-1\n",
+    "fields": [
+      "challenge",
+      "device_id",
+      "serial",
+      "article_id",
+      "article_revision_id",
+      "hardware",
+      "build",
+      "boot"
+    ],
+    "encoding": "ASCII, each field followed by LF; UUIDs canonical lowercase with hyphens",
+    "reboot_verification": "server verifies two signatures with one public key and different boot nonces"
+  },
+  "storage": {
+    "identity_start": "0xed000",
+    "identity_end_exclusive": "0xef000",
+    "phone_bond_start": "0xeb000",
+    "phone_bond_end_exclusive": "0xed000",
+    "record_bytes": 256,
+    "initial_attempt_slots": 32,
+    "policy": "append-only, no erase; resume a complete pending record with the same key; reject unknown/corrupt committed data",
+    "diagnostics": "Read-only failure classification and relative 256-byte slot offset; 8192 means no specific slot. No flash contents, private key, erase or recovery command.",
+    "explicit_development_recovery": "Separate operator-confirmed initialization only: refuse Ready/Pending/read faults and any recognizable identity across all slots, no active BLE/save, exact hardware/current boot; erase only pages0xed000/0xee000, verify blank and unchanged phone bonds. Never called by normal provisioning, retry, boot or firmware update."
+  },
+  "compatibility": {
+    "development_bluetooth": "unchanged",
+    "numeric_usb_v1": "unchanged diagnostics; identity returns unsupported_version when permanent state is populated or not known empty",
+    "product_role": "CORE is explicit; missing attempt role means legacy LINK only. The signed immutable article/revision binding and build are checked against the server product role.",
+    "core_runtime": "USB identity only; no phone connections or advertising."
+  },
+  "security_boundary": "Internal development USB station and operator-authenticated backend. Explicit legacy identity-page initialization requires a separate confirmed maintenance action; normal provisioning/update/retry never erases. Production Bluetooth authorization, ownership claiming, manufacturer attestation, readout protection and identity/key replacement are not provided."
+}

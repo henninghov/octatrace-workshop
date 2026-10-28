@@ -1,0 +1,88 @@
+{
+  "synthetic_only": true,
+  "proof": {
+    "fields": {
+      "challenge": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "device_id": "01010101-0101-4101-8101-010101010101",
+      "serial": "D000000000001",
+      "article_id": "02010101-0101-4101-8101-010101010101",
+      "article_revision_id": "03010101-0101-4101-8101-010101010101",
+      "hardware": "0909090909090909",
+      "build": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "boot": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "message_ascii": "OCTATRACE-USB-PROVISIONING-1\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n01010101-0101-4101-8101-010101010101\nD000000000001\n02010101-0101-4101-8101-010101010101\n03010101-0101-4101-8101-010101010101\n0909090909090909\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n",
+    "message_hex": "4f43544154524143452d5553422d50524f564953494f4e494e472d310a616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610a30313031303130312d303130312d343130312d383130312d3031303130313031303130310a443030303030303030303030310a30323031303130312d303130312d343130312d383130312d3031303130313031303130310a30333031303130312d303130312d343130312d383130312d3031303130313031303130310a303930393039303930393039303930390a616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610a62626262626262626262626262626262626262626262626262626262626262620a"
+  },
+  "signed": {
+    "frame": {
+      "v": 1,
+      "id": 1,
+      "ok": true,
+      "type": "identity",
+      "role": "Link",
+      "build": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "hardware": "0909090909090909",
+      "boot": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "state": "ready",
+      "busy": false,
+      "failed": false,
+      "device_id": "01010101-0101-4101-8101-010101010101",
+      "serial": "D000000000001",
+      "article_id": "02010101-0101-4101-8101-010101010101",
+      "article_revision_id": "03010101-0101-4101-8101-010101010101",
+      "algorithm": "P256-SHA256",
+      "public_key": "041cc356d1dd5328d5e4e2418974dfafebbb30da99454696b8e002508d3a27ea514fc4f5745e1d0538ed6866c5be513430b936b5ffe3222bec196888e96bbcd050",
+      "challenge": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "signature": "66047e6dfad8b10744975a39a851e36d19ca8014a7a5a74266e2ddedb96737ba0866e0c1b90f617f5099b234bd32a6db88b1b9c2699819e66af3e8876a2ae8de"
+    },
+    "message": "OCTATRACE-USB-PROVISIONING-1\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n01010101-0101-4101-8101-010101010101\nD000000000001\n02010101-0101-4101-8101-010101010101\n03010101-0101-4101-8101-010101010101\n0909090909090909\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n",
+    "attempt": {
+      "request_id": "04010101-0101-4101-8101-010101010101",
+      "device_id": "01010101-0101-4101-8101-010101010101",
+      "serial": "D000000000001",
+      "article_id": "02010101-0101-4101-8101-010101010101",
+      "article_revision_id": "03010101-0101-4101-8101-010101010101",
+      "hardware": "0909090909090909",
+      "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "artifact": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "challenge": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "signed_core": {
+    "frame": {
+      "v": 1,
+      "id": 1,
+      "ok": true,
+      "type": "identity",
+      "role": "Core",
+      "build": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "hardware": "0909090909090909",
+      "boot": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "state": "ready",
+      "busy": false,
+      "failed": false,
+      "device_id": "01010101-0101-4101-8101-010101010107",
+      "serial": "D000000000001",
+      "article_id": "02010101-0101-4101-8101-010101010107",
+      "article_revision_id": "03010101-0101-4101-8101-010101010107",
+      "algorithm": "P256-SHA256",
+      "public_key": "041bb256b112e42c56d541ee8d65300403d194dbe593432f4976c0f484d0a9f686d3b61026d672d8f421706745df66d564ce09b5735c3301f4110688accabb316e",
+      "challenge": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "signature": "9af163aa1c4ded0f90da69ea458db1b066aadfc6af0d336524cf2cbf942ac9052980675030efc2e0da938ac530196db6bb46c643b90f06119fefa2296d42e99e"
+    },
+    "message": "OCTATRACE-USB-PROVISIONING-1\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n01010101-0101-4101-8101-010101010107\nD000000000001\n02010101-0101-4101-8101-010101010107\n03010101-0101-4101-8101-010101010107\n0909090909090909\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n",
+    "attempt": {
+      "request_id": "04010101-0101-4101-8101-010101010101",
+      "device_id": "01010101-0101-4101-8101-010101010107",
+      "serial": "D000000000001",
+      "article_id": "02010101-0101-4101-8101-010101010107",
+      "article_revision_id": "03010101-0101-4101-8101-010101010107",
+      "hardware": "0909090909090909",
+      "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "artifact": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "challenge": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "Core"
+    }
+  }
+}

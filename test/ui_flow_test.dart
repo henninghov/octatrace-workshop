@@ -370,6 +370,7 @@ void main() {
       await t.pumpAndSettle();
       expect(copied, 'reserved · Unclaimed');
       await t.ensureVisible(find.text('Read identity with shared runner'));
+      await t.ensureVisible(find.text('Read identity with shared runner'));
       await t.tap(find.text('Read identity with shared runner'));
       await t.pumpAndSettle();
       await t.ensureVisible(find.byTooltip('Copy Diagnostic'));
@@ -383,7 +384,7 @@ void main() {
     'reservation selects the complete article revision and production class',
     (t) async {
       await show(t);
-      await t.tap(find.text('Prepare a device'));
+      await t.tap(find.text('New device'));
       await t.pumpAndSettle();
       await t.tap(find.byType(DropdownButtonFormField<String>).first);
       await t.pumpAndSettle();
@@ -409,12 +410,14 @@ void main() {
         '/dev/cu.usbmodemSynthetic',
       );
       await t.enterText(find.byType(TextField).last, 'a' * 64);
+      await t.ensureVisible(find.text('Read identity with shared runner'));
       await t.tap(find.text('Read identity with shared runner'));
       await t.pumpAndSettle();
       expect(
         find.text('Diagnostic saved · provisioning unchanged'),
         findsOneWidget,
       );
+      await t.ensureVisible(find.text('Run shared USB checks'));
       await t.tap(find.text('Run shared USB checks'));
       await t.pumpAndSettle();
       expect(gateway.diagnostics, 2);
@@ -436,6 +439,7 @@ void main() {
       gateway.failSave = true;
       await t.tap(find.byTooltip('Open device'));
       await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Read identity with shared runner'));
       await t.tap(find.text('Read identity with shared runner'));
       await t.pumpAndSettle();
       expect(find.textContaining('could not be completed'), findsOneWidget);
@@ -484,6 +488,7 @@ void main() {
       await show(t);
       await t.tap(find.byTooltip('Open device'));
       await t.pumpAndSettle();
+      await t.ensureVisible(find.text('Read identity with shared runner'));
       await t.tap(find.text('Read identity with shared runner'));
       await t.pump();
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
@@ -536,8 +541,8 @@ void main() {
       find.byKey(const Key('part-0-description')),
       'Synthetic radio board',
     );
-    await t.ensureVisible(find.text('Add part'));
-    await t.tap(find.text('Add part'));
+    await t.ensureVisible(find.text('Create part'));
+    await t.tap(find.text('Create part'));
     await t.pumpAndSettle();
     await t.enterText(find.byKey(const Key('part-1-number')), 'TEST-CASE');
     await t.enterText(
@@ -545,6 +550,7 @@ void main() {
       'Synthetic enclosure',
     );
     await t.pumpAndSettle();
+    await t.pump();
     await expectLater(
       find.byKey(const Key('capture')),
       matchesGoldenFile('goldens/article-editor-dark.png'),
@@ -554,6 +560,7 @@ void main() {
     'device registry has readable type and copy controls in light appearance',
     (t) async {
       await show(t);
+      await t.pump();
       await expectLater(
         find.byKey(const Key('capture')),
         matchesGoldenFile('goldens/devices-light.png'),
@@ -567,6 +574,7 @@ void main() {
       await show(t);
       await t.tap(find.text('Dark mode'));
       await t.pumpAndSettle();
+      await t.pump();
       await expectLater(
         find.byKey(const Key('capture')),
         matchesGoldenFile('goldens/devices-dark.png'),
@@ -576,6 +584,7 @@ void main() {
   );
   testWidgets('login design uses original compass and wordmark', (t) async {
     await show(t, signedIn: false);
+    await t.pump();
     await expectLater(
       find.byKey(const Key('capture')),
       matchesGoldenFile('goldens/login-light.png'),
@@ -587,9 +596,48 @@ void main() {
     await show(t);
     await t.tap(find.text('Articles'));
     await t.pumpAndSettle();
+    await t.pump();
     await expectLater(
       find.byKey(const Key('capture')),
       matchesGoldenFile('goldens/articles-light.png'),
+    );
+  }, tags: 'golden');
+  for (final appearance in ['light', 'dark']) {
+    testWidgets(
+      'new device entry keeps creation separate in $appearance appearance',
+      (t) async {
+        await show(t);
+        if (appearance == 'dark') {
+          await t.tap(find.text('Dark mode'));
+          await t.pumpAndSettle();
+        }
+        await t.tap(find.text('New device'));
+        await t.pumpAndSettle();
+        expect(find.text('Registry device'), findsNothing);
+        await t.pump();
+        await expectLater(
+          find.byKey(const Key('capture')),
+          matchesGoldenFile('goldens/new-device-$appearance.png'),
+        );
+      },
+      tags: 'golden',
+    );
+  }
+  testWidgets('shared part picker shows canonical identity and search', (
+    t,
+  ) async {
+    await show(t);
+    await t.tap(find.text('Articles'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('New article'));
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.text('Choose existing part'));
+    await t.tap(find.text('Choose existing part'));
+    await t.pumpAndSettle();
+    await t.pump();
+    await expectLater(
+      find.byKey(const Key('capture')),
+      matchesGoldenFile('goldens/shared-part-picker-light.png'),
     );
   }, tags: 'golden');
 }

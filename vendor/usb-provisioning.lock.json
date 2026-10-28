@@ -1,0 +1,10 @@
+{
+  "format": "octatrace-usb-provisioning",
+  "version": 1,
+  "files": {
+    "contracts/usb-provisioning/contract.json": "62414d301a437608c09f7693d06ad3167a6ae7f60d0c9e638153a0f98d0947c4",
+    "contracts/usb-provisioning/proof.mjs": "e2738b810a1433190701788ed1940d7cb784702ef6af7f6c737ad6cc1fe292ab",
+    "contracts/usb-provisioning/response.schema.json": "9e3af63f9b05ed41bb50011b134b7f7fa6d3d202b2df5203e568333a00c955e1",
+    "contracts/usb-provisioning/vectors.json": "f4d7fd19a33e60883d60886c4ec10a46b1d37a2fde78a632038d902dabbc9361"
+  }
+}

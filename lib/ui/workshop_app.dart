@@ -8,6 +8,7 @@ import '../domain/registry.dart';
 import '../domain/workshop_controller.dart';
 import 'article_editor.dart';
 import 'copyable_text.dart';
+import 'provisioning_panel.dart';
 
 const orange = Color(0xfff46628);
 const charcoal = Color(0xff252525);
@@ -117,6 +118,7 @@ class _WorkshopShellState extends State<WorkshopShell> {
   final port = TextEditingController(), sourceBuild = TextEditingController();
   String page = 'Devices', serialClass = 'D';
   String? revisionId, deviceId;
+  bool creatingDevice = true;
   WorkshopController? get c => widget.controller;
   @override
   void initState() {
@@ -530,7 +532,10 @@ class _WorkshopShellState extends State<WorkshopShell> {
   Future<void> editArticle([ArticleRevision? existing]) async {
     final draft = await showDialog<ArticleDraft>(
       context: context,
-      builder: (_) => ArticleEditor(existing: existing),
+      builder: (_) => ArticleEditor(
+        existing: existing,
+        availableParts: c!.registry!.articles.expand((a) => a.parts).toList(),
+      ),
     );
     if (draft == null || !mounted) return;
     await c!.action(
@@ -550,6 +555,27 @@ class _WorkshopShellState extends State<WorkshopShell> {
     );
   }
 
+  Future<void> reserveDevice(String revision) async {
+    final account = c!.gateway.accountId;
+    final deviceClass = serialClass;
+    final reservedId = await c!.reserve(revision, deviceClass);
+    if (!mounted || c!.gateway.accountId != account) return;
+    final created = c!.registry?.devices
+        .where(
+          (d) =>
+              d.id == reservedId &&
+              d.revisionId == revision &&
+              d.serial.startsWith(deviceClass),
+        )
+        .singleOrNull;
+    if (created != null) {
+      setState(() {
+        creatingDevice = false;
+        deviceId = created.id;
+      });
+    }
+  }
+
   Widget devices() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -563,10 +589,13 @@ class _WorkshopShellState extends State<WorkshopShell> {
             ? null
             : () => setState(() {
                 deviceId = null;
+                revisionId = null;
+                serialClass = 'D';
+                creatingDevice = true;
                 page = 'Provisioning';
               }),
         icon: const Icon(Icons.add, size: 18),
-        label: const Text('Prepare a device'),
+        label: const Text('New device'),
       ),
       gap(),
       if (c!.registry!.devices.isEmpty)
@@ -582,6 +611,7 @@ class _WorkshopShellState extends State<WorkshopShell> {
         .where((a) => a.id == device.revisionId)
         .firstOrNull;
     void open() => setState(() {
+      creatingDevice = false;
       deviceId = device.id;
       revisionId = device.revisionId;
       page = 'Provisioning';
@@ -640,9 +670,9 @@ class _WorkshopShellState extends State<WorkshopShell> {
 
   Widget provisioning() {
     final revisions = c!.registry!.articles;
-    final selected = c!.registry!.devices
-        .where((d) => d.id == deviceId)
-        .firstOrNull;
+    final selected = creatingDevice
+        ? null
+        : c!.registry!.devices.where((d) => d.id == deviceId).firstOrNull;
     final article = revisions
         .where((a) => a.id == (selected?.revisionId ?? revisionId))
         .firstOrNull;
@@ -654,7 +684,52 @@ class _WorkshopShellState extends State<WorkshopShell> {
           'Prepare. Verify. Keep the history.',
           'Devices leave Workshop provisioned and unclaimed.',
         ),
-        if (selected == null) ...[
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(
+              value: true,
+              label: Text('New device'),
+              icon: Icon(Icons.add),
+            ),
+            ButtonSegment(
+              value: false,
+              label: Text('Existing device'),
+              icon: Icon(Icons.sensors),
+            ),
+          ],
+          selected: {creatingDevice},
+          onSelectionChanged: c!.busy
+              ? null
+              : (selection) => setState(() {
+                  creatingDevice = selection.single;
+                  deviceId = null;
+                }),
+        ),
+        gap(20),
+        if (!creatingDevice && c!.registry!.devices.isNotEmpty) ...[
+          DropdownButtonFormField<String>(
+            key: ValueKey('registry-$deviceId'),
+            initialValue: selected?.id,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Registry device'),
+            items: c!.registry!.devices
+                .map(
+                  (d) => DropdownMenuItem(
+                    value: d.id,
+                    child: Text(
+                      '${d.serial} · ${d.state}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: c!.busy
+                ? null
+                : (value) => setState(() => deviceId = value),
+          ),
+          gap(20),
+        ],
+        if (creatingDevice) ...[
           DropdownButtonFormField<String>(
             key: ValueKey(revisionId),
             initialValue: article?.id,
@@ -695,12 +770,18 @@ class _WorkshopShellState extends State<WorkshopShell> {
           FilledButton(
             onPressed: c!.busy || article == null
                 ? null
-                : () => c!.reserve(article.id, serialClass),
+                : () => reserveDevice(article.id),
             child: const Text('Reserve device identity'),
           ),
           gap(),
           notice(
-            'Reservation creates the registry record. Select that device from Devices to inspect its USB readback.',
+            'Reserve once to create a UUID and serial. The new record opens here for provisioning.',
+          ),
+        ] else if (selected == null) ...[
+          notice(
+            c!.registry!.devices.isEmpty
+                ? 'No devices registered. Choose New device to reserve an identity.'
+                : 'Select an existing registry device to continue provisioning or update it.',
           ),
         ] else ...[
           CopyableText(
@@ -716,82 +797,91 @@ class _WorkshopShellState extends State<WorkshopShell> {
           ),
           CopyableText(label: 'Status', value: deviceStatus(selected)),
           gap(20),
-          notice(
-            'Current firmware supports USB diagnostics. Permanent identity installation and provisioning completion require the next firmware contract. Registry status: ${selected.state}.',
-            warning: true,
-          ),
-          gap(24),
-          TextField(
-            controller: port,
-            enabled: !c!.busy,
-            decoration: const InputDecoration(
-              labelText: 'USB port',
-              hintText: '/dev/cu.usbmodem…',
+          if (c!.provisioningAvailable)
+            ProvisioningPanel(
+              key: ValueKey(selected.id),
+              controller: c!,
+              device: selected,
+              article: article,
+            )
+          else ...[
+            notice(
+              'Current firmware supports USB diagnostics. Permanent identity installation and provisioning completion require the next firmware contract. Registry status: ${selected.state}.',
+              warning: true,
             ),
-          ),
-          gap(),
-          TextField(
-            controller: sourceBuild,
-            enabled: !c!.busy,
-            decoration: const InputDecoration(
-              labelText: 'Expected full firmware source SHA-256',
-            ),
-          ),
-          gap(20),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              FilledButton(
-                onPressed: c!.busy || article == null
-                    ? null
-                    : () => c!.verify(
-                        selected,
-                        article,
-                        port.text.trim(),
-                        sourceBuild.text.trim(),
-                      ),
-                child: const Text('Read identity with shared runner'),
+            gap(24),
+            TextField(
+              controller: port,
+              enabled: !c!.busy,
+              decoration: const InputDecoration(
+                labelText: 'USB port',
+                hintText: '/dev/cu.usbmodem…',
               ),
-              OutlinedButton(
-                onPressed: c!.busy || article == null
-                    ? null
-                    : () => c!.verify(
-                        selected,
-                        article,
-                        port.text.trim(),
-                        sourceBuild.text.trim(),
-                        command: 'check',
-                      ),
-                child: const Text('Run shared USB checks'),
-              ),
-              if (c!.busy)
-                OutlinedButton(
-                  onPressed: c!.cancel,
-                  child: const Text('Cancel'),
-                ),
-              const OutlinedButton(
-                onPressed: null,
-                child: Text('Install and provision'),
-              ),
-            ],
-          ),
-          gap(20),
-          if (c!.readback != null && c!.readbackDeviceId == selected.id) ...[
-            CopyableText(
-              label: 'Message',
-              showLabel: false,
-              value: c!.readbackSaved
-                  ? 'Diagnostic saved · provisioning unchanged'
-                  : 'Readback received · record not saved',
             ),
             gap(),
-            CopyableText(
-              label: 'Diagnostic',
-              showLabel: false,
-              value: const JsonEncoder.withIndent('  ').convert(c!.readback),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            TextField(
+              controller: sourceBuild,
+              enabled: !c!.busy,
+              decoration: const InputDecoration(
+                labelText: 'Expected full firmware source SHA-256',
+              ),
             ),
+            gap(20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton(
+                  onPressed: c!.busy || article == null
+                      ? null
+                      : () => c!.verify(
+                          selected,
+                          article,
+                          port.text.trim(),
+                          sourceBuild.text.trim(),
+                        ),
+                  child: const Text('Read identity with shared runner'),
+                ),
+                OutlinedButton(
+                  onPressed: c!.busy || article == null
+                      ? null
+                      : () => c!.verify(
+                          selected,
+                          article,
+                          port.text.trim(),
+                          sourceBuild.text.trim(),
+                          command: 'check',
+                        ),
+                  child: const Text('Run shared USB checks'),
+                ),
+                if (c!.busy)
+                  OutlinedButton(
+                    onPressed: c!.cancel,
+                    child: const Text('Cancel'),
+                  ),
+                const OutlinedButton(
+                  onPressed: null,
+                  child: Text('Install and provision'),
+                ),
+              ],
+            ),
+            gap(20),
+            if (c!.readback != null && c!.readbackDeviceId == selected.id) ...[
+              CopyableText(
+                label: 'Message',
+                showLabel: false,
+                value: c!.readbackSaved
+                    ? 'Diagnostic saved · provisioning unchanged'
+                    : 'Readback received · record not saved',
+              ),
+              gap(),
+              CopyableText(
+                label: 'Diagnostic',
+                showLabel: false,
+                value: const JsonEncoder.withIndent('  ').convert(c!.readback),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+            ],
           ],
         ],
       ],

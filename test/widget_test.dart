@@ -83,13 +83,14 @@ class Gateway implements WorkshopGateway {
   Future<Registry> load() async =>
       delayed == null ? data() : await delayed!.future;
   @override
-  Future<void> reserve({
+  Future<String> reserve({
     required String requestId,
     required String revisionId,
     required String serialClass,
   }) async {
     requests.add(requestId);
     if (failReserve) throw StateError('network');
+    return device;
   }
 
   @override

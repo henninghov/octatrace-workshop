@@ -1,0 +1,315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Development USB provisioning response",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "type",
+        "role",
+        "build",
+        "hardware",
+        "boot",
+        "state",
+        "busy",
+        "failed",
+        "device_id",
+        "serial",
+        "article_id",
+        "article_revision_id",
+        "algorithm",
+        "public_key",
+        "challenge",
+        "signature"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": true
+        },
+        "type": {
+          "const": "identity"
+        },
+        "role": {
+          "enum": [
+            "Link",
+            "Core"
+          ]
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hardware": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          }
+        },
+        "boot": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$",
+          "not": {
+            "const": "00000000000000000000000000000000"
+          }
+        },
+        "state": {
+          "enum": [
+            "empty",
+            "pending",
+            "ready",
+            "fault"
+          ]
+        },
+        "busy": {
+          "type": "boolean"
+        },
+        "failed": {
+          "type": "boolean"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "string"
+        },
+        "article_id": {
+          "type": "string"
+        },
+        "article_revision_id": {
+          "type": "string"
+        },
+        "algorithm": {
+          "const": "P256-SHA256"
+        },
+        "public_key": {
+          "type": "string"
+        },
+        "challenge": {
+          "type": "string"
+        },
+        "signature": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ready"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "public_key": {
+                "pattern": "^04[0-9a-f]{128}$"
+              },
+              "serial": {
+                "pattern": "^D[0-9]{12}$",
+                "not": {
+                  "const": "D000000000000"
+                }
+              },
+              "device_id": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "article_id": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "article_revision_id": {
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "public_key": {
+                "const": ""
+              },
+              "serial": {
+                "const": ""
+              },
+              "device_id": {
+                "const": ""
+              },
+              "article_id": {
+                "const": ""
+              },
+              "article_revision_id": {
+                "const": ""
+              }
+            }
+          }
+        },
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "challenge": {
+                  "const": ""
+                },
+                "signature": {
+                  "const": ""
+                }
+              }
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "ready"
+                },
+                "challenge": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "not": {
+                    "const": "0000000000000000000000000000000000000000000000000000000000000000"
+                  }
+                },
+                "signature": {
+                  "pattern": "^[0-9a-f]{128}$"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": true
+        },
+        "type": {
+          "const": "accepted"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "error"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "enum": [
+            "bad_request",
+            "request_timeout",
+            "busy",
+            "unavailable",
+            "identity_conflict",
+            "operation_failed"
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "v",
+        "id",
+        "ok",
+        "role",
+        "build",
+        "hardware",
+        "type",
+        "fault",
+        "offset"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "ok": {
+          "const": true
+        },
+        "role": {
+          "enum": [
+            "Link",
+            "Core"
+          ]
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hardware": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          }
+        },
+        "type": {
+          "const": "storage"
+        },
+        "fault": {
+          "enum": [
+            "none",
+            "not_loaded",
+            "read_failed",
+            "unrecognized_record",
+            "duplicate_record",
+            "invalid_commit",
+            "exhausted"
+          ]
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8192,
+          "multipleOf": 256
+        }
+      }
+    }
+  ]
+}

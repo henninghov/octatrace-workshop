@@ -20,8 +20,10 @@ class _PartInputs {
       description = TextEditingController(
         text: value?['description'] as String?,
       ),
+      shared = value != null,
       quantity = TextEditingController(text: '${value?['quantity'] ?? 1}');
   final int id;
+  bool shared;
   final TextEditingController number, description, quantity;
   void dispose() {
     number.dispose();
@@ -38,8 +40,13 @@ class _PartInputs {
 
 /// Each part has explicit fields; the operator never types a serialization format.
 class ArticleEditor extends StatefulWidget {
-  const ArticleEditor({super.key, this.existing});
+  const ArticleEditor({
+    super.key,
+    this.existing,
+    this.availableParts = const [],
+  });
   final ArticleRevision? existing;
+  final List<Json> availableParts;
   @override
   State<ArticleEditor> createState() => _ArticleEditorState();
 }
@@ -48,6 +55,7 @@ class _ArticleEditorState extends State<ArticleEditor> {
   final _form = GlobalKey<FormState>();
   late final TextEditingController code, name, caseVersion;
   final _parts = <_PartInputs>[];
+  late final List<Json> _catalogue;
   int _nextPart = 0;
   bool _submitted = false;
   late String role;
@@ -55,6 +63,15 @@ class _ArticleEditorState extends State<ArticleEditor> {
   @override
   void initState() {
     super.initState();
+    final byNumber = <String, Json>{};
+    for (final part in [...widget.availableParts, ...?widget.existing?.parts]) {
+      byNumber[part['part_number'] as String] = part;
+    }
+    _catalogue = byNumber.values.toList()
+      ..sort(
+        (a, b) =>
+            (a['part_number'] as String).compareTo(b['part_number'] as String),
+      );
     code = TextEditingController(text: widget.existing?.code);
     name = TextEditingController(text: widget.existing?.name);
     caseVersion = TextEditingController(text: widget.existing?.caseVersion);
@@ -89,6 +106,41 @@ class _ArticleEditorState extends State<ArticleEditor> {
     WidgetsBinding.instance.addPostFrameCallback((_) => part.dispose());
   }
 
+  Future<void> choosePart() async {
+    final selected = await showDialog<Json>(
+      context: context,
+      builder: (_) => _PartPicker(
+        parts: _catalogue,
+        listed: _parts
+            .where((p) => p.shared)
+            .map((p) => p.number.text.trim())
+            .toSet(),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      final matchingDraft = _parts
+          .where(
+            (p) => !p.shared && p.number.text.trim() == selected['part_number'],
+          )
+          .firstOrNull;
+      final blank =
+          matchingDraft ??
+          _parts
+              .where(
+                (p) =>
+                    p.number.text.trim().isEmpty &&
+                    p.description.text.trim().isEmpty,
+              )
+              .firstOrNull;
+      final row = blank ?? _PartInputs(_nextPart++);
+      if (blank == null) _parts.add(row);
+      row.number.text = selected['part_number'] as String;
+      row.description.text = selected['description'] as String;
+      row.shared = true;
+    });
+  }
+
   void save() {
     setState(() => _submitted = true);
     final invalid = _form.currentState!.validateGranularly();
@@ -118,6 +170,7 @@ class _ArticleEditorState extends State<ArticleEditor> {
         final number = TextFormField(
           key: Key('part-${part.id}-number'),
           controller: part.number,
+          readOnly: part.shared,
           decoration: const InputDecoration(
             labelText: 'Part number',
             errorMaxLines: 3,
@@ -131,12 +184,17 @@ class _ArticleEditorState extends State<ArticleEditor> {
                 1) {
               return 'Already listed. Use one row with the total quantity.';
             }
+            if (!part.shared &&
+                _catalogue.any((p) => p['part_number'] == value!.trim())) {
+              return 'Part already exists. Choose it from existing parts.';
+            }
             return null;
           },
         );
         final description = TextFormField(
           key: Key('part-${part.id}-description'),
           controller: part.description,
+          readOnly: part.shared,
           decoration: const InputDecoration(
             labelText: 'Description',
             errorMaxLines: 2,
@@ -260,16 +318,35 @@ class _ArticleEditorState extends State<ArticleEditor> {
               Text('Parts', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 6),
               const Text(
-                'Add each component with its part number, description and quantity.',
+                'Reuse a shared part or create a new one. Quantities apply to this revision.',
               ),
               const SizedBox(height: 16),
               for (var i = 0; i < _parts.length; i++) _partRow(_parts[i], i),
-              OutlinedButton.icon(
-                onPressed: _parts.length < 1000
-                    ? () => setState(() => _parts.add(_PartInputs(_nextPart++)))
-                    : null,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add part'),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _catalogue.isNotEmpty && _parts.length < 1000
+                        ? choosePart
+                        : null,
+                    icon: const Icon(Icons.search, size: 18),
+                    label: const Text('Choose existing part'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _parts.length < 1000
+                        ? () => setState(
+                            () => _parts.add(_PartInputs(_nextPart++)),
+                          )
+                        : null,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Create part'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Shared part numbers and descriptions are fixed. Create a new part for a replacement.',
               ),
             ],
           ),
@@ -284,4 +361,76 @@ class _ArticleEditorState extends State<ArticleEditor> {
       FilledButton(onPressed: save, child: const Text('Save revision')),
     ],
   );
+}
+
+class _PartPicker extends StatefulWidget {
+  const _PartPicker({required this.parts, required this.listed});
+  final List<Json> parts;
+  final Set<String> listed;
+  @override
+  State<_PartPicker> createState() => _PartPickerState();
+}
+
+class _PartPickerState extends State<_PartPicker> {
+  String query = '';
+  @override
+  Widget build(BuildContext context) {
+    final matches = widget.parts
+        .where(
+          (part) => '${part['part_number']} ${part['description']}'
+              .toLowerCase()
+              .contains(query),
+        )
+        .toList();
+    return AlertDialog(
+      title: const Text('Choose existing part'),
+      content: SizedBox(
+        width: 620,
+        height: 360,
+        child: Column(
+          children: [
+            TextField(
+              key: const Key('part-search'),
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Search part number or description',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (value) =>
+                  setState(() => query = value.trim().toLowerCase()),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: matches.isEmpty
+                  ? const Center(child: Text('No matching parts.'))
+                  : ListView(
+                      children: [
+                        for (final part in matches)
+                          ListTile(
+                            title: Text(
+                              '${part['part_number']} — ${part['description']}',
+                            ),
+                            subtitle:
+                                widget.listed.contains(part['part_number'])
+                                ? const Text('Already in this revision')
+                                : null,
+                            enabled: !widget.listed.contains(
+                              part['part_number'],
+                            ),
+                            onTap: () => Navigator.pop(context, part),
+                          ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Back to article'),
+        ),
+      ],
+    );
+  }
 }

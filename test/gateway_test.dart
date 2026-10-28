@@ -84,10 +84,13 @@ void main() {
         caseVersion: 'B',
         parts: [],
       );
-      await gateway.reserve(
-        requestId: 'request',
-        revisionId: 'revision',
-        serialClass: 'D',
+      expect(
+        await gateway.reserve(
+          requestId: 'request',
+          revisionId: 'revision',
+          serialClass: 'D',
+        ),
+        '20000000-0000-4000-8000-000000000001',
       );
       await gateway.recordDiagnostic(
         requestId: 'evidence',

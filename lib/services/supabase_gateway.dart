@@ -1,10 +1,11 @@
 import 'package:supabase/supabase.dart';
 
 import '../domain/registry.dart';
+import '../domain/provisioning.dart';
 import 'memory_pkce.dart';
 
 /// The desktop has only a publishable key. Authorization stays in checked RPCs.
-final class SupabaseGateway implements WorkshopGateway {
+final class SupabaseGateway implements WorkshopGateway, ProvisioningGateway {
   factory SupabaseGateway(String url, String key) {
     final pkce = MemoryPkce();
     return SupabaseGateway.withClient(
@@ -104,16 +105,16 @@ final class SupabaseGateway implements WorkshopGateway {
   }
 
   @override
-  Future<void> reserve({
+  Future<String> reserve({
     required String requestId,
     required String revisionId,
     required String serialClass,
   }) async {
-    await _rpc('workshop_reserve_device', {
+    return await _rpc('workshop_reserve_device', {
       'p_request_id': requestId,
       'p_revision_id': revisionId,
       'p_serial_class': serialClass,
-    });
+    }) as String;
   }
 
   @override
@@ -127,6 +128,63 @@ final class SupabaseGateway implements WorkshopGateway {
       'p_device_id': deviceId,
       'p_report': report,
     });
+  }
+
+  @override
+  Future<Json> beginProvisioning({
+    required String requestId,
+    required String deviceId,
+    required String hardware,
+    required FirmwareBuild build,
+  }) async => Map<String, dynamic>.from(
+    await _rpc('workshop_begin_provisioning', {
+      'p_request_id': requestId,
+      'p_device_id': deviceId,
+      'p_hardware': hardware,
+      'p_source': build.source,
+      'p_artifact': build.artifact,
+      'p_version': build.version,
+    }) as Map,
+  );
+
+  @override
+  Future<void> completeProvisioning({
+    required String requestId,
+    required String deviceId,
+    required Json report,
+  }) async {
+    final session = _client.auth.currentSession;
+    if (session == null) throw SessionExpired();
+    try {
+      final response = await _client.functions
+          .invoke(
+            'workshop-provisioning',
+            headers: {'Authorization': 'Bearer ${session.accessToken}'},
+            body: {
+              'request_id': requestId,
+              'before': report['before'],
+              'after': report['after'],
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+      final data = response.data;
+      if (response.status != 200 ||
+          data is! Map ||
+          data['version'] != 1 ||
+          data['ok'] != true ||
+          data['device_id'] != deviceId ||
+          accountId != session.user.id) {
+        throw const ProvisioningFailure(
+          'Registry confirmation was not verified. Your proof is retained; retry its upload.',
+        );
+      }
+    } on FunctionException catch (error) {
+      if (error.status == 401) throw SessionExpired();
+      if (error.status == 403) throw OperatorDenied();
+      throw const ProvisioningFailure(
+        'Registry confirmation failed. Your proof is retained; retry its upload when the server verifier is available.',
+      );
+    }
   }
 
   @override

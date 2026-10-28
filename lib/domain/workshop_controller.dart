@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import 'ports.dart';
+import 'provisioning.dart';
 import 'registry.dart';
 
 enum Access { signedOut, sendingLink, awaitingLink, signingIn, denied, ready }
@@ -22,10 +23,12 @@ final class WorkshopController extends ChangeNotifier {
     this.gateway,
     this.runner,
     this.journal, {
+    this.provisioner,
     String Function()? idFactory,
     DateTime Function()? now,
   }) : _idFactory = idFactory ?? newRequestId,
        _now = now ?? DateTime.now;
+  final ProvisioningRunner? provisioner;
   final WorkshopGateway gateway;
   final BenchRunner runner;
   final EvidenceStore journal;
@@ -39,6 +42,13 @@ final class WorkshopController extends ChangeNotifier {
   String? readbackDeviceId;
   bool readbackSaved = false;
   int pendingEvidence = 0;
+  UsbInventory? usbInventory;
+  String? provisioningStage;
+  String? provisioningDeviceId;
+  ProvisioningOutcome? provisioningOutcome;
+  bool _cancelProvisioning = false;
+  bool get provisioningAvailable =>
+      provisioner != null && gateway is ProvisioningGateway;
   int _epoch = 0;
   bool _disposed = false;
   Completer<void>? _signingIn;
@@ -49,7 +59,11 @@ final class WorkshopController extends ChangeNotifier {
 
   Future<void> _closeResources() async {
     try {
-      await runner.cancel();
+      try {
+        await provisioner?.cancel();
+      } finally {
+        await runner.cancel();
+      }
     } finally {
       await gateway.dispose();
     }
@@ -73,6 +87,14 @@ final class WorkshopController extends ChangeNotifier {
     _requestedEmail = null;
     _queuedLink = null;
     registry = null;
+    usbInventory = null;
+    provisioningStage = null;
+    provisioningDeviceId = null;
+    provisioningOutcome = null;
+    readback = null;
+    readbackDeviceId = null;
+    readbackSaved = false;
+    pendingEvidence = 0;
     access = Access.sendingLink;
     busy = true;
     message = null;
@@ -182,6 +204,8 @@ final class WorkshopController extends ChangeNotifier {
   Future<void> action(
     Future<void> Function() operation, {
     Future<void> Function()? afterRefresh,
+    void Function(Object)? onError,
+    bool refreshRegistry = true,
   }) async {
     if (busy || access != Access.ready) return;
     final epoch = _epoch;
@@ -191,24 +215,30 @@ final class WorkshopController extends ChangeNotifier {
     try {
       await operation();
       if (epoch != _epoch) return;
-      final data = await gateway.load();
+      final data = refreshRegistry ? await gateway.load() : registry;
       if (epoch == _epoch) {
         registry = data;
         if (afterRefresh != null) await afterRefresh();
       }
     } catch (error) {
       if (epoch != _epoch) return;
+      onError?.call(error);
       if (error is OperatorDenied || error is SessionExpired) {
         registry = null;
         readback = null;
         access = Access.denied;
         message = 'Operator access is no longer available. Sign in again.';
+      } else if (error is BenchCancelled) {
+        message = 'Provisioning stopped. Keep this reservation; committed identity and saved evidence are retained for retry.';
+      } else if (error is ProvisioningFailure) {
+        message = error.message;
       } else {
         message = 'Operation could not be completed. Your existing records are retained; retry when ready.';
       }
     } finally {
       if (epoch == _epoch) {
         busy = false;
+        provisioningStage = null;
         _changed();
       }
     }
@@ -216,17 +246,17 @@ final class WorkshopController extends ChangeNotifier {
 
   Future<void> refresh() => action(() async {});
 
-  Future<void> reserve(String revision, String serialClass) async {
+  Future<String?> reserve(String revision, String serialClass) async {
     final parameters = '$revision\n$serialClass';
     final epoch = _epoch;
     final account = gateway.accountId;
-    if (account == null) return;
-    String? requestId;
+    if (account == null) return null;
+    String? requestId, reservedId;
     await action(
       () async {
         requestId = await journal.reservation(account, parameters, _idFactory);
         if (epoch != _epoch) return;
-        await gateway.reserve(
+        reservedId = await gateway.reserve(
           requestId: requestId!,
           revisionId: revision,
           serialClass: serialClass,
@@ -235,6 +265,7 @@ final class WorkshopController extends ChangeNotifier {
       afterRefresh: () =>
           journal.acknowledgeReservation(account, parameters, requestId!),
     );
+    return epoch == _epoch && message == null ? reservedId : null;
   }
 
   Future<void> verify(
@@ -297,25 +328,327 @@ final class WorkshopController extends ChangeNotifier {
     });
   }
 
-  Future<void> syncEvidence() => action(() async {
+  Future<void> discoverUsb() => action(() async {
     final epoch = _epoch;
-    final account = gateway.accountId!;
-    for (final record in await journal.pending(account)) {
-      if (epoch != _epoch) return;
-      await gateway.recordDiagnostic(
-        requestId: record['id'] as String,
-        deviceId: record['device_id'] as String,
-        report: record['report'] as Json,
+    final inventory = UsbInventory.fromJson(
+      await provisioner!.execute(
+        account: gateway.accountId!,
+        command: 'inventory',
+      ),
+    );
+    if (epoch == _epoch) usbInventory = inventory;
+  }, refreshRegistry: false);
+
+  void _provisionCheckpoint(int epoch) {
+    if (epoch != _epoch || _cancelProvisioning) throw BenchCancelled();
+  }
+
+  void _stage(String value) {
+    provisioningStage = value;
+    _changed();
+  }
+
+  Json _proofReport(Json report) {
+    Json frame(String key) {
+      final data = report[key] as Json;
+      final keys = data.keys.toList()..sort();
+      return {for (final name in keys) name: data[name]};
+    }
+
+    return {'before': frame('before'), 'after': frame('after')};
+  }
+
+  void _confirmed(String deviceId, Json report) {
+    final device = registry!.devices.where((d) => d.id == deviceId).firstOrNull;
+    if (device == null ||
+        device.state != 'provisioned' ||
+        device.hardwareUid != (report['after'] as Json)['hardware']) {
+      throw const ProvisioningFailure(
+        'Registry confirmation is incomplete. Your proof is retained; retry its upload.',
       );
-      await journal.synced(account, record['id'] as String);
     }
-    if (epoch == _epoch) {
-      pendingEvidence = (await journal.pending(account)).length;
+  }
+
+  void _checkProvisioningAttempt(
+    Json attempt,
+    String requestId,
+    DeviceRecord device,
+    ArticleRevision article,
+    UsbTarget target,
+    FirmwareBuild build,
+  ) {
+    final attemptRole = attempt.containsKey('role') ? attempt['role'] : 'Link';
+    if (attemptRole != article.role ||
+        attempt['request_id'] != requestId ||
+        attempt['device_id'] != device.id ||
+        attempt['serial'] != device.serial ||
+        attempt['article_id'] != article.articleId ||
+        attempt['article_revision_id'] != device.revisionId ||
+        attempt['hardware'] != target.hardware ||
+        attempt['source'] != build.source ||
+        attempt['artifact'] != build.artifact ||
+        !{'started', 'completed'}.contains(attempt['state'])) {
+      throw const ProvisioningFailure(
+        'The server attempt does not match this device/build. Keep the reservation and refresh.',
+      );
     }
-  });
+  }
+
+  Future<void> provision(
+    DeviceRecord device,
+    ArticleRevision article,
+    UsbTarget target,
+    FirmwareBuild build, {
+    Future<bool> Function(StoragePreparation)? confirmPreparation,
+  }) async {
+    final account = gateway.accountId;
+    if (account == null) return;
+    final epoch = _epoch;
+    String? requestId;
+    final parameters =
+        'provision\n${device.id}\n${target.hardware}\n${build.source}\n${build.artifact}';
+    Json? record;
+    await action(
+      () async {
+        provisioningDeviceId = device.id;
+        provisioningOutcome = ProvisioningOutcome.pending;
+        readback = null;
+        readbackDeviceId = null;
+        readbackSaved = false;
+        if (!provisioningAvailable ||
+            !{'Link', 'Core'}.contains(article.role) ||
+            build.role != article.role ||
+            !device.serial.startsWith('D') ||
+            device.ownerId != null ||
+            device.state == 'retired' ||
+            (device.hardwareUid != null &&
+                device.hardwareUid != target.hardware)) {
+          throw const ProvisioningFailure(
+            'Choose an unclaimed development device, matching product firmware and USB device.',
+          );
+        }
+        _cancelProvisioning = false;
+        readback = null;
+        readbackDeviceId = null;
+        readbackSaved = false;
+        _stage('Saving the provisioning attempt…');
+        requestId = await journal.reservation(account, parameters, _idFactory);
+        _provisionCheckpoint(epoch);
+        _stage('Checking operator access and device binding…');
+        final backend = gateway as ProvisioningGateway;
+        final attempt = await backend.beginProvisioning(
+          requestId: requestId!,
+          deviceId: device.id,
+          hardware: target.hardware,
+          build: build,
+        );
+        _provisionCheckpoint(epoch);
+        _checkProvisioningAttempt(
+          attempt,
+          requestId!,
+          device,
+          article,
+          target,
+          build,
+        );
+        Json report;
+        if (attempt['state'] == 'completed') {
+          report = _proofReport(attempt['report'] as Json);
+        } else {
+          if (target.mode == 'bootloader') {
+            _stage('Installing firmware. Keep the device connected…');
+            await provisioner!.execute(
+              account: account,
+              command: 'install',
+              parameters: {
+                'hardware': target.hardware,
+                'manifest': build.manifest,
+                'volume': target.volume,
+              },
+            );
+            _provisionCheckpoint(epoch);
+          }
+          _stage('Inspecting identity storage…');
+          Future<StoragePreparation> inspect(
+            String command,
+            Json binding, {
+            String? token,
+          }) async {
+            final result = await provisioner!.execute(
+              account: account,
+              command: command,
+              parameters: {
+                ...binding,
+                'manifest': build.manifest,
+                'inspection_token': ?token,
+              },
+            );
+            _provisionCheckpoint(epoch);
+            return StoragePreparation.fromJson(result, binding);
+          }
+
+          final preparation = await inspect('inspect-storage', attempt);
+          if (preparation.required) {
+            if (device.state != 'reserved') {
+              throw const ProvisioningFailure(
+                'Previously provisioned identity needs diagnosis. Storage preparation is disabled.',
+              );
+            }
+            _stage('Waiting for identity storage preparation confirmation…');
+            if (confirmPreparation == null ||
+                !await confirmPreparation(preparation)) {
+              throw BenchCancelled();
+            }
+            _provisionCheckpoint(epoch);
+            // Approval can remain open while an account/operator grant changes.
+            // Reauthorize the exact same request before any destructive command.
+            final fresh = await backend.beginProvisioning(
+              requestId: requestId!,
+              deviceId: device.id,
+              hardware: target.hardware,
+              build: build,
+            );
+            _provisionCheckpoint(epoch);
+            _checkProvisioningAttempt(
+              fresh,
+              requestId!,
+              device,
+              article,
+              target,
+              build,
+            );
+            if (fresh['state'] != 'started' || fresh['public_key'] != null) {
+              throw const ProvisioningFailure(
+                'Identity was registered while waiting. Keep the device and inspect again.',
+              );
+            }
+            _stage('Preparing and verifying identity storage…');
+            final prepared = await inspect(
+              'prepare-storage',
+              fresh,
+              token: preparation.token,
+            );
+            if (prepared.status != 'ready') {
+              throw const ProvisioningFailure(
+                'Identity storage did not verify ready. Keep the reservation and inspect the saved diagnostic.',
+              );
+            }
+          }
+          _stage('Verifying identity and key before and after reboot…');
+          // The firmware-owned runner verifies the target/source, reuses any
+          // committed key and persists proof checkpoints before returning.
+          report = _proofReport(
+            await provisioner!.execute(
+              account: account,
+              command: 'provision',
+              parameters: attempt,
+            ),
+          );
+        }
+        record = {
+          'id': requestId,
+          'kind': 'provisioning',
+          'device_id': device.id,
+          'parameters': parameters,
+          'report': report,
+        };
+        await journal.save(
+          account,
+          record!,
+        ); // Also retain late results after logout/cancel.
+        if (epoch != _epoch) return;
+        readback = report;
+        readbackDeviceId = device.id;
+        pendingEvidence = (await journal.pending(account)).length;
+        _provisionCheckpoint(epoch);
+        _stage('Confirming provisioning with the server…');
+        await backend.completeProvisioning(
+          requestId: requestId!,
+          deviceId: device.id,
+          report: report,
+        );
+      },
+      onError: (error) {
+        provisioningOutcome = error is BenchCancelled
+            ? ProvisioningOutcome.pending
+            : ProvisioningOutcome.failed;
+      },
+      afterRefresh: () async {
+        _confirmed(device.id, record!['report'] as Json);
+        await journal.synced(account, requestId!);
+        await journal.acknowledgeReservation(account, parameters, requestId!);
+        if (epoch == _epoch) {
+          readbackSaved = true;
+          provisioningOutcome = ProvisioningOutcome.successful;
+          pendingEvidence = (await journal.pending(account)).length;
+        }
+      },
+    );
+  }
+
+  Future<void> syncEvidence() => action(
+    () async {
+      final epoch = _epoch;
+      final account = gateway.accountId!;
+      for (final record in await journal.pending(account)) {
+        if (epoch != _epoch) return;
+        final id = record['id'] as String,
+            device = record['device_id'] as String;
+        if (record['kind'] == 'provisioning') {
+          final report = record['report'] as Json;
+          provisioningDeviceId = device;
+          provisioningOutcome = ProvisioningOutcome.pending;
+          readbackSaved = false;
+          _changed();
+          await (gateway as ProvisioningGateway).completeProvisioning(
+            requestId: id,
+            deviceId: device,
+            report: report,
+          );
+          if (epoch != _epoch) return;
+          final fresh = await gateway.load();
+          if (epoch != _epoch) return;
+          registry = fresh;
+          _confirmed(device, report);
+          await journal.synced(account, id);
+          await journal.acknowledgeReservation(
+            account,
+            record['parameters'] as String,
+            id,
+          );
+          if (epoch == _epoch) {
+            readback = report;
+            readbackDeviceId = device;
+            readbackSaved = true;
+            provisioningOutcome = ProvisioningOutcome.successful;
+          }
+        } else {
+          await gateway.recordDiagnostic(
+            requestId: id,
+            deviceId: device,
+            report: record['report'] as Json,
+          );
+          await journal.synced(account, id);
+        }
+      }
+      if (epoch == _epoch) {
+        pendingEvidence = (await journal.pending(account)).length;
+      }
+    },
+    onError: (_) {
+      if (provisioningOutcome == ProvisioningOutcome.pending) {
+        provisioningOutcome = ProvisioningOutcome.failed;
+      }
+    },
+  );
 
   Future<void> cancel() async {
-    await runner.cancel();
+    _cancelProvisioning = true;
+    try {
+      await provisioner?.cancel();
+    } finally {
+      await runner.cancel();
+    }
   }
 
   Future<void> signOut() async {
@@ -327,12 +660,21 @@ final class WorkshopController extends ChangeNotifier {
     readback = null;
     readbackSaved = false;
     pendingEvidence = 0;
+    usbInventory = null;
+    provisioningStage = null;
+    provisioningDeviceId = null;
+    provisioningOutcome = null;
+    _cancelProvisioning = true;
     busy = true;
     message = null;
     _changed();
     try {
       try {
-        await runner.cancel();
+        try {
+          await provisioner?.cancel();
+        } finally {
+          await runner.cancel();
+        }
       } catch (_) {
         /* SDK logout must still run if process cleanup fails. */
       }

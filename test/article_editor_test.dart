@@ -68,7 +68,7 @@ void main() {
       );
       await t.enterText(find.byKey(const Key('part-0-quantity')), '1');
       for (final row in [1, 2]) {
-        await tapVisible(t, find.text('Add part'));
+        await tapVisible(t, find.text('Create part'));
         await t.enterText(
           find.byKey(Key('part-$row-number')),
           'TEST-PART-$row',
@@ -177,7 +177,7 @@ void main() {
         isNull,
       );
       await t.enterText(find.byKey(const Key('part-0-number')), 'TEST-SAME');
-      await tapVisible(t, find.text('Add part'));
+      await tapVisible(t, find.text('Create part'));
       await t.enterText(find.byKey(const Key('part-1-number')), 'TEST-SAME');
       await t.enterText(
         find.byKey(const Key('part-1-description')),
