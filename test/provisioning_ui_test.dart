@@ -13,6 +13,7 @@ import 'widget_test.dart' as f;
 import 'ui_flow_test.dart' show MemoryEvidence;
 import 'provisioning_test.dart' as p;
 import 'identity_preparation_test.dart' show PreparationRunner;
+import 'control_preparation_test.dart' show ControlPreparationRunner;
 
 import 'package:octatrace_workshop/domain/provisioning.dart';
 
@@ -133,6 +134,44 @@ void main() {
       )
       .style!
       .color!;
+  testWidgets(
+    'control storage uses a separate confirmation and protects identity',
+    (t) async {
+      c.dispose();
+      runner = ControlPreparationRunner();
+      c = WorkshopController(
+        gateway,
+        f.Runner(),
+        MemoryEvidence(),
+        provisioner: runner,
+        idFactory: () => p.requestId,
+      );
+      await show(t);
+      await choose(t);
+      await t.tap(find.text('Verify and provision'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 300));
+      expect(find.text('Prepare control storage'), findsOneWidget);
+      expect(
+        find.textContaining('permanent identity and keys'),
+        findsOneWidget,
+      );
+      await expectLater(
+        find.byType(Dialog),
+        matchesGoldenFile('goldens/control-storage-confirmation.png'),
+      );
+      await t.tap(find.text('Keep unchanged'));
+      await t.pumpAndSettle();
+      expect((runner as ControlPreparationRunner).received, isNull);
+      await t.tap(find.text('Verify and provision'));
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 300));
+      await t.tap(find.text('Prepare and continue'));
+      await t.pumpAndSettle();
+      expect(find.text('SUCCESSFUL'), findsOneWidget);
+    },
+    tags: 'golden',
+  );
   testWidgets(
     'preparation can be declined and confirmed within the same workflow',
     (t) async {
@@ -325,6 +364,12 @@ void main() {
       expect(c.message, contains('Provisioning stopped'));
       expect(find.text('Retry evidence upload'), findsOneWidget);
       await t.tap(find.text('Retry evidence upload'));
+      await t.pumpAndSettle();
+      expect(c.readbackSaved, isFalse);
+      expect(gateway.completes, 0);
+      expect(c.message, contains('Control storage verification is pending'));
+      await select(t, 1, 'Synthetic LINK · app');
+      await t.tap(find.text('Verify and provision'));
       await t.pumpAndSettle();
       expect(c.readbackSaved, isTrue);
       expect(gateway.completes, 1);

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "id",
+    "ok",
+    "type",
+    "role",
+    "build",
+    "hardware",
+    "boot",
+    "state",
+    "busy",
+    "failed",
+    "prepared",
+    "fingerprint",
+    "last_request"
+  ],
+  "properties": {
+    "v": {
+      "const": 1,
+      "type": "integer"
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "ok": {
+      "const": true
+    },
+    "type": {
+      "const": "control_storage"
+    },
+    "role": {
+      "enum": [
+        "Link",
+        "Core"
+      ]
+    },
+    "build": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "hardware": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "boot": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "state": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "busy": {
+      "type": "boolean"
+    },
+    "failed": {
+      "type": "boolean"
+    },
+    "prepared": {
+      "type": "boolean"
+    },
+    "fingerprint": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "last_request": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    }
+  }
+}

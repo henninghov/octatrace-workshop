@@ -93,6 +93,34 @@ final class EvidenceJournal implements EvidenceStore {
     await temp.rename(file.path);
   }
 
+  Future<File> _controlReceipt(String account, Json record) async {
+    final dir = await _account(account);
+    final receipts = Directory('${dir.path}/control-confirmations');
+    await receipts.create(recursive: true);
+    return File('${receipts.path}/${_key(jsonEncode(record))}.json');
+  }
+
+  @override
+  Future<void> confirmControlStorage(String account, Json record) async {
+    final file = await _controlReceipt(account, record);
+    if (await file.exists()) {
+      if (await file.readAsString() != jsonEncode(record)) {
+        throw const FormatException('Control inspection receipt conflict');
+      }
+      return;
+    }
+    final temp = File('${file.path}.tmp');
+    await temp.writeAsString(jsonEncode(record), flush: true);
+    await temp.rename(file.path);
+  }
+
+  @override
+  Future<bool> controlStorageConfirmed(String account, Json record) async {
+    final file = await _controlReceipt(account, record);
+    return await file.exists() &&
+        await file.readAsString() == jsonEncode(record);
+  }
+
   @override
   Future<List<Json>> pending(String account) async {
     final dir = await _account(account);

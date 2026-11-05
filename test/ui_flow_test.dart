@@ -12,6 +12,15 @@ import 'widget_test.dart' as fixtures;
 
 class MemoryEvidence implements EvidenceStore {
   final values = <Json>[];
+  final controlReceipts = <String>{};
+  @override
+  Future<void> confirmControlStorage(String account, Json record) async {
+    controlReceipts.add('$account/${record["id"]}');
+  }
+
+  @override
+  Future<bool> controlStorageConfirmed(String account, Json record) async =>
+      controlReceipts.contains('$account/${record["id"]}');
   @override
   Future<String> reservation(
     String account,
@@ -26,6 +35,7 @@ class MemoryEvidence implements EvidenceStore {
   ) async {}
   @override
   Future<void> save(String account, Json record) async {
+    values.removeWhere((r) => r["id"] == record["id"]);
     values.add(record);
   }
 

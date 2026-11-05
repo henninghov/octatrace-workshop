@@ -29,7 +29,11 @@ class _ProvisioningPanelState extends State<ProvisioningPanel> {
       context: context,
       barrierDismissible: false,
       builder: (dialog) => AlertDialog(
-        title: const Text('Prepare identity storage'),
+        title: Text(
+          preparation.control
+              ? 'Prepare control storage'
+              : 'Prepare identity storage',
+        ),
         content: SizedBox(
           width: 480,
           child: Column(
@@ -41,11 +45,13 @@ class _ProvisioningPanelState extends State<ProvisioningPanel> {
               Text(preparation.boardName),
               const SizedBox(height: 12),
               Text(
-                'Prepare the reserved identity area (${preparation.bytes} bytes) for this device.',
+                'Prepare the reserved ${preparation.control ? 'control' : 'identity'} area (${preparation.bytes} bytes) for this device.',
               ),
               const SizedBox(height: 12),
-              const Text(
-                'This deletes its unknown contents. Existing identities are protected. Firmware, bootloader and Bluetooth bond storage are preserved.',
+              Text(
+                preparation.control
+                    ? 'This deletes unknown contents only. Existing control journals, permanent identity and keys, firmware, bootloader, configuration and Bluetooth bonds are protected.'
+                    : 'This deletes its unknown contents. Existing identities are protected. Firmware, bootloader and Bluetooth bond storage are preserved.',
               ),
             ],
           ),

@@ -24,6 +24,8 @@ abstract interface class EvidenceStore {
     String expectedId,
   );
   Future<void> save(String account, Json record);
+  Future<void> confirmControlStorage(String account, Json record);
+  Future<bool> controlStorageConfirmed(String account, Json record);
   Future<List<Json>> pending(String account);
   Future<void> synced(String account, String id);
 }

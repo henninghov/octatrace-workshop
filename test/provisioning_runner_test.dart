@@ -47,6 +47,8 @@ void main() {
     root = await Directory.systemTemp.createTemp('workshop-usb-adapter-');
     for (final path in [
       'usb-provisioning.lock.json',
+      'control-storage.lock.json',
+      ...ProcessProvisioningRunner.controlPins.keys,
       ...ProcessProvisioningRunner.pins.keys,
     ]) {
       final target = File('${root.path}/$path');
@@ -56,6 +58,18 @@ void main() {
   });
   tearDown(() async {
     await root.delete(recursive: true);
+  });
+  test('control storage lock and exact contract bytes are required', () async {
+    final lock = File('${root.path}/control-storage.lock.json');
+    final original = await lock.readAsString();
+    await lock.writeAsString('{}');
+    await expectLater(runner().verifyContract(), throwsFormatException);
+    await lock.writeAsString(original);
+    final contract = File(
+      '${root.path}/${ProcessProvisioningRunner.controlPins.keys.first}',
+    );
+    await contract.writeAsString('changed');
+    await expectLater(runner().verifyContract(), throwsFormatException);
   });
   test(
     'structured args and public-only stdin preserve private account partition',
@@ -263,7 +277,12 @@ void main() {
       await helper(
         'import json,sys\nprint(json.dumps({"args":sys.argv[1:],"input":json.load(sys.stdin)}))',
       );
-      for (final command in ['inspect-storage', 'prepare-storage']) {
+      for (final command in [
+        'inspect-storage',
+        'prepare-storage',
+        'inspect-control-storage',
+        'prepare-control-storage',
+      ]) {
         final report = await execute(
           runner(),
           command: command,
@@ -285,7 +304,7 @@ void main() {
         expect((report['input'] as Map).containsKey('access_token'), isFalse);
         expect(
           (report['input'] as Map).containsKey('inspection_token'),
-          command == 'prepare-storage',
+          command.startsWith('prepare-'),
         );
       }
       await expectLater(

@@ -34,6 +34,12 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     "contracts/usb-provisioning/vectors.json":
         "f4d7fd19a33e60883d60886c4ec10a46b1d37a2fde78a632038d902dabbc9361",
   };
+  static const controlPins = {
+    "contracts/control-storage/contract.json":
+        "7d8015cbd7dfb41758780cbecc1649a78e7a56a9a0582a993d92b9edc5672f0e",
+    "contracts/control-storage/response.schema.json":
+        "2d73b8d5e74854b987f20a9dc4419fd83335a98b9956b0b20b769a7a73509dc7",
+  };
   Future<void> verifyContract() async {
     final lock = jsonDecode(
       await File('$firmwareRoot/usb-provisioning.lock.json').readAsString(),
@@ -47,7 +53,20 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         'USB provisioning contract differs from Workshop',
       );
     }
-    for (final entry in pins.entries) {
+    final controlLock = jsonDecode(
+      await File('$firmwareRoot/control-storage.lock.json').readAsString(),
+    ) as Map;
+    if (controlLock['version'] != 1 ||
+        controlLock['files'] is! Map ||
+        (controlLock['files'] as Map).length != controlPins.length ||
+        controlPins.entries.any(
+          (e) => (controlLock['files'] as Map)[e.key] != e.value,
+        )) {
+      throw const FormatException(
+        'Control storage contract differs from Workshop',
+      );
+    }
+    for (final entry in {...pins, ...controlPins}.entries) {
       if (sha256
               .convert(await File('$firmwareRoot/${entry.key}').readAsBytes())
               .toString() !=
@@ -73,6 +92,8 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           'provision',
           'inspect-storage',
           'prepare-storage',
+          'inspect-control-storage',
+          'prepare-control-storage',
         }.contains(command)) {
       throw const FormatException('Invalid provisioning request');
     }
@@ -106,8 +127,12 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         ]);
       }
     }
-    final storage =
-        command == 'inspect-storage' || command == 'prepare-storage';
+    final storage = {
+      'inspect-storage',
+      'prepare-storage',
+      'inspect-control-storage',
+      'prepare-control-storage',
+    }.contains(command);
     if (command == 'provision' || storage) {
       // Only public server binding fields reach Python. Never send the session.
       input = jsonEncode({
@@ -123,7 +148,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           'challenge',
           'public_key',
           if (parameters.containsKey('role')) 'role',
-          if (command == 'prepare-storage') 'inspection_token',
+          if (command.startsWith('prepare-')) 'inspection_token',
         ])
           key: parameters[key],
       });
@@ -133,7 +158,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     }
     if (storage) {
       args.addAll(['--manifest', parameters['manifest'] as String]);
-      if (command == 'prepare-storage' &&
+      if (command.startsWith('prepare-') &&
           (parameters['inspection_token'] is! String ||
               !hexId(parameters['inspection_token'] as String, 64))) {
         throw const FormatException('Current storage confirmation required');
@@ -202,7 +227,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
       if (output[2] != 0) {
         if (storage) {
           throw const ProvisioningFailure(
-            'Identity storage preparation stopped. Keep this reservation and check the saved diagnostic, selected build and supported board profile. Leave the device in normal USB mode.',
+            'Storage preparation stopped. Keep this reservation and check the saved diagnostic, selected build and supported board profile. Leave the device in normal USB mode.',
           );
         }
         throw const ProvisioningFailure(

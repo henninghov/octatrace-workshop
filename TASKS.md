@@ -1,5 +1,28 @@
 # Workshop tasks
 
+## Session checkpoint — 5 November 2026
+
+A07 Workshop safeguards/software qualification and the original-device updates
+pass their scope. User requests committing/pushing the current feature branch
+and a plan for tomorrow. Full W01, physical preparation erase and future field/
+production workflows remain separate. Stop hardware work today; use canonical
+[results](../vectrc-app/docs/HANDOFF.md) and
+[6 November checklist](../vectrc-app/docs/NEXT_SESSION_20261106.md).
+
+## A07 control-storage bench safeguards — software Passed, 5 November 2026
+
+Workshop now adds separate control-storage inspection/confirmation after verified
+identity proof. Immutable late proofs survive cancel/logout; a separate receipt
+prevents upload retry bypassing unfinished control verification. The firmware-owned
+runner enforces exact layout/capability and blocks ordinary firmware below0.4.0
+for both roles. Tests161 plus configured startup,1,632/1,632 lines, fatal-info
+analysis, existing/new goldens, configured macOS Debug build and signature pass.
+Source2f973cf7; matching LINK/CORE0.4.0 source92f09caa and signed iPhone app5d9186a3
+are qualified. No app opened, device action, erase, install, RF or publication.
+All changes remain local/uncommitted. Next: user-operated guided physical bench;
+full W01 and physical preparation are not closed by this software pass.
+[Canonical scope, code walkthrough and evidence](../vectrc-app/docs/A07_WORKSHOP_PREPARATION.md).
+
 ## W01-P02 software/native Passed; new-board Pending — 28 October 2026
 
 Integrated profile-bound preparation with explicit consent, fresh authorization,

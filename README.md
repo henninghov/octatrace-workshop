@@ -1,6 +1,14 @@
 # Octatrace Workshop
 
-Current checkpoint: first-time storage inspection/preparation is integrated with
+Current checkpoint: A07 control-storage safeguards pass the full Workshop gate,
+configured native build and signature verification. Matching LINK/CORE0.4.0
+source0732191c is installed through Workshop; the scoped command bench passes.
+Standalone radio startup still needs per-boot USB setup. Shared results and
+the6 November resume plan remain canonical in the app repository.
+[Canonical walkthrough, build set and limits](../vectrc-app/docs/A07_WORKSHOP_PREPARATION.md).
+[Next-session checklist](../vectrc-app/docs/NEXT_SESSION_20261106.md).
+
+Previous W01-P02 checkpoint: first-time identity storage inspection/preparation is integrated with
 a one-time Prepare and continue dialog. SUCCESSFUL (green), PENDING (orange) and
 FAILED (red) appear beside server confirmation. Existing-device verification is
 Passed; first-time preparation on a new board is Pending.

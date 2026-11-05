@@ -1,0 +1,26 @@
+{
+  "profile": "octatrace-control-storage",
+  "version": 1,
+  "board_profile": "t114-nrf52840-s140v6-control-v1",
+  "roles": [
+    "Link",
+    "Core"
+  ],
+  "start": "0xe7000",
+  "end_exclusive": "0xe9000",
+  "page_bytes": 4096,
+  "pages": 2,
+  "commands": [
+    "P1 <id> control-storage",
+    "P1 <id> prepare-control <hardware16hex> <boot32hex> <fingerprint_uint32>"
+  ],
+  "states": {
+    "blank": 0,
+    "protected": 1,
+    "needs_preparation": 2,
+    "unavailable": 3
+  },
+  "fingerprint": "FNV-1a uint32 over all8192 bytes; change detector, not authentication",
+  "protection": "Refuse recognizable committed/partial control records in any1024-byte slot; no address from caller; physical development USB only; idle identity/flash/radio/phone worker; same-device/current-boot/current-fingerprint confirmation and durable host intent; full blank readback; failed accepted operation never auto-retried",
+  "duplicates": "same boot/request ID/fingerprint is admitted without executing twice; older ID refused; after reboot inspect anew"
+}

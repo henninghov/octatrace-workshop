@@ -451,6 +451,22 @@ final class WorkshopController extends ChangeNotifier {
           target,
           build,
         );
+        Future<void> retain(Json report) async {
+          record = {
+            'id': requestId,
+            'kind': 'provisioning',
+            'device_id': device.id,
+            'parameters': parameters,
+            'report': report,
+            'requires_control_storage': true,
+          };
+          await journal.save(account, record!);
+          if (epoch != _epoch) return;
+          readback = report;
+          readbackDeviceId = device.id;
+          pendingEvidence = (await journal.pending(account)).length;
+        }
+
         Json report;
         if (attempt['state'] == 'completed') {
           report = _proofReport(attempt['report'] as Json);
@@ -473,6 +489,7 @@ final class WorkshopController extends ChangeNotifier {
             String command,
             Json binding, {
             String? token,
+            bool control = false,
           }) async {
             final result = await provisioner!.execute(
               account: account,
@@ -484,7 +501,11 @@ final class WorkshopController extends ChangeNotifier {
               },
             );
             _provisionCheckpoint(epoch);
-            return StoragePreparation.fromJson(result, binding);
+            return StoragePreparation.fromJson(
+              result,
+              binding,
+              control: control,
+            );
           }
 
           final preparation = await inspect('inspect-storage', attempt);
@@ -544,22 +565,62 @@ final class WorkshopController extends ChangeNotifier {
               parameters: attempt,
             ),
           );
+          // Retain proof even if cancellation/logout happened while Python returned.
+          // It cannot be uploaded until the distinct control inspection completes.
+          await retain(report);
+          _provisionCheckpoint(epoch);
+          _stage('Inspecting control storage…');
+          final control = await inspect(
+            'inspect-control-storage',
+            attempt,
+            control: true,
+          );
+          if (control.required) {
+            _stage('Waiting for control storage preparation confirmation…');
+            if (confirmPreparation == null ||
+                !await confirmPreparation(control)) {
+              throw BenchCancelled();
+            }
+            _provisionCheckpoint(epoch);
+            final fresh = await backend.beginProvisioning(
+              requestId: requestId!,
+              deviceId: device.id,
+              hardware: target.hardware,
+              build: build,
+            );
+            _provisionCheckpoint(epoch);
+            _checkProvisioningAttempt(
+              fresh,
+              requestId!,
+              device,
+              article,
+              target,
+              build,
+            );
+            if (fresh['state'] != 'started' ||
+                fresh['public_key'] != attempt['public_key']) {
+              throw const ProvisioningFailure(
+                'Device registration changed while waiting. Inspect control storage again.',
+              );
+            }
+            _stage('Preparing and verifying control storage…');
+            final prepared = await inspect(
+              'prepare-control-storage',
+              fresh,
+              token: control.token,
+              control: true,
+            );
+            if (prepared.status != 'ready') {
+              throw const ProvisioningFailure(
+                'Control storage did not verify ready. Keep the saved evidence and inspect again.',
+              );
+            }
+          }
         }
-        record = {
-          'id': requestId,
-          'kind': 'provisioning',
-          'device_id': device.id,
-          'parameters': parameters,
-          'report': report,
-        };
-        await journal.save(
-          account,
-          record!,
-        ); // Also retain late results after logout/cancel.
+        await retain(report);
         if (epoch != _epoch) return;
-        readback = report;
-        readbackDeviceId = device.id;
-        pendingEvidence = (await journal.pending(account)).length;
+        _provisionCheckpoint(epoch);
+        await journal.confirmControlStorage(account, record!);
         _provisionCheckpoint(epoch);
         _stage('Confirming provisioning with the server…');
         await backend.completeProvisioning(
@@ -595,6 +656,12 @@ final class WorkshopController extends ChangeNotifier {
         final id = record['id'] as String,
             device = record['device_id'] as String;
         if (record['kind'] == 'provisioning') {
+          if (record['requires_control_storage'] == true &&
+              !await journal.controlStorageConfirmed(account, record)) {
+            throw const ProvisioningFailure(
+              'Control storage verification is pending. Use Verify and provision with the device in normal USB mode before uploading.',
+            );
+          }
           final report = record['report'] as Json;
           provisioningDeviceId = device;
           provisioningOutcome = ProvisioningOutcome.pending;

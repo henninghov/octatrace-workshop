@@ -61,12 +61,13 @@ final class UsbInventory {
 
 /// Public, attempt-bound preparation context. Board erase policy belongs to Python.
 final class StoragePreparation {
-  StoragePreparation.fromJson(Json data, Json attempt)
+  StoragePreparation.fromJson(Json data, Json attempt, {this.control = false})
     : status = data['status'] as String,
       profile = data['profile'] as Json,
       serial = data['serial'] as String,
       token = data['inspection_token'] as String? {
-    if (!{'ready', 'preserved', 'required'}.contains(status) ||
+    if ((control && data['area'] != 'control') ||
+        !{'ready', 'preserved', 'required'}.contains(status) ||
         !hexId(data['boot'] as String, 32) ||
         data['role'] != (attempt['role'] ?? 'Link') ||
         [
@@ -89,6 +90,7 @@ final class StoragePreparation {
       throw const FormatException('Invalid storage preparation context');
     }
   }
+  final bool control;
   final String status, serial;
   final Json profile;
   final String? token;

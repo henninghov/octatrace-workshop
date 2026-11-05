@@ -53,6 +53,7 @@ Json preparationJson(Json parameters, {String status = 'ready'}) => {
     key: parameters[key],
   'role': parameters['role'] ?? 'Link',
   'status': status,
+  'area': 'control',
   'boot': '1' * 32,
   'profile': {
     'id': 'synthetic-profile-v1',
@@ -84,7 +85,12 @@ class SetupRunner implements ProvisioningRunner {
         'builds': absent ? [] : [buildJson()],
       };
     }
-    if (command == 'inspect-storage' || command == 'prepare-storage') {
+    if ({
+      'inspect-storage',
+      'prepare-storage',
+      'inspect-control-storage',
+      'prepare-control-storage',
+    }.contains(command)) {
       return preparationJson(parameters);
     }
     if (command == 'install') {
@@ -236,7 +242,12 @@ void main() {
       await c.discoverUsb();
       expect(c.usbInventory!.targets.length, 2);
       await run();
-      expect(runner.commands, ['inventory', 'inspect-storage', 'provision']);
+      expect(runner.commands, [
+        'inventory',
+        'inspect-storage',
+        'provision',
+        'inspect-control-storage',
+      ]);
       expect(gateway.completes, 1);
       expect(c.registry!.devices.single.state, 'provisioned');
       expect(c.readbackSaved, isTrue);
@@ -266,6 +277,7 @@ void main() {
         'install',
         'inspect-storage',
         'provision',
+        'inspect-control-storage',
       ]);
       expect(c.readbackSaved, isTrue);
     },
@@ -283,7 +295,11 @@ void main() {
     await c.syncEvidence();
     expect(c.readbackSaved, isTrue);
     expect(c.pendingEvidence, 0);
-    expect(runner.commands, ['inspect-storage', 'provision']);
+    expect(runner.commands, [
+      'inspect-storage',
+      'provision',
+      'inspect-control-storage',
+    ]);
     expect(await reopened.pending(f.actor), isEmpty);
   });
   test('same attempt retry reuses UUID and immutable proof even if server key order differs', () async {
@@ -302,7 +318,11 @@ void main() {
     };
     await run();
     expect(gateway.begins, [requestId, requestId]);
-    expect(runner.commands, ['inspect-storage', 'provision']);
+    expect(runner.commands, [
+      'inspect-storage',
+      'provision',
+      'inspect-control-storage',
+    ]);
     expect(c.readbackSaved, isTrue);
   });
   test(
@@ -621,11 +641,19 @@ void main() {
     expect(c.readbackSaved, isTrue);
     expect(c.registry!.devices.single.id, device.id);
     expect(c.registry!.articles.single.role, 'Core');
-    expect(runner.commands, ['inspect-storage', 'provision']);
+    expect(runner.commands, [
+      'inspect-storage',
+      'provision',
+      'inspect-control-storage',
+    ]);
     gateway.mismatch = 'role';
     await c.provision(c.registry!.devices.single, article, target, coreBuild);
     expect(c.message, contains('does not match'));
-    expect(runner.commands, ['inspect-storage', 'provision']);
+    expect(runner.commands, [
+      'inspect-storage',
+      'provision',
+      'inspect-control-storage',
+    ]);
   });
   test(
     'inventory distinguishes role-specific builds at the same source revision',

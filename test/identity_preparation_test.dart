@@ -126,6 +126,7 @@ void main() {
         'inspect-storage',
         'prepare-storage',
         'provision',
+        'inspect-control-storage',
       ]);
       expect(runner.received!['inspection_token'], 'd' * 64);
       expect(gateway.begins, [p.requestId, p.requestId]);

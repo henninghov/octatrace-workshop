@@ -1,0 +1,8 @@
+{
+  "profile": "octatrace-control-storage",
+  "version": 1,
+  "files": {
+    "contracts/control-storage/contract.json": "7d8015cbd7dfb41758780cbecc1649a78e7a56a9a0582a993d92b9edc5672f0e",
+    "contracts/control-storage/response.schema.json": "2d73b8d5e74854b987f20a9dc4419fd83335a98b9956b0b20b769a7a73509dc7"
+  }
+}
