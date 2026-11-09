@@ -9,6 +9,8 @@ import '../domain/workshop_controller.dart';
 import 'article_editor.dart';
 import 'copyable_text.dart';
 import 'provisioning_panel.dart';
+import 'factory_panel.dart';
+import '../domain/factory_enrollment.dart';
 
 const orange = Color(0xfff46628);
 const charcoal = Color(0xff252525);
@@ -883,6 +885,15 @@ class _WorkshopShellState extends State<WorkshopShell> {
               ),
             ],
           ],
+          if (c!.gateway is FactoryGateway && article != null)
+            FactoryPanel(
+              key: ValueKey(
+                'factory-${selected.id}-${selected.state}-${selected.ownerId}-${article.role}',
+              ),
+              workshop: c!,
+              device: selected,
+              article: article,
+            ),
         ],
       ],
     );

@@ -32,3 +32,6 @@ cp coverage/lcov.info coverage/default.info
  --dart-define=WORKSHOP_FIRMWARE_ROOT=/nonexistent
 cp coverage/lcov.info coverage/configured.info
 python3 -B tools/check_coverage.py coverage/default.info coverage/configured.info
+
+# Native independent decoder verifies exact synthetic QR payloads from goldens.
+swift tools/check_factory_qr.swift

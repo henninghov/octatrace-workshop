@@ -1,11 +1,13 @@
 import 'package:supabase/supabase.dart';
 
 import '../domain/registry.dart';
+import '../domain/factory_enrollment.dart';
 import '../domain/provisioning.dart';
 import 'memory_pkce.dart';
 
 /// The desktop has only a publishable key. Authorization stays in checked RPCs.
-final class SupabaseGateway implements WorkshopGateway, ProvisioningGateway {
+final class SupabaseGateway
+    implements WorkshopGateway, ProvisioningGateway, FactoryGateway {
   factory SupabaseGateway(String url, String key) {
     final pkce = MemoryPkce();
     return SupabaseGateway.withClient(
@@ -185,6 +187,93 @@ final class SupabaseGateway implements WorkshopGateway, ProvisioningGateway {
         'Registry confirmation failed. Your proof is retained; retry its upload when the server verifier is available.',
       );
     }
+  }
+
+  bool _sameSession(Session session) =>
+      _client.auth.currentSession?.accessToken == session.accessToken &&
+      accountId == session.user.id;
+
+  @override
+  Future<Json> factoryStatus(String deviceId) async {
+    final session = _client.auth.currentSession;
+    if (session == null) throw SessionExpired();
+    final data = await _rpc('workshop_factory_enrollment', {
+      'p_device_id': deviceId,
+    });
+    if (!_sameSession(session) || data is! Map) throw const FactoryFailure();
+    return Map<String, dynamic>.from(data);
+  }
+
+  Future<Json> _factory(Json body) async {
+    final session = _client.auth.currentSession;
+    if (session == null) throw SessionExpired();
+    try {
+      final response = await _client.functions
+          .invoke(
+            'workshop-factory',
+            headers: {'Authorization': 'Bearer ${session.accessToken}'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 30));
+      final data = response.data;
+      if (!_sameSession(session) ||
+          response.status != 200 ||
+          data is! Map ||
+          data['v'] != 1 ||
+          data['ok'] != true) {
+        throw const FactoryFailure();
+      }
+      return Map<String, dynamic>.from(data);
+    } on FunctionException catch (error) {
+      if (error.status == 401) throw SessionExpired();
+      // C5.2 deliberately uses a generic denial for authorization/provider faults.
+      // A403 cannot be interpreted as proof that the whole operator was revoked.
+      throw const FactoryFailure();
+    }
+  }
+
+  @override
+  Future<Json> issueFactory({
+    required String requestId,
+    required String provisioningRequestId,
+    required String deviceId,
+    required String role,
+  }) async {
+    final result = await _factory({
+      'action': 'issue',
+      'request_id': requestId,
+      'provisioning_request_id': provisioningRequestId,
+    });
+    final data = result['enrollment'];
+    if (data is! Map ||
+        data['v'] != 1 ||
+        data['device_id'] != deviceId ||
+        data['environment'] != 'development' ||
+        data['role'] != role ||
+        data['state'] != 'ready' ||
+        data['head_revision'] is! int ||
+        (data['head_revision'] as int) < 1 ||
+        (data['head_revision'] as int) > 4294967295 ||
+        data['public_key_sha256'] is! String ||
+        !hexId(data['public_key_sha256'] as String, 64)) {
+      throw const FactoryFailure();
+    }
+    return Map<String, dynamic>.from(data);
+  }
+
+  @override
+  Future<String> revealFactory({
+    required String requestId,
+    required String deviceId,
+  }) async {
+    final result = await _factory({
+      'action': 'reveal',
+      'request_id': requestId,
+      'device_id': deviceId,
+    });
+    final text = result['private_claim_qr'];
+    if (text is! String || text.length != 145) throw const FactoryFailure();
+    return text;
   }
 
   @override

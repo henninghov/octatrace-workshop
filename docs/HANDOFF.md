@@ -1,5 +1,40 @@
 # Workshop handoff
 
+## C5.4 hosted activation / original-unit QR bench passed — 9 November 2026
+
+The development factory Edge endpoint and purpose-separated Vault keys are active.
+Both original CORE/LINK are Factory Ready with one immutable publication each;
+public signatures independently verify and UUID/device keys/hardware/Unclaimed
+state remain unchanged. Explicit reveals, fresh-sign-in recovery, Hide/navigation/
+foreground privacy, live Cancel with server completion but suppressed late output,
+and exact original-code recovery after full process restart pass. Actual CORE
+photo independently decodes to the exact145-character payload. iPhone Camera's
+“No usable data found” is separate from custom payload validity; app scan/claim
+remains C6/C7. No device flash/reset/ownership claim or startup-radio change.
+
+Final post-bench gate/build passes:117 tooling,180 Flutter+startup,1,907 Dart
+lines100%, strict deep signature and two deliberate faults. Publishable source
+`20224b58` /174 Git-verifiable inputs (Finder metadata excluded); complete fresh bundle `b65c24a9` is byte-identical to the bench artifact. Shared scope, code walkthrough and actual test evidence:
+[canonical C5.4 record](../../vectrc-app/docs/A07_FACTORY_ACTIVATION.md).
+Workshop operator sessions/PKCE remain memory-only; request a new link on restart.
+Field-phone offline access is a separate unchanged requirement. Earlier dated
+entries retain their original checkpoint status.
+
+## C5.3 software/native qualified — 9 November 2026
+
+Factory status/issuance and explicit private QR/raw-payload UI now pass in this
+repository. Hide/Cancel, sign-in recovery, account/session/lifecycle and persistent
+retry guards are covered. Full117 tooling/180 Flutter+configured startup pass;
+1,907/1,907 Dart lines100%; native build/strict signature, visual review, independent
+QR image decoding and two deliberate faults pass. Source `8c042e46` /177 inputs;
+Git base remainsbee57086; changes are local/uncommitted.
+
+[Canonical walkthrough, limits and C5.4 next](../../vectrc-app/docs/A07_WORKSHOP_FACTORY_UI.md).
+Hosted backend/keys and actual device QR/enrollment/scan remain unperformed. No app
+launch/install, flash, deployment, push or merge. C5/full W01 remain open. Earlier
+entries retain their own checkpoint state.
+
+
 ## Session checkpoint — 5 November 2026
 
 The user requests feature-branch commit/push and a durable next-session plan.
