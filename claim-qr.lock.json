@@ -1,0 +1,14 @@
+{
+  "profile": "octatrace-claim-qr",
+  "version": 1,
+  "status": "frozen_contract_only_local_unpublished",
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/claim-qr",
+  "files": {
+    "claim.schema.json": "ff7f2751f4834f09e0ef17da8cd207fb45b84f0c27442054ea44af2c5d77e27a",
+    "codec.py": "da80ece339b3bec52255ec59d40ec613607918cee9d44df9adedfaf51f4313cb",
+    "profile.json": "cb05a31fc736f2523a30b5108e8d5d530ad9574beb447c0d48ec670ef650be3e",
+    "reference.mjs": "30e6845be1c9037cd273375b89fcac14eb17acb8c01d7b869a6c378a7c095aac",
+    "vectors.json": "ea3e8f00da1b07fa02a98650a415659054f82cce3eaa5547277a567679520fa3"
+  }
+}

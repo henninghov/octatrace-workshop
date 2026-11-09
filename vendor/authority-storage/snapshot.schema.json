@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:octatrace:authority-storage:1",
+  "title": "Readable authority snapshot fields, never authority by themselves",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "local",
+    "records_hex"
+  ],
+  "properties": {
+    "v": {
+      "type": "integer",
+      "const": 1
+    },
+    "local": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "resource_uuid",
+        "resource_role",
+        "resource_key_sha256",
+        "resource_key_revision"
+      ],
+      "properties": {
+        "environment": {
+          "enum": [
+            "development",
+            "production"
+          ]
+        },
+        "resource_uuid": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "resource_role": {
+          "enum": [
+            "Link",
+            "Core"
+          ]
+        },
+        "resource_key_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "resource_key_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "records_hex": {
+      "type": "array",
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 540,
+        "pattern": "^([0-9a-f]{2}){1,270}$"
+      }
+    }
+  }
+}

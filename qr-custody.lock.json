@@ -1,0 +1,27 @@
+{
+  "profile": "octatrace-qr-custody",
+  "version": 1,
+  "source_repository": "octatrace-app",
+  "path": "vendor/qr-custody",
+  "files": {
+    "codec.py": "d512d3e4040397512da574a5cca72312af815267f06b3d0885314a7e222ecac6",
+    "custody.schema.json": "c69ffd282c33f2c869f94ef77af7c9fc1abc8b7ebba602df35a59693a5ab8728",
+    "profile.json": "7fd69e368949edacbf66061602a4ed346475a7745484d684bac3408dd20c8437",
+    "reference.mjs": "9138c131a488b9d70959c18ec1e9540d79ff8461364e8acba6381db2fa586706",
+    "vectors.json": "5c54745772ad72707c5167c5c1aed9303cd1fd4a15d33d346959e130b024577f"
+  },
+  "requires_claim_qr_files_sha256": {
+    "claim.schema.json": "ff7f2751f4834f09e0ef17da8cd207fb45b84f0c27442054ea44af2c5d77e27a",
+    "codec.py": "da80ece339b3bec52255ec59d40ec613607918cee9d44df9adedfaf51f4313cb",
+    "profile.json": "cb05a31fc736f2523a30b5108e8d5d530ad9574beb447c0d48ec670ef650be3e",
+    "reference.mjs": "30e6845be1c9037cd273375b89fcac14eb17acb8c01d7b869a6c378a7c095aac",
+    "vectors.json": "ea3e8f00da1b07fa02a98650a415659054f82cce3eaa5547277a567679520fa3"
+  },
+  "requires_device_credential_files_sha256": {
+    "codec.py": "69aa7463b5bf22e2847008d721bf64d66493710c2b5b3c38e263c05ac512e752",
+    "credential.schema.json": "b7234741815c4ed0cc8f2b7e7df781b64a79789ea889644602663f3ed06ed9dc",
+    "profile.json": "5ca10b68f9615c205670ba0527e3d6b81ead3b46a6b4462f8d11cae3ddd73638",
+    "reference.mjs": "9c31012962656abe57911262ba8a5066a453ee4c0a0682a4a6240ac583903578",
+    "vectors.json": "b17775838b416bb32a933a08a3f2090b5319d1dfe7105544a7873b26e5964dee"
+  }
+}

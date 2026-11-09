@@ -1,0 +1,559 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:octatrace:qr-custody:1",
+  "title": "QR custody v1 records; auth snapshots must be server trusted",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "binding"
+        },
+        "value": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "v",
+            "environment",
+            "device_uuid",
+            "role",
+            "public_key_sha256",
+            "claim_revision"
+          ],
+          "properties": {
+            "v": {
+              "type": "integer",
+              "const": 1
+            },
+            "environment": {
+              "type": "string",
+              "enum": [
+                "development",
+                "production"
+              ]
+            },
+            "device_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "Link",
+                "Core"
+              ]
+            },
+            "public_key_sha256": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "not": {
+                "const": "0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            },
+            "claim_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "record"
+        },
+        "value": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "v",
+            "environment",
+            "device_uuid",
+            "role",
+            "public_key_sha256",
+            "claim_revision",
+            "record_uuid",
+            "record_revision",
+            "payload_uuid",
+            "payload_revision",
+            "algorithm",
+            "wrapping_key_id",
+            "wrapped_key",
+            "nonce",
+            "ciphertext"
+          ],
+          "properties": {
+            "v": {
+              "type": "integer",
+              "const": 1
+            },
+            "environment": {
+              "type": "string",
+              "enum": [
+                "development",
+                "production"
+              ]
+            },
+            "device_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "Link",
+                "Core"
+              ]
+            },
+            "public_key_sha256": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "not": {
+                "const": "0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            },
+            "claim_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "record_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "record_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "payload_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "payload_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "algorithm": {
+              "const": "A256GCM"
+            },
+            "wrapping_key_id": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "wrapped_key": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 4096,
+              "pattern": "^([0-9a-f]{2}){1,2048}$"
+            },
+            "nonce": {
+              "type": "string",
+              "minLength": 24,
+              "maxLength": 24,
+              "pattern": "^[0-9a-f]{24}$",
+              "not": {
+                "const": "000000000000000000000000"
+              }
+            },
+            "ciphertext": {
+              "type": "string",
+              "minLength": 322,
+              "maxLength": 322,
+              "pattern": "^[0-9a-f]{322}$"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "verifier"
+        },
+        "value": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "v",
+            "environment",
+            "device_uuid",
+            "role",
+            "public_key_sha256",
+            "claim_revision",
+            "verifier_key_id",
+            "verifier_revision",
+            "algorithm",
+            "mac"
+          ],
+          "properties": {
+            "v": {
+              "type": "integer",
+              "const": 1
+            },
+            "environment": {
+              "type": "string",
+              "enum": [
+                "development",
+                "production"
+              ]
+            },
+            "device_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "Link",
+                "Core"
+              ]
+            },
+            "public_key_sha256": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "not": {
+                "const": "0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            },
+            "claim_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "verifier_key_id": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "verifier_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "algorithm": {
+              "const": "HS256"
+            },
+            "mac": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "request"
+        },
+        "value": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "v",
+            "action",
+            "request_uuid",
+            "environment",
+            "device_uuid",
+            "actor_uuid",
+            "session_uuid"
+          ],
+          "properties": {
+            "v": {
+              "type": "integer",
+              "const": 1
+            },
+            "action": {
+              "const": "reveal_private_qr"
+            },
+            "request_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "environment": {
+              "type": "string",
+              "enum": [
+                "development",
+                "production"
+              ]
+            },
+            "device_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "actor_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "session_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "const": "snapshot"
+        },
+        "value": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "v",
+            "environment",
+            "device_uuid",
+            "role",
+            "public_key_sha256",
+            "claim_revision",
+            "record_uuid",
+            "record_revision",
+            "verifier_revision",
+            "owner_uuid",
+            "ownership_epoch",
+            "actor_uuid",
+            "session_uuid",
+            "session_revision",
+            "authenticated_at",
+            "auth_event",
+            "logged_in",
+            "online",
+            "account_enabled",
+            "operator_enabled",
+            "operator_revision"
+          ],
+          "properties": {
+            "v": {
+              "type": "integer",
+              "const": 1
+            },
+            "environment": {
+              "type": "string",
+              "enum": [
+                "development",
+                "production"
+              ]
+            },
+            "device_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "Link",
+                "Core"
+              ]
+            },
+            "public_key_sha256": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$",
+              "not": {
+                "const": "0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            },
+            "claim_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "record_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "record_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "verifier_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "owner_uuid": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 36,
+                  "maxLength": 36,
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ownership_epoch": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            "actor_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "session_uuid": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "session_revision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "authenticated_at": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295
+            },
+            "auth_event": {
+              "enum": [
+                "sign_in",
+                "reauthenticated",
+                "refresh",
+                "unknown"
+              ]
+            },
+            "logged_in": {
+              "type": "boolean"
+            },
+            "online": {
+              "type": "boolean"
+            },
+            "account_enabled": {
+              "type": "boolean"
+            },
+            "operator_enabled": {
+              "type": "boolean"
+            },
+            "operator_revision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "owner_uuid": {
+                    "type": "null"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "ownership_epoch": {
+                    "const": 0
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "ownership_epoch": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "operator_enabled": {
+                    "const": true
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "operator_revision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4294967295
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

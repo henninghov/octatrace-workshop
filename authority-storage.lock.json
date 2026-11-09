@@ -1,0 +1,28 @@
+{
+  "profile": "octatrace-authority-storage",
+  "version": 1,
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/authority-storage",
+  "files": {
+    "codec.py": "0ff5d23900fd2fe679fa5c2ef3bad1b0c8a60a86ec7ee50a540199f63c5f4622",
+    "file_flash.py": "de0e6510f225512b08897948fe8d4576dd659cf77e15af3779da959b5af2dc0d",
+    "profile.json": "447aebe653efd9df8ef09b7eb5ccd33a09738de4c99fe03b7f12db4f062d5aef",
+    "reference.mjs": "7870df432f0f59a23121ed782a16bfa5c10c03eea163875304a7d7d1a27d7413",
+    "snapshot.schema.json": "7b107db31a06f024463655e7bde8e5c63d54d64db3fa6464dd9d2bf6d882c46c",
+    "vectors.json": "7c9e394a1807d894096e5c6b2f96e8c1809bfc41c409dc3987e9656915294ec2"
+  },
+  "requires_device_authority_files_sha256": {
+    "authority.schema.json": "2ffd303c6142df1b65a36f3950e60754445cac581d7362803a35a54e48272c3b",
+    "codec.py": "eba295cbce5f405ab5b374d0b0ece0d9747a128679222f5e9f7ad55028e24561",
+    "profile.json": "c9edf649d90c48002f3f0c22216f11748966fa66ead62cfa34f746716dee20fb",
+    "reference.mjs": "5c1936df2e82caa0e5cc30f481862b712f5e26e0a78567a7510ca2666c0067c4",
+    "vectors.json": "00b0e7e40c7a3bafff52a710cc3648c9d76d9b92f8e26173c065e8377fe6ec20"
+  },
+  "requires_device_credential_files_sha256": {
+    "codec.py": "69aa7463b5bf22e2847008d721bf64d66493710c2b5b3c38e263c05ac512e752",
+    "credential.schema.json": "b7234741815c4ed0cc8f2b7e7df781b64a79789ea889644602663f3ed06ed9dc",
+    "profile.json": "5ca10b68f9615c205670ba0527e3d6b81ead3b46a6b4462f8d11cae3ddd73638",
+    "reference.mjs": "9c31012962656abe57911262ba8a5066a453ee4c0a0682a4a6240ac583903578",
+    "vectors.json": "b17775838b416bb32a933a08a3f2090b5319d1dfe7105544a7873b26e5964dee"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:octatrace:authority-layout:1",
+  "title": "Target reservation metadata, not live authority capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "profile",
+    "start",
+    "end_exclusive",
+    "page_bytes",
+    "pages",
+    "bank_bytes",
+    "banks",
+    "journal_version",
+    "scope",
+    "runtime_authority",
+    "maintenance_version",
+    "layout_lock_sha256",
+    "journal_lock_sha256"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "profile": {
+      "const": "t114-nrf52840-s140v6-authority-v1"
+    },
+    "start": {
+      "const": "0xe1000"
+    },
+    "end_exclusive": {
+      "const": "0xe7000"
+    },
+    "page_bytes": {
+      "type": "integer",
+      "const": 4096
+    },
+    "pages": {
+      "type": "integer",
+      "const": 6
+    },
+    "bank_bytes": {
+      "type": "integer",
+      "const": 8192
+    },
+    "banks": {
+      "type": "integer",
+      "const": 3
+    },
+    "journal_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "scope": {
+      "const": "reservation_only"
+    },
+    "runtime_authority": {
+      "type": "boolean",
+      "const": false
+    },
+    "maintenance_version": {
+      "type": "integer",
+      "const": 0
+    },
+    "layout_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "journal_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

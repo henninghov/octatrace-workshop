@@ -1,0 +1,1068 @@
+{
+  "version": 1,
+  "synthetic": true,
+  "warning": "Public synthetic fixtures only; never register these examples or issue them as real claim codes. Syntax validation does not grant ownership.",
+  "valid": [
+    {
+      "name": "development_link",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "cbor_hex": "a60101020103010450111111111111411181111111111111110558202222222222222222222222222222222222222222222222222222222222222222065820000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    },
+    {
+      "name": "development_core",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Core",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAgRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "cbor_hex": "a60101020103020450111111111111411181111111111111110558202222222222222222222222222222222222222222222222222222222222222222065820000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    },
+    {
+      "name": "production_link",
+      "fields": {
+        "v": 1,
+        "environment": "production",
+        "role": "Link",
+        "device_uuid": "ffffffff-ffff-4fff-bfff-ffffffffffff",
+        "public_key_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "claim_secret": "fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe"
+      },
+      "text": "OCTATRACE-CLAIM-1:pgEBAgIDAQRQ________T_-__________wVYIP__________________________________________Blgg_v7-_v7-_v7-_v7-_v7-_v7-_v7-_v7-_v7-_v7-_v4",
+      "cbor_hex": "a60101020203010450ffffffffffff4fffbfffffffffffffff055820ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff065820fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe"
+    },
+    {
+      "name": "production_core",
+      "fields": {
+        "v": 1,
+        "environment": "production",
+        "role": "Core",
+        "device_uuid": "00000000-0000-4000-8000-000000000000",
+        "public_key_sha256": "0100000000000000000000000000000000000000000000000000000000000000",
+        "claim_secret": "0000000000000000000000000000000000000000000000000000000000000001"
+      },
+      "text": "OCTATRACE-CLAIM-1:pgEBAgIDAgRQAAAAAAAAQACAAAAAAAAAAAVYIAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABlggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE",
+      "cbor_hex": "a601010202030204500000000000004000800000000000000005582001000000000000000000000000000000000000000000000000000000000000000658200000000000000000000000000000000000000000000000000000000000000001"
+    }
+  ],
+  "invalid_text": [
+    {
+      "name": "null",
+      "text": null,
+      "environment": "development"
+    },
+    {
+      "name": "boolean",
+      "text": true,
+      "environment": "development"
+    },
+    {
+      "name": "number",
+      "text": 145,
+      "environment": "development"
+    },
+    {
+      "name": "array",
+      "text": [],
+      "environment": "development"
+    },
+    {
+      "name": "object",
+      "text": {},
+      "environment": "development"
+    },
+    {
+      "name": "empty",
+      "text": "",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_text",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh",
+      "environment": "development"
+    },
+    {
+      "name": "padding",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "environment": "development"
+    },
+    {
+      "name": "whitespace_prefix",
+      "text": " OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "whitespace_suffix",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\n",
+      "environment": "development"
+    },
+    {
+      "name": "unicode",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh\u00e9",
+      "environment": "development"
+    },
+    {
+      "name": "url",
+      "text": "https://example.invalid/OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "future_prefix",
+      "text": "OCTATRACE-CLAIM-2:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "wrong_case",
+      "text": "octatrace-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_61",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ=RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_43",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ+RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_47",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ/RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_32",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_10",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ\nRERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_9",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ\tRERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_37",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ%RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_33",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ!RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_0",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ\u0000RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "alphabet_233",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ\u00e9RERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "nonzero_base64_pad_bits",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh9",
+      "environment": "development"
+    },
+    {
+      "name": "missing_map_pair",
+      "text": "OCTATRACE-CLAIM-1:pQEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "extra_map_pair",
+      "text": "OCTATRACE-CLAIM-1:pwEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "indefinite_map",
+      "text": "OCTATRACE-CLAIM-1:vwEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "array_instead_of_map",
+      "text": "OCTATRACE-CLAIM-1:hgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "tag",
+      "text": "OCTATRACE-CLAIM-1:xgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "duplicate_key",
+      "text": "OCTATRACE-CLAIM-1:pgIBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "future_version",
+      "text": "OCTATRACE-CLAIM-1:pgECAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "boolean_version",
+      "text": "OCTATRACE-CLAIM-1:pgH1AgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "unknown_key",
+      "text": "OCTATRACE-CLAIM-1:pgEBBwEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "zero_environment",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgADAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "unknown_environment",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgMDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "negative_environment",
+      "text": "OCTATRACE-CLAIM-1:pgEBAiADAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "repeated_key",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgECAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "zero_role",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAARQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "unknown_role",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAwRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "null_role",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgED9gRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "reordered_key",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQVQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "short_uuid_declaration",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRPERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "long_uuid_declaration",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRRERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "text_uuid",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRwERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "wrong_hash_key",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQZYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "text_hash",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQV4ICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "short_hash",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYHyIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "long_hash",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYISIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "wrong_secret_key",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBVggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "text_secret",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBnggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "short_secret",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlgfAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "long_secret",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlghAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "uuid_wrong_version",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERMRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "uuid_wrong_variant",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQREBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "zero_uuid",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQAAAAAAAAAAAAAAAAAAAAAAVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "zero_fingerprint",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "development"
+    },
+    {
+      "name": "zero_secret",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_0",
+      "text": "OCTATRACE-CLAIM-1:",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_1",
+      "text": "OCTATRACE-CLAIM-1:pg",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_8",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQQ",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_9",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQ",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_24",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBERERERER",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_25",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQ",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_27",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVY",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_28",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYIA",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_59",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_60",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIi",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_62",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlg",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_63",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlgg",
+      "environment": "development"
+    },
+    {
+      "name": "truncated_binary_94",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHg",
+      "environment": "development"
+    },
+    {
+      "name": "trailing_binary",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8A",
+      "environment": "development"
+    },
+    {
+      "name": "nonminimal_version",
+      "text": "OCTATRACE-CLAIM-1:pgEYAQIBAwEEUBEREREREUERgREREREREREFWCAiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIgZYIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f",
+      "environment": "development"
+    },
+    {
+      "name": "nonminimal_map",
+      "text": "OCTATRACE-CLAIM-1:uAYBAQIBAwEEUBEREREREUERgREREREREREFWCAiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIgZYIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4f",
+      "environment": "development"
+    },
+    {
+      "name": "wrong_expected_environment",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "production"
+    },
+    {
+      "name": "invalid_expected_environment_75",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": null
+    },
+    {
+      "name": "invalid_expected_environment_76",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": "staging"
+    },
+    {
+      "name": "invalid_expected_environment_77",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": 1
+    },
+    {
+      "name": "invalid_expected_environment_78",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": []
+    },
+    {
+      "name": "invalid_expected_environment_79",
+      "text": "OCTATRACE-CLAIM-1:pgEBAgEDAQRQERERERERQRGBEREREREREQVYICIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiBlggAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "environment": {}
+    }
+  ],
+  "invalid_fields": [
+    {
+      "name": "shape_0",
+      "fields": null
+    },
+    {
+      "name": "shape_1",
+      "fields": []
+    },
+    {
+      "name": "shape_2",
+      "fields": true
+    },
+    {
+      "name": "shape_3",
+      "fields": "secret"
+    },
+    {
+      "name": "missing_v",
+      "fields": {
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_v_5",
+      "fields": {
+        "v": null,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_v_6",
+      "fields": {
+        "v": [],
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_v_7",
+      "fields": {
+        "v": false,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "missing_environment",
+      "fields": {
+        "v": 1,
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_environment_9",
+      "fields": {
+        "v": 1,
+        "environment": null,
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_environment_10",
+      "fields": {
+        "v": 1,
+        "environment": [],
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_environment_11",
+      "fields": {
+        "v": 1,
+        "environment": false,
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "missing_role",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_role_13",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": null,
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_role_14",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": [],
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_role_15",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": false,
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "missing_device_uuid",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_device_uuid_17",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": null,
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_device_uuid_18",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": [],
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_device_uuid_19",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": false,
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "missing_public_key_sha256",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_public_key_sha256_21",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": null,
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_public_key_sha256_22",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": [],
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "type_public_key_sha256_23",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": false,
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "missing_claim_secret",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    },
+    {
+      "name": "type_claim_secret_25",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": null
+      }
+    },
+    {
+      "name": "type_claim_secret_26",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": []
+      }
+    },
+    {
+      "name": "type_claim_secret_27",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": false
+      }
+    },
+    {
+      "name": "unknown_field",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "extra": "ignored"
+      }
+    },
+    {
+      "name": "version_0",
+      "fields": {
+        "v": 0,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "version_2",
+      "fields": {
+        "v": 2,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "version_-1",
+      "fields": {
+        "v": -1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "version_1",
+      "fields": {
+        "v": "1",
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "version_1.5",
+      "fields": {
+        "v": 1.5,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "environment_staging",
+      "fields": {
+        "v": 1,
+        "environment": "staging",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "environment_Development",
+      "fields": {
+        "v": 1,
+        "environment": "Development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "environment_",
+      "fields": {
+        "v": 1,
+        "environment": "",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "role_LINK",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "LINK",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "role_core",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "core",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "role_Terminal",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Terminal",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "role_",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "uuid_41",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-3111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "uuid_42",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-7111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "uuid_43",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111111141118111111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "uuid_44",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-11111111111A",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "uuid_45",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111\n",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "public_key_sha256_46",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "public_key_sha256_47",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "public_key_sha256_48",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "public_key_sha256_49",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "public_key_sha256_50",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "public_key_sha256_51",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222\n",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    },
+    {
+      "name": "claim_secret_52",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "name": "claim_secret_53",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    {
+      "name": "claim_secret_54",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    {
+      "name": "claim_secret_55",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      }
+    },
+    {
+      "name": "claim_secret_56",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+      }
+    },
+    {
+      "name": "claim_secret_57",
+      "fields": {
+        "v": 1,
+        "environment": "development",
+        "role": "Link",
+        "device_uuid": "11111111-1111-4111-8111-111111111111",
+        "public_key_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "claim_secret": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\n"
+      }
+    }
+  ]
+}

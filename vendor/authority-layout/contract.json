@@ -1,0 +1,49 @@
+{
+  "format": "octatrace-authority-layout",
+  "version": 1,
+  "profile": "t114-nrf52840-s140v6-authority-v1",
+  "application_start": 155648,
+  "application_end_exclusive": 921600,
+  "authority_start": 921600,
+  "authority_end_exclusive": 946176,
+  "page_bytes": 4096,
+  "banks": 3,
+  "bank_bytes": 8192,
+  "scope": "reservation_only",
+  "runtime_authority": false,
+  "maintenance_version": 0,
+  "symbols": {
+    "__octatrace_authority_start": 921600,
+    "__octatrace_authority_end": 946176,
+    "__octatrace_control_start": 946176,
+    "__octatrace_control_end": 954368,
+    "__octatrace_client_start": 954368,
+    "__octatrace_client_end": 962560,
+    "__octatrace_bond_start": 962560,
+    "__octatrace_bond_end": 970752,
+    "__octatrace_identity_start": 970752,
+    "__octatrace_identity_end": 978944
+  },
+  "linker_script_sha256": "16ae4c316ef0f09fea4ece4029e3699cc1770c1079012b4e94c1f401d38b08a0",
+  "workspace_budget_bytes": 12288,
+  "protected_regions_unchanged": {
+    "control": [
+      "0xe7000",
+      "0xe9000"
+    ],
+    "client": [
+      "0xe9000",
+      "0xeb000"
+    ],
+    "bonds": [
+      "0xeb000",
+      "0xed000"
+    ],
+    "identity": [
+      "0xed000",
+      "0xef000"
+    ]
+  },
+  "initialisation": "No authority writer or erase command in this checkpoint. New region may contain old application bytes; future approved inspection/preparation must preserve recognised authority and fail closed on uncertainty.",
+  "rollback": "Ordinary catalogue/image guard only; not secure boot, bootloader enforcement or physical anti-rollback."
+}

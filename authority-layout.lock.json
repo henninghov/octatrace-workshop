@@ -1,0 +1,19 @@
+{
+  "profile": "octatrace-authority-layout",
+  "version": 1,
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/authority-layout",
+  "requires_authority_storage_files_sha256": {
+    "codec.py": "0ff5d23900fd2fe679fa5c2ef3bad1b0c8a60a86ec7ee50a540199f63c5f4622",
+    "file_flash.py": "de0e6510f225512b08897948fe8d4576dd659cf77e15af3779da959b5af2dc0d",
+    "profile.json": "447aebe653efd9df8ef09b7eb5ccd33a09738de4c99fe03b7f12db4f062d5aef",
+    "reference.mjs": "7870df432f0f59a23121ed782a16bfa5c10c03eea163875304a7d7d1a27d7413",
+    "snapshot.schema.json": "7b107db31a06f024463655e7bde8e5c63d54d64db3fa6464dd9d2bf6d882c46c",
+    "vectors.json": "7c9e394a1807d894096e5c6b2f96e8c1809bfc41c409dc3987e9656915294ec2"
+  },
+  "files": {
+    "contract.json": "0a2a7e607f181a52dff4396249141ae374b5ef1f53b696289a08c3946cd0d5eb",
+    "manifest.schema.json": "0e082059e6fb90f6535544f1040c573992cfb2a598812e2de4ee1bdde36080c9",
+    "policy.py": "71961b9936da6b67da7c6a650feeea7a90dbd3b7c66f4e9d9d9340178767d8f1"
+  }
+}

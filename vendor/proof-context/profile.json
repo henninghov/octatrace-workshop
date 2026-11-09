@@ -1,0 +1,108 @@
+{
+  "format": "octatrace-proof-context",
+  "version": 1,
+  "setup_window_seconds": 300,
+  "setup_ux": "Hidden automatic challenge after LINK connection readiness; expiry renews same authorised operation without QR rescan or precommit code consumption; committed ownership recovery is separate",
+  "challenge": {
+    "aad": "OCTATRACE-SETUP-CHALLENGE-1",
+    "protected_labels": [
+      1,
+      4
+    ],
+    "issuer": "ownership_control",
+    "labels": {
+      "v": 1,
+      "purpose": 2,
+      "environment": 3,
+      "challenge_uuid": 4,
+      "operation_uuid": 5,
+      "owner_ref": 6,
+      "link_uuid": 7,
+      "link_role": 8,
+      "link_key_sha256": 9,
+      "link_key_revision": 10,
+      "link_boot": 11,
+      "link_nonce": 12,
+      "phone_installation_uuid": 13,
+      "phone_key_sha256": 14,
+      "phone_boot": 15,
+      "server_nonce": 16,
+      "issued_at": 17,
+      "expires_at": 18,
+      "owner_receipt_sha256": 19,
+      "ownership_epoch": 20,
+      "controller_revision": 21
+    },
+    "purpose": {
+      "first_claim": 1,
+      "phone_replace": 2
+    }
+  },
+  "proof": {
+    "aad": "OCTATRACE-SETUP-PROOF-1",
+    "protected_labels": [
+      1
+    ],
+    "signer": {
+      "Link": 1,
+      "Phone": 2
+    },
+    "labels": {
+      "v": 1,
+      "signer": 2,
+      "challenge_content_sha256": 3,
+      "challenge_uuid": 4,
+      "signer_boot": 5
+    },
+    "challenge_content_id": "SHA256 of challenge COSE Sig_structure, excludes signature bytes"
+  },
+  "field": {
+    "prefix": "OCTATRACE-FIELD-CONTEXT-1:",
+    "kind": {
+      "phone_link": 1,
+      "link_core": 2
+    },
+    "labels": {
+      "v": 1,
+      "kind": 2,
+      "environment": 3,
+      "handshake_profile_sha256": 4,
+      "attempt_uuid": 5,
+      "authority_context_sha256": 6,
+      "initiator_uuid": 7,
+      "initiator_key_sha256": 8,
+      "initiator_boot": 9,
+      "responder_uuid": 10,
+      "responder_key_sha256": 11,
+      "responder_boot": 12,
+      "initiator_nonce": 13,
+      "responder_nonce": 14,
+      "transcript_sha256": 15
+    },
+    "trust": "Untrusted application binding only; no authenticated handshake/readiness"
+  },
+  "cose": {
+    "tag": 18,
+    "algorithm": -7,
+    "signature_bytes": 64,
+    "hash": "SHA-256 exactly once",
+    "unprotected": {}
+  },
+  "limits": {
+    "challenge_bytes": 426,
+    "challenge_signing_bytes": 398,
+    "proof_bytes": 151,
+    "proof_signing_bytes": 118,
+    "field_bytes": 368,
+    "adapter_maximum": 512,
+    "uint32_max": 4294967295
+  },
+  "freshness": "Server verifies current known unused challenge and issued_at <= now < expires_at; device verifies current pending boot/nonce and elapsed < 300000ms; atomic consumption is later backend/storage work",
+  "field_policy": "No expiry or online renewal; current policy/owners, endpoints, boots, nonces, approved handshake-profile and authenticated-transcript hashes must bind in later C4.4",
+  "claim_route": "LINK first claim / phone replacement only; CORE QR-only ownership claim needs no powered device proof",
+  "references": [
+    "https://www.rfc-editor.org/rfc/rfc9052.html#section-4.2",
+    "https://www.rfc-editor.org/rfc/rfc9053.html#section-2.1",
+    "https://www.rfc-editor.org/rfc/rfc9528.html#section-3.9"
+  ]
+}

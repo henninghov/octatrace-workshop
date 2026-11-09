@@ -1,0 +1,127 @@
+{
+  "format": "octatrace-qr-custody",
+  "version": 1,
+  "source_repository": "octatrace-app",
+  "payload": {
+    "algorithm": "AES-256-GCM",
+    "key_bytes": 32,
+    "nonce_bytes": 12,
+    "tag_bytes": 16,
+    "plaintext_bytes": 145,
+    "ciphertext_and_tag_bytes": 161,
+    "aad_domain": "OCTATRACE-QR-PAYLOAD-1"
+  },
+  "wrapping": {
+    "provider": "protected server adapter, not selected here",
+    "context_domain": "OCTATRACE-QR-WRAP-1",
+    "opaque_ciphertext_bytes_max": 2048,
+    "key_role": "qr_wrapping",
+    "record_revision_authenticated": true
+  },
+  "verifier": {
+    "algorithm": "HMAC-SHA256",
+    "key_role": "qr_verifier",
+    "domain": "OCTATRACE-QR-VERIFIER-1",
+    "tag_bytes": 32,
+    "constant_time_comparison_required": true,
+    "key_id_and_revision_authenticated": true
+  },
+  "fields": {
+    "binding": [
+      "v",
+      "environment",
+      "device_uuid",
+      "role",
+      "public_key_sha256",
+      "claim_revision"
+    ],
+    "record": [
+      "v",
+      "environment",
+      "device_uuid",
+      "role",
+      "public_key_sha256",
+      "claim_revision",
+      "record_uuid",
+      "record_revision",
+      "payload_uuid",
+      "payload_revision",
+      "algorithm",
+      "wrapping_key_id",
+      "wrapped_key",
+      "nonce",
+      "ciphertext"
+    ],
+    "verifier": [
+      "v",
+      "environment",
+      "device_uuid",
+      "role",
+      "public_key_sha256",
+      "claim_revision",
+      "verifier_key_id",
+      "verifier_revision",
+      "algorithm",
+      "mac"
+    ],
+    "request": [
+      "v",
+      "action",
+      "request_uuid",
+      "environment",
+      "device_uuid",
+      "actor_uuid",
+      "session_uuid"
+    ],
+    "snapshot": [
+      "v",
+      "environment",
+      "device_uuid",
+      "role",
+      "public_key_sha256",
+      "claim_revision",
+      "record_uuid",
+      "record_revision",
+      "verifier_revision",
+      "owner_uuid",
+      "ownership_epoch",
+      "actor_uuid",
+      "session_uuid",
+      "session_revision",
+      "authenticated_at",
+      "auth_event",
+      "logged_in",
+      "online",
+      "account_enabled",
+      "operator_enabled",
+      "operator_revision"
+    ]
+  },
+  "nonce_policy": "One encryption per independently generated data key; reserve key commitment before encryption and retain it after failure. Real RNG/durable uniqueness is C5.",
+  "qr_retention": "Keep exact original canonical QR across owner transfer and encryption/verifier key rotation; current owner/operator access follows authoritative state; used QR cannot grant new first claim",
+  "access": {
+    "action": "reveal_private_qr",
+    "recent_auth_seconds": 900,
+    "auth_events": [
+      "sign_in",
+      "reauthenticated"
+    ],
+    "principals": [
+      "current_owner",
+      "enabled_normal_operator_before_or_after_claim"
+    ],
+    "stamp_domain": "OCTATRACE-QR-ACCESS-1",
+    "headers": {
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache"
+    },
+    "release": "Trusted adapter atomically rechecks access/stamp/current time and durably audits before release; not implemented as DB in this checkpoint"
+  },
+  "migration_scope": "No migration or DB write in C4.2c; provisioning/custody migrations C5, claim/recovery C6",
+  "key_separation": "Data keys, wrapping keys, verifier keys and factory/authority signing keys have separate roles; server secrets never on Workshop/app/field devices",
+  "references": [
+    "https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf",
+    "https://www.rfc-editor.org/rfc/rfc2104.html",
+    "https://www.rfc-editor.org/rfc/rfc4231.html#section-4.2"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:octatrace:claim-qr:1",
+  "title": "Untrusted claim QR v1 fields",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "environment",
+    "role",
+    "device_uuid",
+    "public_key_sha256",
+    "claim_secret"
+  ],
+  "properties": {
+    "v": {
+      "type": "integer",
+      "const": 1
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "development",
+        "production"
+      ]
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "Link",
+        "Core"
+      ]
+    },
+    "device_uuid": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "public_key_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$",
+      "not": {
+        "const": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "claim_secret": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$",
+      "not": {
+        "const": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "writeOnly": true
+    }
+  }
+}

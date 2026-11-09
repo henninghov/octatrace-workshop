@@ -1,0 +1,43 @@
+{
+  "format": "octatrace-authority-storage",
+  "version": 1,
+  "owner": "octatrace-firmware",
+  "geometry": {
+    "address": null,
+    "page_bytes": 4096,
+    "bank_bytes": 8192,
+    "banks": 3,
+    "total_bytes": 24576,
+    "header_bytes": 64,
+    "payload_capacity": 8128,
+    "max_signed_records": 24,
+    "word_bytes": 4,
+    "program_chunk_max": 128
+  },
+  "header": {
+    "magic_ascii": "OCTAAS01",
+    "byte_order": "little",
+    "version_offset": 8,
+    "generation_offset": 12,
+    "length_offset": 16,
+    "payload_sha256_offset": 20,
+    "header_crc32_offset": 52,
+    "commit_offset": 56,
+    "reserved_ff_offset": 60,
+    "payload_offset": 64,
+    "commit_value": 0,
+    "erased_byte": 255,
+    "crc_scope": "bytes0..51; CRC32/ISO-HDLC",
+    "digest_scope": "exact canonical snapshot payload"
+  },
+  "snapshot": "canonical CBOR [1,environment_enum,local_uuid_bstr16,role_enum,key_sha256_bstr32,key_revision_uint32,sorted_signed_record_bstrs]; sort by purpose enum then UUID; no pruning",
+  "commit": "Two identical complete committed copies of highest generation required for Ready/Installed; single newer candidate is Pending, completed under a fresh trusted guard; lower generation never silently selected after quorum loss",
+  "fault_model": "Serialized writer, completed erase/program operations, interruption at boundaries and word-prefix torn operations; detected corruption fails closed. Not arbitrary hardware corruption, full-flash rollback, secure boot, physical key protection or endurance qualification.",
+  "preparation": "All-FF is Unprepared, not first-installed. Explicit trusted preparation writes empty bound generation1 in two copies; no automatic erase of preexisting or corrupt state.",
+  "authority": "Verify every signed record with configured factory audience and ownership-control issuer; retain per-resource revision/owner epoch/removal; policy installation requires current owner evidence; changing owner leaves stale child policy ineligible",
+  "offline": "No network or clock renewal; no traffic key/readiness/Start restoration",
+  "limits": "24 signed records is a storage-format bound, not supported CORE count. Relative banks reserve no target address. Live SDK worker/command admission C8; compatibility/resource closure C4.3.3; physical C9.",
+  "references": [
+    "https://docs.nordicsemi.com/r/bundle/ps_nrf52840/page/nvmc.html"
+  ]
+}

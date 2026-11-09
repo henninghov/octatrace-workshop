@@ -1,0 +1,20 @@
+{
+  "profile": "octatrace-device-authority",
+  "version": 1,
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/device-authority",
+  "files": {
+    "authority.schema.json": "2ffd303c6142df1b65a36f3950e60754445cac581d7362803a35a54e48272c3b",
+    "codec.py": "eba295cbce5f405ab5b374d0b0ece0d9747a128679222f5e9f7ad55028e24561",
+    "profile.json": "c9edf649d90c48002f3f0c22216f11748966fa66ead62cfa34f746716dee20fb",
+    "reference.mjs": "5c1936df2e82caa0e5cc30f481862b712f5e26e0a78567a7510ca2666c0067c4",
+    "vectors.json": "00b0e7e40c7a3bafff52a710cc3648c9d76d9b92f8e26173c065e8377fe6ec20"
+  },
+  "requires_device_credential_files_sha256": {
+    "codec.py": "69aa7463b5bf22e2847008d721bf64d66493710c2b5b3c38e263c05ac512e752",
+    "credential.schema.json": "b7234741815c4ed0cc8f2b7e7df781b64a79789ea889644602663f3ed06ed9dc",
+    "profile.json": "5ca10b68f9615c205670ba0527e3d6b81ead3b46a6b4462f8d11cae3ddd73638",
+    "reference.mjs": "9c31012962656abe57911262ba8a5066a453ee4c0a0682a4a6240ac583903578",
+    "vectors.json": "b17775838b416bb32a933a08a3f2090b5319d1dfe7105544a7873b26e5964dee"
+  }
+}

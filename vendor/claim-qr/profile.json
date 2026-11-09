@@ -1,0 +1,68 @@
+{
+  "format": "octatrace-claim-qr",
+  "version": 1,
+  "status": "frozen_contract_only",
+  "text": {
+    "prefix": "OCTATRACE-CLAIM-1:",
+    "characters": 145,
+    "encoding": "ASCII; unpadded canonical base64url"
+  },
+  "cbor": {
+    "bytes": 95,
+    "map_pairs": 6,
+    "encoding": "RFC8949 core deterministic; exact fixed map; no tags, duplicates, unknown fields or trailing bytes",
+    "fields": [
+      {
+        "key": 1,
+        "name": "v",
+        "encoding": "uint",
+        "bytes": 1
+      },
+      {
+        "key": 2,
+        "name": "environment",
+        "encoding": "uint",
+        "bytes": 1
+      },
+      {
+        "key": 3,
+        "name": "role",
+        "encoding": "uint",
+        "bytes": 1
+      },
+      {
+        "key": 4,
+        "name": "device_uuid",
+        "encoding": "bstr",
+        "bytes": 16
+      },
+      {
+        "key": 5,
+        "name": "public_key_sha256",
+        "encoding": "bstr",
+        "bytes": 32
+      },
+      {
+        "key": 6,
+        "name": "claim_secret",
+        "encoding": "bstr",
+        "bytes": 32
+      }
+    ]
+  },
+  "environment": {
+    "development": 1,
+    "production": 2
+  },
+  "role": {
+    "Link": 1,
+    "Core": 2
+  },
+  "uuid": "canonical lowercase UUID v4; RFC variant 10; binary network order",
+  "public_key_sha256": "SHA256 of registered 65-byte uncompressed SEC1 P-256 public point, not hexadecimal text",
+  "claim_secret": "32 independent CSPRNG bytes per device; nonzero; private first-claim bearer proof; never device private key or BT passkey",
+  "zero_fingerprint": "rejected as a placeholder",
+  "packaging": "concealed private claim QR; visible labels contain public identity only",
+  "authority": "untrusted input; online registry and claim verification required",
+  "versioning": "Any change to field semantics, lengths, encodings or accepted forms requires a new reviewed profile version; never silently relax v1."
+}

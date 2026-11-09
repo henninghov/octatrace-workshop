@@ -3,6 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 workshop_sdk="${FLUTTER_SDK:-/Users/henninghov/Sites/sdk/flutter}"
 mkdir -p build coverage
+python3 -B tools/verify_claim_qr.py
+python3 -B tools/verify_device_credential.py
+python3 -B tools/verify_device_authority.py
+python3 -B tools/verify_proof_context.py
+python3 -B tools/verify_qr_custody.py
+python3 -B tools/verify_authority_storage.py
+python3 -B tools/verify_authority_layout.py
+python3 -B tools/verify_field_handshake.py
+python3 -B -m unittest discover -s tools/tests -v
 "$workshop_sdk/bin/flutter" --version --machine > build/flutter-version.json
 python3 -B - <<'PY'
 import json

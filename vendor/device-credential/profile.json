@@ -1,0 +1,47 @@
+{
+  "format": "octatrace-device-credential",
+  "version": 1,
+  "purpose": "factory identity only; no ownership, command authority or private-key possession proof",
+  "cose": {
+    "tag": 18,
+    "algorithm": -7,
+    "protected_labels": [
+      1,
+      4
+    ],
+    "unprotected": {},
+    "issuer_kid_bytes": 8,
+    "signature_bytes": 64,
+    "external_aad": "OCTATRACE-DEVICE-CREDENTIAL-1",
+    "hash": "SHA-256 exactly once"
+  },
+  "payload_labels": {
+    "v": 1,
+    "purpose": 2,
+    "environment": 3,
+    "credential_uuid": 4,
+    "credential_revision": 5,
+    "device_uuid": 6,
+    "role": 7,
+    "key_revision": 8,
+    "public_key": 9,
+    "serial": 10,
+    "article_uuid": 11,
+    "article_revision_uuid": 12,
+    "hardware_uid": 13
+  },
+  "limits": {
+    "object_bytes": 271,
+    "signing_bytes": 245,
+    "backend_signing_bytes": 512,
+    "revision_max": 4294967295,
+    "trusted_issuers": 8
+  },
+  "revision": "monotonic per device; same revision and signed content is retry; conflicting/lower revision denied; never wrap",
+  "expiry": "none; factory identity does not grant field access",
+  "references": [
+    "https://www.rfc-editor.org/rfc/rfc9052.html#section-4.2",
+    "https://www.rfc-editor.org/rfc/rfc9053.html#section-2.1",
+    "https://www.rfc-editor.org/rfc/rfc8949.html#section-4.2.1"
+  ]
+}

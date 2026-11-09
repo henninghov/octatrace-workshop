@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Octatrace bounded field handshake profile v2",
+  "const": {
+    "format": "octatrace-field-handshake",
+    "version": 2,
+    "validation_scope": "profile_metadata_only_no_authenticated_readiness",
+    "protocol": {
+      "name": "EDHOC",
+      "rfc": 9528,
+      "method": 0,
+      "suite": 2,
+      "message_4": "required",
+      "ead": "none",
+      "upstream_commit": "0363bd3af02265e919e888b60ccffb4606b68f16",
+      "upstream_archive_sha256": "ec2275ecb223e3efad834395f8630d1dda8789285850c6ada9a29e9d3dc2c7ba"
+    },
+    "credentials": {
+      "format": "canonical untagged CCS cnf/COSE_Key",
+      "cose_key": {
+        "kty": 2,
+        "alg": -7,
+        "crv": 1,
+        "point": "uncompressed SEC1 P-256, 65 bytes; both coordinates in CCS"
+      },
+      "kid": "first 8 bytes of SHA256(exact CCS bytes); not a trust anchor",
+      "id_cred": "COSE kid label 4; no credential by value",
+      "ccs_bytes": 81,
+      "resolution": "exact independently expected peer/role/key/current installed authority; reject unknown or ambiguous references"
+    },
+    "roles": {
+      "phone_link": [
+        "Phone",
+        "Link"
+      ],
+      "link_core": [
+        "Link",
+        "Core"
+      ]
+    },
+    "flights": {
+      "1": "Initiator prelude",
+      "2": "Responder prelude",
+      "3": "EDHOC message_1",
+      "4": "EDHOC message_2",
+      "5": "EDHOC message_3",
+      "6": "EDHOC message_4",
+      "7": "Initiator context confirmation",
+      "8": "Responder context confirmation"
+    },
+    "prelude": {
+      "bytes": 64,
+      "fields": [
+        "attempt_uuid16 network order",
+        "sender_current_boot16",
+        "sender_fresh_nonce32"
+      ],
+      "trust": "untrusted until real EDHOC and protected context confirmation"
+    },
+    "binding": {
+      "field_contract": "octatrace-proof-context/field/v1",
+      "transcript": "authenticated EDHOC TH_4, 32 bytes; never transport-header or caller-success flag",
+      "profile_hash": "SHA256 of exact profile.json file bytes",
+      "export_context": "SHA256(ASCII OCTATRACE-FIELD-EXPORT-1 || exact b3 field record)",
+      "purposes": {
+        "initiator_confirmation": 32768,
+        "responder_confirmation": 32769,
+        "initiator_traffic": 32770,
+        "responder_traffic": 32771
+      },
+      "key_bytes": 16,
+      "confirmation_aad": "ASCII OCTATRACE-FIELD-CONFIRM-1 || kind1 || flight1 || export_context32",
+      "confirmation_nonce": "13 zero bytes; separate per-direction/per-attempt exporter key; encrypt once and replay cached ciphertext only",
+      "confirmation_plaintext": "SHA256(exact b3 field record), 32 bytes",
+      "confirmation_ciphertext_bytes": 48,
+      "application_aead": "AES-128-CCM, 16-byte tag, 13-byte nonce; separate from EDHOC suite-2 internal 8-byte tag; no OSCORE adoption"
+    },
+    "transport": {
+      "message_bytes": 256,
+      "active_attempts_per_endpoint": 1,
+      "workspace_budget_bytes": 12288,
+      "radio": {
+        "kind": 2,
+        "magic": "4f48",
+        "version": 2,
+        "header_bytes": 32,
+        "frame_bytes": 74,
+        "fragment_payload_bytes": 42,
+        "frame_encoding": "fixed 74 bytes; zero-pad final payload; reject nonzero padding; total length excludes padding",
+        "maximum_fragments": 7,
+        "header": [
+          "magic2",
+          "version1",
+          "kind1",
+          "flight1",
+          "attempt_uuid16",
+          "receiver_selector8",
+          "total_length_le16",
+          "fragment_index1"
+        ],
+        "attempt_window_ms": 300000,
+        "response_wait_ms": 90000,
+        "maximum_flight_transmissions": 3,
+        "airtime": "existing shared radio::Airtime, including boot and uncertain TX; no reset",
+        "receiver_selector": "first 8 bytes of SHA256(ASCII OCTATRACE-FIELD-RECEIVER-1 || kind1 || attempt_uuid16 || intended_receiver_public_key_sha25632); public routing only, never authority; recompute per attempt and direction"
+      },
+      "bluetooth": {
+        "kind": 1,
+        "magic": "4f48",
+        "version": 2,
+        "header_bytes": 8,
+        "frame_bytes": 20,
+        "fragment_payload_bytes": 12,
+        "frame_encoding": "fixed 20 bytes; zero-pad final payload; reject nonzero padding; total length excludes padding",
+        "maximum_fragments": 22,
+        "header": [
+          "magic2",
+          "version1",
+          "kind1",
+          "flight1",
+          "total_length_le16",
+          "fragment_index1"
+        ],
+        "correlation": "current verified intended LINK connection generation plus complete prelude attempt UUID; disconnect clears temporary attempt",
+        "attempt_window_ms": 30000,
+        "response_wait_ms": 1000,
+        "maximum_flight_transmissions": 3,
+        "mtu": "fixed baseline 20-byte attribute value; no larger-MTU requirement"
+      }
+    },
+    "lifecycle": {
+      "deadline": "monotonic absolute attempt deadline; includes fragments, retries, waits and processing; no renewal on duplicate/sleep/reconnect",
+      "retry": "exact cached flight bytes; no new nonce, ephemeral key, protocol advance or budget on duplicate",
+      "completion": "Initiator requires responder context confirmation; Responder requires initiator confirmation and retains exact response until original deadline; never infer remote delivery",
+      "cancel": "clear temporary material/partial frames; preserve installed authority, command budgets and retained data",
+      "reboot": "discard ephemeral readiness; load verified installed identity/authority; no implicit Start",
+      "offline": "no wall-clock expiry or online renewal of installed owner permission",
+      "implementation": "C4.4.2 authenticated binding/provider qualified in isolation; C4.4.3 transport and C4.4.4 bounded resources are separate foundations; live C8 and physical C9"
+    }
+  }
+}

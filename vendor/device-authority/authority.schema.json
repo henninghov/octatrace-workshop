@@ -1,0 +1,683 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:octatrace:device-authority:1",
+  "title": "Signed ownership/control metadata v1; not bearer permission",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "environment",
+        "object_uuid",
+        "revision",
+        "resource_uuid",
+        "resource_key_sha256",
+        "resource_key_revision",
+        "owner_ref",
+        "ownership_epoch",
+        "issuer_kid",
+        "purpose",
+        "resource_role",
+        "claim_operation_uuid"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "development",
+            "production"
+          ]
+        },
+        "object_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "resource_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "resource_key_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "resource_key_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "owner_ref": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "ownership_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "issuer_kid": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16,
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          }
+        },
+        "purpose": {
+          "type": "string",
+          "const": "ownership_receipt"
+        },
+        "resource_role": {
+          "type": "string",
+          "enum": [
+            "Link",
+            "Core"
+          ]
+        },
+        "claim_operation_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "environment",
+        "object_uuid",
+        "revision",
+        "resource_uuid",
+        "resource_key_sha256",
+        "resource_key_revision",
+        "owner_ref",
+        "ownership_epoch",
+        "issuer_kid",
+        "purpose",
+        "resource_role",
+        "state",
+        "capabilities",
+        "phone_installation_uuid",
+        "phone_key_sha256"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "development",
+            "production"
+          ]
+        },
+        "object_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "resource_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "resource_key_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "resource_key_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "owner_ref": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "ownership_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "issuer_kid": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16,
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          }
+        },
+        "purpose": {
+          "type": "string",
+          "const": "phone_controller"
+        },
+        "resource_role": {
+          "type": "string",
+          "const": "Link"
+        },
+        "state": {
+          "type": "string",
+          "const": "grant"
+        },
+        "capabilities": {
+          "type": "array",
+          "enum": [
+            [
+              "read_state"
+            ],
+            [
+              "start"
+            ],
+            [
+              "stop"
+            ],
+            [
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "start"
+            ],
+            [
+              "read_state",
+              "stop"
+            ],
+            [
+              "read_state",
+              "rejoin"
+            ],
+            [
+              "start",
+              "stop"
+            ],
+            [
+              "start",
+              "rejoin"
+            ],
+            [
+              "stop",
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "start",
+              "stop"
+            ],
+            [
+              "read_state",
+              "start",
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "stop",
+              "rejoin"
+            ],
+            [
+              "start",
+              "stop",
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "start",
+              "stop",
+              "rejoin"
+            ]
+          ]
+        },
+        "phone_installation_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "phone_key_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "environment",
+        "object_uuid",
+        "revision",
+        "resource_uuid",
+        "resource_key_sha256",
+        "resource_key_revision",
+        "owner_ref",
+        "ownership_epoch",
+        "issuer_kid",
+        "purpose",
+        "resource_role",
+        "state",
+        "capabilities"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "development",
+            "production"
+          ]
+        },
+        "object_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "resource_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "resource_key_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "resource_key_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "owner_ref": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "ownership_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "issuer_kid": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16,
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          }
+        },
+        "purpose": {
+          "type": "string",
+          "const": "phone_controller"
+        },
+        "resource_role": {
+          "type": "string",
+          "const": "Link"
+        },
+        "state": {
+          "type": "string",
+          "const": "removed"
+        },
+        "capabilities": {
+          "type": "array",
+          "enum": [
+            []
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "environment",
+        "object_uuid",
+        "revision",
+        "resource_uuid",
+        "resource_key_sha256",
+        "resource_key_revision",
+        "owner_ref",
+        "ownership_epoch",
+        "issuer_kid",
+        "purpose",
+        "resource_role",
+        "state",
+        "capabilities",
+        "link_uuid",
+        "link_key_sha256",
+        "link_key_revision",
+        "link_ownership_epoch"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "development",
+            "production"
+          ]
+        },
+        "object_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "resource_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "resource_key_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "resource_key_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "owner_ref": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "ownership_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "issuer_kid": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16,
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          }
+        },
+        "purpose": {
+          "type": "string",
+          "const": "core_link"
+        },
+        "resource_role": {
+          "type": "string",
+          "const": "Core"
+        },
+        "state": {
+          "type": "string",
+          "const": "grant"
+        },
+        "capabilities": {
+          "type": "array",
+          "enum": [
+            [
+              "read_state"
+            ],
+            [
+              "start"
+            ],
+            [
+              "stop"
+            ],
+            [
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "start"
+            ],
+            [
+              "read_state",
+              "stop"
+            ],
+            [
+              "read_state",
+              "rejoin"
+            ],
+            [
+              "start",
+              "stop"
+            ],
+            [
+              "start",
+              "rejoin"
+            ],
+            [
+              "stop",
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "start",
+              "stop"
+            ],
+            [
+              "read_state",
+              "start",
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "stop",
+              "rejoin"
+            ],
+            [
+              "start",
+              "stop",
+              "rejoin"
+            ],
+            [
+              "read_state",
+              "start",
+              "stop",
+              "rejoin"
+            ]
+          ]
+        },
+        "link_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "link_key_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "link_key_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "link_ownership_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "v",
+        "environment",
+        "object_uuid",
+        "revision",
+        "resource_uuid",
+        "resource_key_sha256",
+        "resource_key_revision",
+        "owner_ref",
+        "ownership_epoch",
+        "issuer_kid",
+        "purpose",
+        "resource_role",
+        "state",
+        "capabilities"
+      ],
+      "properties": {
+        "v": {
+          "type": "integer",
+          "const": 1
+        },
+        "environment": {
+          "type": "string",
+          "enum": [
+            "development",
+            "production"
+          ]
+        },
+        "object_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "resource_uuid": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "resource_key_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        "resource_key_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "owner_ref": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "ownership_epoch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "issuer_kid": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 16,
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          }
+        },
+        "purpose": {
+          "type": "string",
+          "const": "core_link"
+        },
+        "resource_role": {
+          "type": "string",
+          "const": "Core"
+        },
+        "state": {
+          "type": "string",
+          "const": "removed"
+        },
+        "capabilities": {
+          "type": "array",
+          "enum": [
+            []
+          ]
+        }
+      }
+    }
+  ]
+}
