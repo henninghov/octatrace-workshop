@@ -1,0 +1,52 @@
+{
+  "profile": "octatrace-setup-bootstrap",
+  "version": 1,
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/setup-bootstrap",
+  "files": {
+    "procedure.json": "3930b98e52467849f6745ffd140921a7096477afac843fcf3e18b8695adb0c17",
+    "profile.json": "231f6d84835d94450afc358d0cd2cadf439f072ab3aa918fa5dfde9639d91029",
+    "reference.py": "87c8e01080c47ee3f0f865a569694215ef5e3815cad10dcedbdede0d1efcdf78",
+    "signed-report.json": "bfd023cc7a4e1065726686949778bb478a33b0b11eb75cfe7ce2d5f9822ee587",
+    "vectors.json": "1d52912b74b4351da6608258be21d95732c0f45e09b63703f6c9a498f6fa472a",
+    "vectors.schema.json": "841c22033a86627731a8200e4526c5b6f7a42eb7b4698c9ce39d5f0c4eb883dc"
+  },
+  "dependencies": {
+    "setup-bluetooth": {
+      "procedure.json": "d4f816991ce1310cb00ca4572a23c8d4942733f3cfbb1d181ff1a3eec8bf7e2c",
+      "profile.json": "96ab7ece823d1bdce8df73d075818c9870232c0c0621a7215e19b109a8df85fa",
+      "reference.py": "133ffecfe696ddd029900f81231c1f962c3c287245d60cd26f3866e89aa3563d",
+      "vectors.json": "e09792726db2eb8dc95d6acceb2ada754f7b1b58565c78a21e8ba58f1805ed77",
+      "vectors.schema.json": "2d46f27b856ecbb880f4426dac1309279a4a7c4ccf2f0f242de97fc879650ca5"
+    },
+    "setup-transfer": {
+      "vectors.json": "001c2b9a17e4873bee299ac8010c9724594ff4cb63ba03e75107a03814bef8e7",
+      "record.schema.json": "4f79a1d24d37a7ebb482130c53c05e9880522bb9d554506140a479684eb036ac",
+      "codec.py": "25f594dd001dcb9da9480058a3519813d9144bb2023f4eeb4b3a070de3159006",
+      "profile.json": "3da9a73abfa2dd4b3d011d4c3eb255dd4a840d947d60bbafb549f7087538a563",
+      "reference.mjs": "92b346bae56b6b0747a540cc251a597050be3f928c8d47c15dcaad4c731ab900"
+    },
+    "authority-storage": {
+      "codec.py": "0ff5d23900fd2fe679fa5c2ef3bad1b0c8a60a86ec7ee50a540199f63c5f4622",
+      "file_flash.py": "de0e6510f225512b08897948fe8d4576dd659cf77e15af3779da959b5af2dc0d",
+      "profile.json": "447aebe653efd9df8ef09b7eb5ccd33a09738de4c99fe03b7f12db4f062d5aef",
+      "reference.mjs": "7870df432f0f59a23121ed782a16bfa5c10c03eea163875304a7d7d1a27d7413",
+      "snapshot.schema.json": "7b107db31a06f024463655e7bde8e5c63d54d64db3fa6464dd9d2bf6d882c46c",
+      "vectors.json": "7c9e394a1807d894096e5c6b2f96e8c1809bfc41c409dc3987e9656915294ec2"
+    },
+    "device-authority": {
+      "authority.schema.json": "2ffd303c6142df1b65a36f3950e60754445cac581d7362803a35a54e48272c3b",
+      "codec.py": "eba295cbce5f405ab5b374d0b0ece0d9747a128679222f5e9f7ad55028e24561",
+      "profile.json": "c9edf649d90c48002f3f0c22216f11748966fa66ead62cfa34f746716dee20fb",
+      "reference.mjs": "5c1936df2e82caa0e5cc30f481862b712f5e26e0a78567a7510ca2666c0067c4",
+      "vectors.json": "00b0e7e40c7a3bafff52a710cc3648c9d76d9b92f8e26173c065e8377fe6ec20"
+    },
+    "device-credential": {
+      "codec.py": "69aa7463b5bf22e2847008d721bf64d66493710c2b5b3c38e263c05ac512e752",
+      "credential.schema.json": "b7234741815c4ed0cc8f2b7e7df781b64a79789ea889644602663f3ed06ed9dc",
+      "profile.json": "5ca10b68f9615c205670ba0527e3d6b81ead3b46a6b4462f8d11cae3ddd73638",
+      "reference.mjs": "9c31012962656abe57911262ba8a5066a453ee4c0a0682a4a6240ac583903578",
+      "vectors.json": "b17775838b416bb32a933a08a3f2090b5319d1dfe7105544a7873b26e5964dee"
+    }
+  }
+}

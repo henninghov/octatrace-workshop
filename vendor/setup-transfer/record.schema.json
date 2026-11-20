@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Candidate untrusted setup record metadata v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "factory_credential"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 2,
+          "maxLength": 542
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "ownership_receipt"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 2,
+          "maxLength": 540
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "phone_controller"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 2,
+          "maxLength": 540
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "core_link"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 2,
+          "maxLength": 540
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "setup_challenge"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 2,
+          "maxLength": 852
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "setup_proof"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 2,
+          "maxLength": 302
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "installation_report"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 2,
+          "maxLength": 768
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "device_uuid",
+        "correlation_uuid",
+        "body_hex"
+      ],
+      "properties": {
+        "kind": {
+          "const": "phone_custody"
+        },
+        "device_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "correlation_uuid": {
+          "type": "string",
+          "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+          "minLength": 36,
+          "maxLength": 36
+        },
+        "body_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "minLength": 64,
+          "maxLength": 64,
+          "not": {
+            "const": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "format": "octatrace-radio-validation",
+  "version": 1,
+  "status": "candidate host contract; no live or physical readiness",
+  "scope": "One currently authorized LINK and CORE after locally confirmed directional-key adoption, or after a fresh radio-only field handshake following reboot. No installation, command, capture or custody permission is inferred.",
+  "wire": {
+    "bytes": 50,
+    "header_bytes": 18,
+    "header": "magic 4f56; version 1; kind 1; selector 8; sender role 1; unsigned counter LE32; payload size 1 = 16",
+    "selector": "first 8 bytes of SHA256(ASCII OCTATRACE-RADIO-VALIDATION-SELECTOR-1 || field export context 32); public routing only",
+    "roles": {"CORE": 1, "LINK": 2},
+    "kinds": {"challenge": 1, "response": 2, "acknowledgement": 3, "confirmation": 4},
+    "senders": {"challenge": "LINK", "response": "CORE", "acknowledgement": "LINK", "confirmation": "CORE"},
+    "payload": "16-byte LINK-generated unpredictable fresh challenge. Reuse of a challenge within the same adopted field context is forbidden; failure to obtain fresh randomness fails closed. Each owner keeps a finite non-evicting history with an injected capacity; on exhaustion refuse further validation and establish fresh field keys. The capacity is measured later, not guessed here.",
+    "envelope": "header18 || AES-128-CCM ciphertext16 || tag16; strict lengths and role/kind validation; no padding; incompatible magic/version/selector denied"
+  },
+  "crypto": {
+    "keys": "HKDF-SHA256, salt = 32-byte field export context, input key = corresponding 16-byte confirmed directional traffic key, info = ASCII OCTATRACE-RADIO-VALIDATION-KEY-1 || sender role byte, output = 16 bytes. Domain-separated derived keys are never used for ordinary radio traffic.",
+    "nonce": "13 bytes: ASCII OVP1 || five zero bytes || nonzero sender validation counter LE32. Per-derived-key counter is serialized, monotonic across retries and validation attempts, consumed before encryption, never reset under the same key, and never wraps.",
+    "aad": "ASCII OCTATRACE-RADIO-VALIDATION-AAD-1 || SHA256(exact profile.json bytes) || field export context 32 || exact header18",
+    "tag_bytes": 16,
+    "authentication": "Only actual successful authenticated decryption with independently current confirmed pair/context is evidence. Public selector, packet arrival, driver success, an adapter flag alone or a development USB key is not authentication. Mark replay state only after successful authentication."
+  },
+  "states": {
+    "sequence": "LINK challenge; CORE response; LINK acknowledgement; CORE confirmation, all bound to identical current challenge and full channel context",
+    "core": "local success only after authenticating the matching acknowledgement; retain exact encrypted confirmation for bounded duplicate acknowledgement retry",
+    "link": "pair radio ready only after authenticating matching final confirmation; response or a local transmit callback is insufficient",
+    "asymmetry": "a lost final confirmation can leave CORE locally complete while LINK remains pending; duplicate acknowledgement may replay the exact cached confirmation. No global remote receipt is inferred.",
+    "replay": "One active attempt per pair. Cache exact authenticated incoming packet and corresponding immutable response for each relevant flight until the original attempt retires. Only byte-identical previously authenticated duplicates in the same current attempt may replay the exact cached ciphertext; never encrypt a second message under the same nonce. Older, conflicting, wrong-context, unexpected, invalid or stale packets never advance state or extend deadline.",
+    "attempt": "LINK starts with fresh unpredictable nonzero challenge; bounded automatic retries retransmit the exact pending packet. Finite transmission cap and absolute elapsed deadline are supplied by the runtime policy, not guessed here. Duplicates, reconnect, sleeps and retries cannot renew them. Unknown, backward or expired time and exhausted limits fail closed. Preserve a driver-borrowed TX frame until its matching completion, including cancellation; shared airtime and uncertain-TX accounting remain owned by the existing radio worker.",
+    "failed": "report radio not ready, preserve installed permissions and original unsynced reports, counter and airtime state. A fresh explicitly admitted attempt uses a fresh challenge and existing live field keys only if both boots, authority and context are still current; otherwise establish fresh keys first. Never re-run ownership setup solely for validation failure."
+  },
+  "remote_reboot": "Discard volatile old keys, nonce/counter readiness and old validation attempts when either boot changes. Independently load verified eligible installed peer and owner policy, then use the pinned field-handshake v2 LINK initiator / CORE responder radio profile with current boots, fresh attempt UUID and nonces, protected context confirmation and fresh directional traffic keys. Its original 300000 ms maximum, three transmissions per flight and 90000 ms response wait remain in force with shared airtime. After local confirmed key adoption perform this profile's four authenticated validation flights; no Bluetooth proximity, cloud renewal, implicit Start or reset of persisted permission is required. A claimed boot in an unauthenticated radio packet does not itself authorize replacing a live context.",
+  "later_qualification": "C8.1.7 must review validation timing/capacity against measurements; C8.9 must implement derived keys, counter and replay ownership, driver lifetime, actual fresh radio handshake and this wire; C9 and Workshop require physical paired-device tests."
+}

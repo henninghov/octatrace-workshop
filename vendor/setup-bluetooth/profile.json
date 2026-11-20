@@ -1,0 +1,48 @@
+{
+  "profile": "octatrace-setup-bluetooth",
+  "version": 1,
+  "scope": "Discovery and compatibility on a single local connection generation. All advertised and negotiated metadata is untrusted.",
+  "uuid_suffix": "-0595-4016-9495-aeeb59da74f9",
+  "routes": {
+    "1": {"name": "phone_link", "central": "phone", "peripheral": "LINK", "advertised": "c10a0001", "service": "c10a0100", "control_write": "c10a0101", "control_notify": "c10a0102", "record_write": "c10a0103", "record_notify": "c10a0104"},
+    "2": {"name": "link_core", "central": "LINK", "peripheral": "CORE", "advertised": "c10a0200", "service": "c10a0200", "control_write": "c10a0201", "control_notify": "c10a0202", "record_write": "c10a0203", "record_notify": "c10a0204"}
+  },
+  "gatt": {
+    "control_write": "write_with_response",
+    "control_notify": "notify",
+    "record_write": "write_with_response",
+    "record_notify": "notify"
+  },
+  "discovery": "Append uuid_suffix to each UUID prefix. Discover exactly one expected primary setup service and one of each listed characteristic with its specified property. Confirm both notify subscriptions on this generation before HELLO. Keep existing LINK advertisement and status service. CORE advertises its setup service without permanent identity, ownership or QR data. No phone scan for CORE.",
+  "access": "Phone-LINK requires the existing authorized protected phone connection before setup negotiation. LINK-CORE permits unprivileged bootstrap negotiation during admitted discovery. No bond, advertisement, capability, subscription or SELECT proves device identity, installed permissions or possession of a private key.",
+  "features": {"setup_transfer_v1": 1, "link_setup_proof": 2, "find_selected_core": 4, "core_relay": 8, "core_setup_endpoint": 16},
+  "operations": {
+    "1": {"name": "link_claim_proof", "route": 1, "required": 3},
+    "2": {"name": "find_selected_core", "route": 1, "required": 4},
+    "3": {"name": "relay_core_records", "route": 1, "required": 9},
+    "4": {"name": "core_setup_records", "route": 2, "required": 17},
+    "5": {"name": "link_setup_records", "route": 1, "required": 1}
+  },
+  "control": {
+    "length": 12,
+    "layout": "u8 envelope=1, u8 kind, u8 route, u8 operation, u16le request, u8 minimum, u8 maximum, u16le features, u8 reason, u8 reserved=0",
+    "kind": {"hello": 1, "select": 2, "reject": 3},
+    "reason": {"ok": 0, "unsupported_operation": 1, "incompatible_version": 2, "missing_features": 3},
+    "hello": "Nonzero increasing request ID; nonzero ordered version range; offered feature mask; zero reason. On the expected GATT route only. Malformed/wrong-route envelope is discarded. Unknown operation on this route is a correlated REJECT.",
+    "selection": "Responder checks in order: supported operation for this route, common version, all required bits offered and locally supported. Envelope 1 selects setup version 1 when in both ranges and implemented. SELECT echoes route/operation/request, both versions equal 1, exactly the operation's required bits, zero reason. Extra offers are ignored. REJECT echoes route/operation/request with zero versions/features and one defined nonzero reason. No fallback for failed setup.",
+    "lifetime": "One pending selection per hop. Keep a strictly increasing request counter per connection, including cancelled requests. On exhaustion reconnect. Clear compatibility on cancellation, disconnect, changed GATT service/subscription/security or replaced generation. A selection is scoped to its operation, previously sent HELLO and current generation. Never reuse a live generation. Start a new selection to change operations."
+  },
+  "find_target": {
+    "length": 20,
+    "layout": "u8 envelope=1, u8 kind, u16le accepted FIND request, 16 network-order bytes of the selected permanent CORE UUIDv4",
+    "kind": {"find": 16, "candidate_matches": 17, "search_ended": 18},
+    "semantics": "On a protected phone-LINK connection admitted for this selected setup, FIND follows SELECT for operation 2. One immutable target per request. LINK negotiates operation 4 independently on each candidate connection and checks the original configured-factory-signed credential, CORE role and independently expected UUID/key binding. Mismatches may continue scanning within the original attempt. Reply echoes the request and intended UUID. A match means the credential matches the selection. Active peer proof and signed-only delivery admission have independent gates. Search ended means there was no accepted match before cancellation/expiry or other failure. Discard late callbacks on either hop."
+  },
+  "records": "Use the existing setup-transfer v1 frames, exactly 20 bytes per write-with-response or notification. Accept record traffic only for a selected record-capable operation and its separately admitted kind, target and correlation. During discovery only bounded public credential identification may be requested at the independent bootstrap gate. An ATT write or notification supplies no durable receipt.",
+  "boot": {
+    "window_ms": 300000,
+    "clock": "Monotonic elapsed milliseconds from first successful advertising start for this boot; never renew on QR, scan, failed candidate, reconnection or advertising restart. Stop new discovery at expiry. A power cycle re-evaluates local storage.",
+    "evidence": "Use verified authority-storage v1 readback for this CORE. Ready with no local core_link history permits first setup. Ready with an eligible local grant selects configured-peer recovery even with outstanding receipts or failed radio validation. Ready with retained removal or ineligible grant requires explicit recovery. Pending, Fault, Unavailable and Unprepared do not establish fresh first setup. Complete trusted recovery/preparation and re-read. No inferred erase or previous-generation fallback.",
+    "later_menu": "Future four-direction Settings / Connect to LINK may reopen discovery by explicit action while preserving installed authority."
+  }
+}

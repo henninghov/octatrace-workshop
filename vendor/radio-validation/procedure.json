@@ -1,0 +1,14 @@
+{
+  "id": "c8.radio-validation.host-contract",
+  "revision": 1,
+  "level": "host contract; no physical result",
+  "prerequisites": ["Exact firmware-owned profile, reference, vectors, schemas and consumer locks", "Node 20 and Python 3 with the repository's pinned qualification dependencies"],
+  "steps": [
+    {"action": "Record repository base revisions, dirty source hashes, procedure digest, Node and Python versions.", "expect": "The precise candidate and its first-channel and radio-handshake dependencies are identified."},
+    {"action": "Run tools/verify_radio_validation.py from firmware, app and Workshop checkouts.", "expect": "All three exact inventories, profile and dependency hashes agree; altered or incompatible pins fail."},
+    {"action": "Run the app host qualification tools/check_radio_validation.py, including the owner Node test suite and omission controls.", "expect": "Four actual synthetic AES-CCM flights, each loss, duplicate, malformed/tampered or stale packet, deadline and recovery adapter cases meet the profile. Actual EDHOC and target hardware remain outside the model."},
+    {"action": "Retain test logs, measured coverage, source digests, failure attempts and linked retries.", "expect": "All required automatic checks must pass; an unrun or interrupted case is incomplete."}
+  ],
+  "required_evidence": ["Exact procedure and source digests", "Consumer verifier outputs", "Host test and control logs and coverage", "All attempts and retries"],
+  "physical_observations": "None. The later C8.9 Workshop procedure requires matching integrated LINK and CORE builds, live protected radio adapters and real device observations."
+}

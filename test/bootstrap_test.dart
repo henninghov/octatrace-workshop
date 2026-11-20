@@ -23,6 +23,10 @@ void main() {
     // SDK worker-isolate teardown must run in the real async zone, rather
     // than wait on fake-clock microtasks from inside runAsync.
     if (controller != null) {
+      expect(
+        controller.benchFactory!('test-account').definition.guide['revision'],
+        1,
+      );
       await tester.runAsync(() async {
         controller.dispose();
         await controller.closed;

@@ -1,0 +1,62 @@
+{
+  "profile": "octatrace-radio-validation",
+  "version": 1,
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/radio-validation",
+  "files": {
+    "procedure.json": "465274f92da72420050aab4d1d4e3efdb908f09ab09f29162e0c0eb8b022f8db",
+    "profile.json": "30040daf915d547717cddf496e7a565b6e1417da5f7ee9db51b8b76d574b71f4",
+    "profile.schema.json": "d45fdb3fec69a50e166c4e6b1153881eb3eaa01ad99185bf367a9747a0c273f6",
+    "reference.mjs": "e115736f25faf84f2e148783db9029def534831e91be3467b3c5730e998918f4",
+    "vectors.json": "e2768a4815892144aa56636ca7d57f9500ac946099a62bf25611beab09f432db",
+    "vectors.schema.json": "0a624543fe7b415cb12d1acabab589bd56d5edb11d6db6c4cfaf9fb1726f945a",
+    "verify.mjs": "265af729d5512f0c220bda93acfff0e536c37e8d7a1a1fd1f847b08f79079abb"
+  },
+  "dependencies": {
+    "setup-first-channel": {
+      "procedure.json": "608edae4b93a334ea002d95b7a35f0892f42cc7c166fe9e8fd5499ba3fa514e7",
+      "profile.json": "820b2002d5c34425519537055107f315bdcac50647fb63970f752916afb7b888",
+      "profile.schema.json": "1bdd4422b730a69e5bb32cc2dce4bf2a068ad1cfa25d6f3ca69f87cba596fe45",
+      "reference.py": "79a6d8e56db991eb44c5a208ffc2eacf7902087eac3c78646bf2c7d025bc4a91",
+      "vectors.json": "ab0b915bd309db4fb6f5a5c7d31b1d35db6597f3efda22786a2e2ba9bfeded31",
+      "vectors.schema.json": "2590f9100089a3247255e9b2738efb1c915349d54c2462fe8e1197ca4ccf0b68"
+    },
+    "field-handshake": {
+      "codec.py": "dc576f97296fc67a0a492bcc6b6fb47bd1f6040865016ad270d83319a17b26b8",
+      "profile.json": "d5a62808978fbb88a475d4cc71b257a1170e396632aabd16fe47ee180e270481",
+      "profile.schema.json": "16508c0cdf0b89eb993775089cb6d259c126cd6731091cac09e3f6e10ef6d9a0",
+      "reference.mjs": "bb4763435d3c0352a526ef68118b7e2f40fd0ce0523cf99a6f714a386e82dd57",
+      "vectors.json": "5b706ac7778a6772d297c2e6d669729a6a3fda5220a237cb79f0130a162d8a36"
+    },
+    "proof-context": {
+      "codec.py": "b53c1551bec3033cd8c1f69f2706f139cf9c6bbc8ad04ff29308bfd56aeff316",
+      "fields.schema.json": "17029b1d300803af7e59acc5fec241a6a9e0c7521be1ccde3f973546f667e8aa",
+      "profile.json": "36dbb9cb7fabbfe141bff877a8fc8b18ec6131c0a720224fd0d7a10d64713783",
+      "reference.mjs": "b8857dced83d7f2926d3605ff30def7c20f5e38947cc502023d44645db7f642e",
+      "vectors.json": "7c20f49edf758a8b39e502768bb3606bd258b3b40f9acc952eafcc04d71df796"
+    },
+    "device-authority": {
+      "authority.schema.json": "2ffd303c6142df1b65a36f3950e60754445cac581d7362803a35a54e48272c3b",
+      "codec.py": "eba295cbce5f405ab5b374d0b0ece0d9747a128679222f5e9f7ad55028e24561",
+      "profile.json": "c9edf649d90c48002f3f0c22216f11748966fa66ead62cfa34f746716dee20fb",
+      "reference.mjs": "5c1936df2e82caa0e5cc30f481862b712f5e26e0a78567a7510ca2666c0067c4",
+      "vectors.json": "00b0e7e40c7a3bafff52a710cc3648c9d76d9b92f8e26173c065e8377fe6ec20"
+    },
+    "authority-storage": {
+      "codec.py": "0ff5d23900fd2fe679fa5c2ef3bad1b0c8a60a86ec7ee50a540199f63c5f4622",
+      "file_flash.py": "de0e6510f225512b08897948fe8d4576dd659cf77e15af3779da959b5af2dc0d",
+      "profile.json": "447aebe653efd9df8ef09b7eb5ccd33a09738de4c99fe03b7f12db4f062d5aef",
+      "reference.mjs": "7870df432f0f59a23121ed782a16bfa5c10c03eea163875304a7d7d1a27d7413",
+      "snapshot.schema.json": "7b107db31a06f024463655e7bde8e5c63d54d64db3fa6464dd9d2bf6d882c46c",
+      "vectors.json": "7c9e394a1807d894096e5c6b2f96e8c1809bfc41c409dc3987e9656915294ec2"
+    },
+    "setup-bootstrap": {
+      "procedure.json": "3930b98e52467849f6745ffd140921a7096477afac843fcf3e18b8695adb0c17",
+      "profile.json": "231f6d84835d94450afc358d0cd2cadf439f072ab3aa918fa5dfde9639d91029",
+      "reference.py": "87c8e01080c47ee3f0f865a569694215ef5e3815cad10dcedbdede0d1efcdf78",
+      "signed-report.json": "bfd023cc7a4e1065726686949778bb478a33b0b11eb75cfe7ce2d5f9822ee587",
+      "vectors.json": "1d52912b74b4351da6608258be21d95732c0f45e09b63703f6c9a498f6fa472a",
+      "vectors.schema.json": "841c22033a86627731a8200e4526c5b6f7a42eb7b4698c9ce39d5f0c4eb883dc"
+    }
+  }
+}

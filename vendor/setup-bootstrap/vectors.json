@@ -1,0 +1,90 @@
+{
+  "revision": 1,
+  "delivery": "12345678-1234-4abc-8def-0123456789ab",
+  "target": "20000001-0000-4000-8000-000000000002",
+  "transfer": 4660,
+  "control": [
+    [
+      "open_owner",
+      176,
+      "ownership_receipt",
+      "b00234121234567812344abc8def0123456789ab"
+    ],
+    [
+      "accept_owner",
+      177,
+      "ownership_receipt",
+      "b10234121234567812344abc8def0123456789ab"
+    ],
+    [
+      "busy_owner",
+      178,
+      "ownership_receipt",
+      "b20234121234567812344abc8def0123456789ab"
+    ],
+    [
+      "refuse_owner",
+      179,
+      "ownership_receipt",
+      "b30234121234567812344abc8def0123456789ab"
+    ],
+    [
+      "cancel_owner",
+      180,
+      "ownership_receipt",
+      "b40234121234567812344abc8def0123456789ab"
+    ],
+    [
+      "open_report",
+      176,
+      "installation_report",
+      "b00734121234567812344abc8def0123456789ab"
+    ],
+    [
+      "open_custody",
+      176,
+      "phone_custody",
+      "b00834121234567812344abc8def0123456789ab"
+    ],
+    [
+      "core_credential",
+      176,
+      "core_credential",
+      "b01134121234567812344abc8def0123456789ab"
+    ],
+    [
+      "core_owner",
+      176,
+      "core_owner",
+      "b01234121234567812344abc8def0123456789ab"
+    ],
+    [
+      "link_credential",
+      176,
+      "link_credential",
+      "b02134121234567812344abc8def0123456789ab"
+    ],
+    [
+      "link_owner",
+      176,
+      "link_owner",
+      "b02234121234567812344abc8def0123456789ab"
+    ],
+    [
+      "pair_grant",
+      176,
+      "pair_grant",
+      "b03434121234567812344abc8def0123456789ab"
+    ]
+  ],
+  "invalid": [
+    "000234121234567812344abc8def0123456789ab",
+    "b0ff34121234567812344abc8def0123456789ab",
+    "b00200001234567812344abc8def0123456789ab",
+    "b00234121234567812343abc8def0123456789ab",
+    "b00234121234567812344abc8def0123456789",
+    "b00234121234567812344abc8def0123456789ab00"
+  ],
+  "custody_body_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "custody_sha256_of_body": "ae216c2ef5247a3782c135efa279a3e4cdc61094270f5d2be58c6204b7a612c9"
+}

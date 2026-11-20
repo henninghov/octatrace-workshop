@@ -1,0 +1,81 @@
+{
+  "format": "octatrace-setup-transfer",
+  "version": 1,
+  "scope": "candidate_record_carrier_only_no_runtime_authority",
+  "carriers": [
+    "phone_link_bluetooth",
+    "link_core_bluetooth"
+  ],
+  "record": {
+    "version": 1,
+    "header_bytes": 68,
+    "body_maximum_bytes": 426,
+    "maximum_bytes": 494,
+    "body_digest": "SHA256 of exact body; integrity only, not authority"
+  },
+  "record_header": [
+    "version1",
+    "kind1",
+    "device_uuid16_network_order",
+    "correlation_uuid16_network_order",
+    "body_length_le16",
+    "body_sha25632"
+  ],
+  "record_kinds": {
+    "factory_credential": {
+      "code": 1,
+      "maximum_body_bytes": 271
+    },
+    "ownership_receipt": {
+      "code": 2,
+      "maximum_body_bytes": 270
+    },
+    "phone_controller": {
+      "code": 3,
+      "maximum_body_bytes": 270
+    },
+    "core_link": {
+      "code": 4,
+      "maximum_body_bytes": 270
+    },
+    "setup_challenge": {
+      "code": 5,
+      "maximum_body_bytes": 426
+    },
+    "setup_proof": {
+      "code": 6,
+      "maximum_body_bytes": 151
+    },
+    "installation_report": {
+      "code": 7,
+      "maximum_body_bytes": 384
+    },
+    "phone_custody": {
+      "code": 8,
+      "maximum_body_bytes": 32
+    }
+  },
+  "bluetooth": {
+    "magic": "4f53",
+    "version": 1,
+    "frame_bytes": 20,
+    "header_bytes": 8,
+    "payload_bytes": 12,
+    "maximum_fragments": 42
+  },
+  "frame_header": [
+    "magic2",
+    "version1",
+    "transfer_id_le16",
+    "total_record_length_le16",
+    "fragment_index1"
+  ],
+  "binding": "Independent intended device/correlation and non-reused live connection generation; monotonic nonzero transfer ID per direction/connection, deny exhaustion. Incoming bytes cannot choose authority or approved context.",
+  "reassembly": "One admitted record per direction; fixed 494-byte receive buffer; arbitrary order, exact duplicates produce no second delivery, conflicting same-transfer bytes close and wipe; zero final padding; no allocation from declared length.",
+  "custody": "phone_custody body is exact original installation-report signed-content SHA25632; correlation is delivery UUID; device is report target. Only typed durable phone custody plus authenticated expected carrier may release matching retained evidence. Decoding/ATT acceptance is insufficient.",
+  "security": "UntrustedRecord only. Existing configured factory/ownership-control signature/context verification, monotonic native installation and readback remain mandatory. No private key/QR type or implicit Ready/Start. Wire body hash is distinct from COSE signed-content identity.",
+  "deadlines": "No scheduler, timeout number or automatic retry policy selected here. Runtime caller must retain the original measured task deadline, close on cancel/disconnect/expiry, reject late generations and settle borrowed TX memory. Unmeasured numerical freeze remains open.",
+  "nearby_setup": "Complete original setup records and evidence over LINK-CORE Bluetooth, then fresh policy/peer/boot-bound first-channel preparation and authenticated bidirectional LoRa validation. The latter needs an explicit role/carrier profile; existing field v2 is unchanged.",
+  "recovery": "Installed permissions/evidence survive failed radio validation; retry unfinished stage. Remote reboot retains a separate fresh radio-only authentication path; no old boot traffic-key reuse.",
+  "limits": "Candidate record/framing foundation only. Live BLE service/role coexistence, admission/DoS/replay manager, async TX/cancellation/deadline owner, CORE signer/flash, native phone field provider, key adoption and LoRa probes are not implemented."
+}

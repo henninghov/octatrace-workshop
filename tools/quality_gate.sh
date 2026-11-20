@@ -11,6 +11,11 @@ python3 -B tools/verify_qr_custody.py
 python3 -B tools/verify_authority_storage.py
 python3 -B tools/verify_authority_layout.py
 python3 -B tools/verify_field_handshake.py
+python3 -B tools/verify_setup_transfer.py
+python3 -B tools/verify_setup_bluetooth.py
+python3 -B tools/verify_setup_bootstrap.py
+python3 -B tools/verify_setup_first_channel.py
+python3 -B tools/verify_radio_validation.py
 python3 -B -m unittest discover -s tools/tests -v
 "$workshop_sdk/bin/flutter" --version --machine > build/flutter-version.json
 python3 -B - <<'PY'

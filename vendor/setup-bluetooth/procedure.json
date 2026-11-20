@@ -1,0 +1,14 @@
+{
+  "id": "c8.setup-bluetooth.compatibility",
+  "revision": 1,
+  "level": "host contract",
+  "prerequisites": ["Matching firmware-owned setup-bluetooth v1 pin and snapshots in app and Workshop", "Pinned Python environment with jsonschema and local signed synthetic fixtures"],
+  "steps": [
+    {"action":"Record the checkout revisions, dirty source hashes, procedure digest and runner version.", "expect":"The attempt identifies the exact contract and its setup-transfer, credential and storage dependencies."},
+    {"action":"Run each checkout's tools/verify_setup_bluetooth.py with Python -B.", "expect":"The same GATT service interfaces and compatible, rejected and malformed exchanges pass against the frozen bytes on all three checkouts."},
+    {"action":"Run the app host tests test_setup_bluetooth_contract.py and test_runtime_interface_audit.py with unittest discovery.", "expect":"Missing services, subscriptions or access, stale connections, wrong CORE credentials, replay and interrupted storage follow their specified outcomes. First discovery expires at exactly 300000 ms."},
+    {"action":"Save the exit codes, case counts, source digests and failures with this attempt. Retain each retry separately.", "expect":"A pass requires all steps. A missing prerequisite or interrupted runner leaves the attempt incomplete."}
+  ],
+  "required_evidence": ["Exact versions and digests", "Automatic runner output for each checkout", "Host fixture outcomes and measured coverage"],
+  "physical_observations": "No physical observations in this procedure. C8.4/C8.8 integration supplies matching app and role builds and a separate Workshop device procedure."
+}

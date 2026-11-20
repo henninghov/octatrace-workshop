@@ -333,6 +333,27 @@ void main() {
       expect(find.text('Unknown device type'), findsOneWidget);
       expect(find.text('reserved · Unclaimed'), findsNWidgets(2));
       expect(find.text('provisioned · Claimed'), findsOneWidget);
+      await t.tap(find.text('CORE'));
+      await t.pumpAndSettle();
+      expect(
+        find.text('Provisioned identity requires the P1 runner.'),
+        findsOneWidget,
+      );
+      expect(find.text('Read identity with shared runner'), findsNothing);
+      final registry = controller.registry!;
+      await controller.verify(
+        registry.devices[1],
+        registry.articles.last,
+        'unused',
+        'unused',
+      );
+      expect(
+        controller.message,
+        'Provisioned identity requires the P1 runner.',
+      );
+      expect(controller.readback, isNull);
+      await t.tap(find.text('Devices'));
+      await t.pumpAndSettle();
       expect(find.byTooltip('Copy Serial'), findsNWidgets(3));
       await t.tap(find.text('LINK'));
       await t.pumpAndSettle();

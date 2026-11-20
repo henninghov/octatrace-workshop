@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'domain/bench_definition.dart';
+import 'domain/bench_session.dart';
+import 'domain/bench_sync.dart';
+import 'services/bench_files.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -13,7 +19,7 @@ import 'services/supabase_gateway.dart';
 import 'services/evidence_journal.dart';
 import 'ui/workshop_app.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   const url = String.fromEnvironment('SUPABASE_URL');
   const key = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
@@ -26,15 +32,37 @@ void main() {
   final evidenceRoot = Directory(
     '${Platform.environment['HOME']}/Library/Application Support/com.octatrace.workshop/evidence/${sha256.convert(utf8.encode(configured ? valid!.origin : 'unconfigured'))}',
   );
+  final journal = EvidenceJournal(evidenceRoot);
+  final provisioner = ProcessProvisioningRunner(firmware, evidenceRoot);
+  final definition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.asset),
+  );
+  final gateway = configured ? SupabaseGateway(url, key) : null;
   runApp(
     WorkshopApp(
       links: configured ? nativeMagicLinks() : null,
       controller: configured
           ? WorkshopController(
-              SupabaseGateway(url, key),
+              gateway!,
               ProcessBenchRunner(firmware),
-              EvidenceJournal(evidenceRoot),
-              provisioner: ProcessProvisioningRunner(firmware, evidenceRoot),
+              journal,
+              provisioner: provisioner,
+              benchFactory: (account) => BenchSession(
+                account,
+                definition,
+                journal,
+                provisioner.discoverBench,
+                provisioner.cancel,
+                provisioner.readBenchIdentity,
+                workshopBundleFingerprint,
+                newRequestId,
+                DateTime.now,
+                sync: BenchSync(
+                  gateway.benchRpc,
+                  journal.benchVerified,
+                  journal.markBenchVerified,
+                ),
+              ),
             )
           : null,
     ),

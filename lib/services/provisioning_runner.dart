@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 
+import '../domain/bench_definition.dart';
+import '../domain/bench_session.dart';
 import '../domain/ports.dart';
 import '../domain/provisioning.dart';
 import '../domain/registry.dart';
@@ -15,13 +17,18 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     this.evidenceRoot, {
     this.timeout = const Duration(seconds: 90),
     Future<Process> Function(String, List<String>)? startProcess,
-  }) : _startProcess =
+    Future<String> Function(File) fileDigest = _fileDigest,
+  }) : _digest = fileDigest,
+       _startProcess =
            startProcess ??
            ((path, args) => Process.start(path, args, runInShell: false));
   final String firmwareRoot;
   final Directory evidenceRoot;
   final Duration timeout;
   final Future<Process> Function(String, List<String>) _startProcess;
+  static Future<String> _fileDigest(File file) async =>
+      sha256.convert(await file.readAsBytes()).toString();
+  final Future<String> Function(File) _digest;
   Process? _process;
   bool _busy = false, _cancelled = false;
   static const pins = {
@@ -67,13 +74,30 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
       );
     }
     for (final entry in {...pins, ...controlPins}.entries) {
-      if (sha256
-              .convert(await File('$firmwareRoot/${entry.key}').readAsBytes())
-              .toString() !=
-          entry.value) {
+      if (await _digest(File('$firmwareRoot/${entry.key}')) != entry.value) {
         throw const FormatException('USB provisioning contract hash mismatch');
       }
     }
+  }
+
+  Future<Json> discoverBench(String account, BenchDefinition definition) =>
+      _execute(account, 'inventory', const {}, definition.runnerFiles);
+
+  /// Fixed binding for the reviewed P1 catalog entry.
+  Future<Json> readBenchIdentity(
+    String account,
+    ProvisionedIdentityRead read, {
+    void Function(Json)? onDiagnostic,
+  }) async {
+    final frame = await _execute(
+      account,
+      'identity',
+      read.parameters,
+      read.definition.runnerFiles,
+      onDiagnostic,
+    );
+    read.checkRegistryIdentity(frame);
+    return frame;
   }
 
   @override
@@ -81,7 +105,15 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     required String account,
     required String command,
     Json parameters = const {},
-  }) async {
+  }) => _execute(account, command, parameters, const {});
+
+  Future<Json> _execute(
+    String account,
+    String command,
+    Json parameters,
+    Map<String, String> runnerPins, [
+    void Function(Json)? onDiagnostic,
+  ]) async {
     if (_busy) throw StateError('A provisioning step is already running');
     if (!RegExp(r'^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$')
             .hasMatch(account) ||
@@ -170,7 +202,21 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     _busy = true;
     _cancelled = false;
     try {
-      await verifyContract();
+      try {
+        await verifyContract();
+        for (final pin in runnerPins.entries) {
+          if (await _digest(File('$firmwareRoot/${pin.key}')) != pin.value) {
+            throw const FormatException(
+              'Identity procedure runner or contract revision differs',
+            );
+          }
+        }
+      } on Object catch (e) {
+        if (runnerPins.isNotEmpty) {
+          throw BenchBlocked('Pinned runner unavailable: $e');
+        }
+        rethrow;
+      }
       if (_cancelled) throw BenchCancelled();
       final process = await _startProcess(
         '$firmwareRoot/build/bench-venv/bin/python',
@@ -201,9 +247,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         timeout,
         onTimeout: () {
           process.kill(ProcessSignal.sigkill);
-          throw TimeoutException(
-            'Provisioning step timed out; retry the same reservation',
-          );
+          throw TimeoutException('USB action timed out.');
         },
       );
       if (command != 'inventory') {
@@ -213,18 +257,38 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         final attempt = await logs.createTemp(
           'step-',
         ); // macOS mkdtemp: private mode 0700.
-        await File('${attempt.path}/result.json').writeAsString(
-          jsonEncode({
-            'command': command,
-            'exit_code': output[2],
-            'stdout_base64': base64Encode(output[0] as List<int>),
-            'stderr_base64': base64Encode(output[1] as List<int>),
-          }),
-          flush: true,
-        );
+        final diagnostic = <String, dynamic>{
+          'command': command,
+          'exit_code': output[2],
+          'stdout_base64': base64Encode(output[0] as List<int>),
+          'stderr_base64': base64Encode(output[1] as List<int>),
+        };
+        onDiagnostic?.call(diagnostic);
+        await File('${attempt.path}/result.json')
+            .writeAsString(jsonEncode(diagnostic), flush: true);
       }
       if (_cancelled) throw BenchCancelled();
       if (output[2] != 0) {
+        if (command == 'identity') {
+          final error = utf8.decode(
+            output[1] as List<int>,
+            allowMalformed: true,
+          );
+          if (runnerPins.isNotEmpty &&
+              (error.contains(
+                    'Connected device or firmware does not match selection',
+                  ) ||
+                  error.contains(
+                    'Selected USB device is missing or ambiguous',
+                  ))) {
+            throw const BenchBlocked(
+              'Connected target or firmware differs from selection',
+            );
+          }
+          throw const ProvisioningFailure(
+            'USB identity read failed. Check the saved diagnostic, selected board and expected build.',
+          );
+        }
         if (storage) {
           throw const ProvisioningFailure(
             'Storage preparation stopped. Keep this reservation and check the saved diagnostic, selected build and supported board profile. Leave the device in normal USB mode.',

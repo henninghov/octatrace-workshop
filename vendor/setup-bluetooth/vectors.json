@@ -1,0 +1,27 @@
+{
+  "revision": 1,
+  "exchanges": [
+    {"case":"phone_link_proof","route":1,"hello":"01010101341201010f000000","local":3,"v1":true,"reply":"010201013412010103000000","compatible":true},
+    {"case":"phone_find_with_extra_bits","route":1,"hello":"010101020200010204800000","local":15,"v1":true,"reply":"010201020200010104000000","compatible":true},
+    {"case":"phone_relay","route":1,"hello":"010101030300010109000000","local":9,"v1":true,"reply":"010201030300010109000000","compatible":true},
+    {"case":"link_local_records","route":1,"hello":"010101050400010101000000","local":1,"v1":true,"reply":"010201050400010101000000","compatible":true},
+    {"case":"core_records","route":2,"hello":"010102040100010211000000","local":17,"v1":true,"reply":"010202040100010111000000","compatible":true},
+    {"case":"core_no_common_version","route":2,"hello":"010102040100020311000000","local":17,"v1":true,"reply":"010302040100000000000200","compatible":false},
+    {"case":"link_no_v1","route":1,"hello":"010101013412010103000000","local":3,"v1":false,"reply":"010301013412000000000200","compatible":false},
+    {"case":"core_missing_endpoint","route":2,"hello":"010102040100010111000000","local":1,"v1":true,"reply":"010302040100000000000300","compatible":false},
+    {"case":"phone_missing_records","route":1,"hello":"010101030300010108000000","local":9,"v1":true,"reply":"010301030300000000000300","compatible":false},
+    {"case":"core_rejects_phone_operation","route":2,"hello":"010102020100010104000000","local":31,"v1":true,"reply":"010302020100000000000100","compatible":false},
+    {"case":"unknown_operation","route":1,"hello":"010101fe01000101ffff0000","local":31,"v1":true,"reply":"010301fe0100000000000100","compatible":false},
+    {"case":"wrong_service","route":1,"hello":"010102040100010111000000","local":31,"v1":true,"reply":null,"compatible":false},
+    {"case":"empty_request","route":2,"hello":"010102040000010111000000","local":31,"v1":true,"reply":null,"compatible":false},
+    {"case":"reversed_range","route":1,"hello":"010101030300020109000000","local":9,"v1":true,"reply":null,"compatible":false},
+    {"case":"foreign_envelope","route":1,"hello":"020101030300010109000000","local":9,"v1":true,"reply":null,"compatible":false},
+    {"case":"reserved_nonzero","route":2,"hello":"010102040100010111000001","local":17,"v1":true,"reply":null,"compatible":false}
+  ],
+  "find": {
+    "target":"20000001-0000-4000-8000-000000000002",
+    "request":"0110020020000001000040008000000000000002",
+    "matched":"0111020020000001000040008000000000000002",
+    "ended":"0112020020000001000040008000000000000002"
+  }
+}

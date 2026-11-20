@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import 'ports.dart';
+import 'bench_session.dart';
 import 'provisioning.dart';
 import 'registry.dart';
 
@@ -24,11 +25,63 @@ final class WorkshopController extends ChangeNotifier {
     this.runner,
     this.journal, {
     this.provisioner,
+    this.benchFactory,
     String Function()? idFactory,
     DateTime Function()? now,
   }) : _idFactory = idFactory ?? newRequestId,
        _now = now ?? DateTime.now;
   final ProvisioningRunner? provisioner;
+  final BenchSession Function(String account)? benchFactory;
+  BenchSession? bench;
+
+  Future<void> enterBench() => action(() async {
+    final session = bench ??= benchFactory!(gateway.accountId!);
+    _checkBenchAccount(session);
+    await session.refresh();
+    _checkBenchAccount(session);
+  }, refreshRegistry: false);
+
+  Future<void> benchAction(
+    Future<void> Function(BenchSession) work,
+  ) => action(() async {
+    final session = bench!;
+    _checkBenchAccount(session);
+    try {
+      await session.perform(() => work(session));
+    } on OperatorDenied {
+      rethrow;
+    } on SessionExpired {
+      rethrow;
+    } catch (error) {
+      throw ProvisioningFailure(
+        'Bench action stopped. ${error is ProvisioningFailure ? error.message : error}',
+      );
+    }
+    _checkBenchAccount(session);
+  }, refreshRegistry: false);
+
+  void _checkBenchAccount(BenchSession session) {
+    if (session.account != gateway.accountId) throw SessionExpired();
+  }
+
+  Future<void> cancelBench() async {
+    final session = bench;
+    try {
+      await session?.stop('Operator cancelled');
+    } catch (error) {
+      if (identical(bench, session)) {
+        message = 'Local evidence save failed. $error';
+      }
+    }
+    _changed();
+  }
+
+  Future<void> _leaveBench() async {
+    final session = bench;
+    bench = null;
+    await session?.stop('Operator session ended');
+  }
+
   final WorkshopGateway gateway;
   final BenchRunner runner;
   final EvidenceStore journal;
@@ -60,7 +113,11 @@ final class WorkshopController extends ChangeNotifier {
   Future<void> _closeResources() async {
     try {
       try {
-        await provisioner?.cancel();
+        try {
+          await _leaveBench();
+        } finally {
+          await provisioner?.cancel();
+        }
       } finally {
         await runner.cancel();
       }
@@ -227,6 +284,7 @@ final class WorkshopController extends ChangeNotifier {
         registry = null;
         readback = null;
         access = Access.denied;
+        await _leaveBench();
         message = 'Operator access is no longer available. Sign in again.';
       } else if (error is BenchCancelled) {
         message = 'Provisioning stopped. Keep this reservation; committed identity and saved evidence are retained for retry.';
@@ -282,6 +340,12 @@ final class WorkshopController extends ChangeNotifier {
       readback = null;
       readbackDeviceId = null;
       readbackSaved = false;
+      if (device.state == 'provisioned' &&
+          (command == 'identity' || command == 'check')) {
+        throw const ProvisioningFailure(
+          'Provisioned identity requires the P1 runner.',
+        );
+      }
       Json result;
       try {
         result = await runner.run(
@@ -738,7 +802,11 @@ final class WorkshopController extends ChangeNotifier {
     try {
       try {
         try {
-          await provisioner?.cancel();
+          try {
+            await _leaveBench();
+          } finally {
+            await provisioner?.cancel();
+          }
         } finally {
           await runner.cancel();
         }

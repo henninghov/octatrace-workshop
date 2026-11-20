@@ -1,0 +1,14 @@
+{
+  "id": "c8.first-channel.host-contract",
+  "revision": 1,
+  "level": "host contract; no physical result",
+  "prerequisites": ["Exact firmware-owned profile, reference, procedure and consumer pins", "Python 3 and the existing local host-test environment"],
+  "steps": [
+    {"action": "Record repository revisions, dirty source hashes, procedure digest and Python version.", "expect": "The exact candidate profile, dependencies and runner are identified."},
+    {"action": "Run tools/verify_setup_first_channel.py in each checkout.", "expect": "The profile, owner dependency hashes, vectors and exact frame compatibility agree; any missing or altered pin fails."},
+    {"action": "Run the C8.1.5 host contract tests and qualification controls in the app checkout.", "expect": "Both roles, wrong profiles and peers, stale contexts, expiry, interrupted confirmation and failed or uncertain handoff behave as specified. Controlled adapters do not prove real cryptography."},
+    {"action": "Record exit codes, measured coverage, source hashes, failures and each retry separately.", "expect": "All required checks must pass; missing or interrupted checks are incomplete."}
+  ],
+  "required_evidence": ["Exact source, dependency and procedure digests", "Runner output and coverage", "All attempts and retries"],
+  "physical_observations": "None. A distinct later Workshop device procedure requires compatible live LINK and CORE builds, real protected signers and Bluetooth adapters."
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Radio validation synthetic vectors v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "profile_sha256",
+    "field_context",
+    "synthetic_link_key",
+    "synthetic_core_key",
+    "challenge",
+    "frames"
+  ],
+  "properties": {
+    "format": {
+      "const": "octatrace-radio-validation-vectors"
+    },
+    "version": {
+      "const": 1
+    },
+    "profile_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "field_context": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "synthetic_link_key": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "synthetic_core_key": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "challenge": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{100}$"
+      }
+    }
+  }
+}

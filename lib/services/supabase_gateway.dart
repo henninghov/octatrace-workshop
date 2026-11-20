@@ -60,6 +60,13 @@ final class SupabaseGateway
     }
   }
 
+  Future<dynamic> benchRpc(String account, String name, Json parameters) async {
+    if (accountId != account) throw SessionExpired();
+    final value = await _rpc(name, parameters);
+    if (accountId != account) throw SessionExpired();
+    return value;
+  }
+
   @override
   Future<void> authorizeOperator() async {
     final account = accountId;

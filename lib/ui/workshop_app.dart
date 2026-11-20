@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../domain/registry.dart';
 import '../domain/workshop_controller.dart';
+import 'bench_panel.dart';
 import 'article_editor.dart';
 import 'copyable_text.dart';
 import 'provisioning_panel.dart';
@@ -250,6 +251,7 @@ class _WorkshopShellState extends State<WorkshopShell> {
                           gap(),
                         ],
                         switch (page) {
+                          'Test bench' => BenchPanel(controller: c!),
                           'Articles' => articles(),
                           'Provisioning' => provisioning(),
                           'Setup history' => history(),
@@ -424,6 +426,7 @@ class _WorkshopShellState extends State<WorkshopShell> {
           'Devices': Icons.sensors,
           'Articles': Icons.inventory_2_outlined,
           'Provisioning': Icons.usb,
+          if (c!.benchFactory != null) 'Test bench': Icons.science_outlined,
           'Setup history': Icons.history,
         }.entries)
           Padding(
@@ -435,15 +438,21 @@ class _WorkshopShellState extends State<WorkshopShell> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 foregroundColor: Colors.white70,
+                disabledForegroundColor: (c!.bench?.active ?? false)
+                    ? Colors.white60
+                    : null,
                 backgroundColor: page == entry.key
                     ? const Color(0xff3a3936)
                     : Colors.transparent,
                 minimumSize: const Size(double.infinity, 46),
                 padding: const EdgeInsets.symmetric(horizontal: 10),
               ),
-              onPressed: c!.busy
+              onPressed: c!.busy || (c!.bench?.active ?? false)
                   ? null
-                  : () => setState(() => page = entry.key),
+                  : () {
+                      setState(() => page = entry.key);
+                      if (entry.key == 'Test bench') c!.enterBench();
+                    },
               icon: Icon(
                 entry.value,
                 color: page == entry.key ? orange : Colors.white70,
@@ -462,6 +471,7 @@ class _WorkshopShellState extends State<WorkshopShell> {
           onPressed: () {
             deviceId = null;
             revisionId = null;
+            page = 'Devices';
             c!.signOut();
           },
           icon: const Icon(Icons.logout, color: Colors.white70, size: 17),
@@ -805,6 +815,11 @@ class _WorkshopShellState extends State<WorkshopShell> {
               controller: c!,
               device: selected,
               article: article,
+            )
+          else if (selected.state == 'provisioned')
+            notice(
+              'Provisioned identity requires the P1 runner.',
+              warning: true,
             )
           else ...[
             notice(

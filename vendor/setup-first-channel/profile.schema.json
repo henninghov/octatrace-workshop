@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LINK–CORE Bluetooth first-channel profile v1",
+  "const": {
+    "format": "octatrace-link-core-bluetooth-field",
+    "version": 1,
+    "scope": "Candidate host contract; no runtime or physical readiness",
+    "protocol": {
+      "base": "octatrace-field-handshake/2",
+      "edhoc": "RFC 9528 method 0 suite 2, message 4 required, no EAD",
+      "proof_context": "octatrace-proof-context/field/1",
+      "profile_hash": "SHA-256 of these exact profile.json bytes"
+    },
+    "route": {
+      "initiator": "LINK",
+      "responder": "CORE",
+      "carrier": "Bluetooth LE",
+      "service_uuid": "c10a0300-0595-4016-9495-aeeb59da74f9",
+      "write_uuid": "c10a0301-0595-4016-9495-aeeb59da74f9",
+      "notify_uuid": "c10a0302-0595-4016-9495-aeeb59da74f9",
+      "properties": "central writes with response; peripheral notifies; require subscription before starting",
+      "selection": "exactly one of this service and each characteristic on the current connection; service presence is not authentication; absence or incompatible properties fail closed, with no legacy fallback"
+    },
+    "framing": {
+      "bytes": 20,
+      "header": "magic 4f48, wire version 3, kind 2, flight 1..8, total length u16 little endian, fragment index u8",
+      "payload_bytes": 12,
+      "message_max_bytes": 256,
+      "flight_lengths": "flights 1 and 2 exactly 64 bytes; flights 3 to 6 from 1 to 256 bytes; flights 7 and 8 exactly 48 bytes",
+      "padding": "zero",
+      "correlation": "one current non-reused connection generation and complete untrusted prelude attempt UUID; discard partials on disconnect",
+      "compatibility": "wire v3/kind 2 on this service is distinct from field-handshake v2 phone Bluetooth and radio; reject other version, kind, route and characteristic"
+    },
+    "binding": {
+      "kind": "link_core",
+      "environment": "configured realm",
+      "authority_context": "device-authority v1 context of current eligible exact CORE-LINK policy and both owner records",
+      "fields": "proof-context field v1: profile hash, attempt, authority context, LINK and CORE UUIDs, public-key hashes, boot IDs and fresh nonces, authenticated TH_4",
+      "trust": "independent configured factory credentials and eligible durable authority on both endpoints; resolve exact intended peer; validate current authority and generation through every asynchronous boundary",
+      "confirmation": "field-handshake v2 export and protected confirmations using this exact profile hash and kind 2; initiator receives flight 8; responder verifies flight 7 and caches exact flight 8 to original deadline"
+    },
+    "keys": {
+      "identity": "use a device-owned signing operation or opaque provider handle; never export a permanent identity scalar to application code",
+      "traffic": "two distinct 16-byte exporter keys for LINK-to-CORE and CORE-to-LINK using existing initiator/responder traffic labels and this profile-bound export context",
+      "adoption": "after local confirmation and a fresh current-authority and connection check, transfer both directional keys and exact attempt context once to the serialized radio owner; all-or-nothing acceptance, no caller retention, logging, persistence or reinstallation of the same material. A serialized owner guard prevents use before final current-state validation.",
+      "failure": "failed, partial, stale, cancelled, superseded or uncertain adoption synchronously invalidates and disables the candidate and zeroizes all owned temporary copies; a failed or uncertain invalidation leaves the radio owner disabled until safely reset. The radio owner cannot use an uncertain partial handoff",
+      "lifecycle": "clear temporary secrets on cancel, error, disconnect before handoff and reboot; fresh boot requires fresh authentication. Radio-ready requires separately authenticated bidirectional evidence. After successful handoff Bluetooth disconnect alone does not reset radio counters or replay state.",
+      "radio_interface": "existing development Exchange has one key and is not this two-direction adapter; C8.9 must implement and test direction, nonce, replay, atomic handoff and preservation of airtime and retained work"
+    },
+    "timing": "one active serialized attempt per endpoint, with injected monotonic absolute deadline; duplicates and retries do not extend it. Numerical runtime limits and composed resource budgets remain C8.1.7/C8.9 gates. Backward, unknown or expired time fails closed.",
+    "recovery": "preserve installed authority, unsynced reports and airtime on any failure; discard ephemeral candidate keys. Reconnect starts a new generation and fresh attempt. An already configured remote reboot needs fresh radio-only authentication under its separately specified profile."
+  }
+}

@@ -131,6 +131,18 @@ void main() {
         isTrue,
       );
       expect(rpc.every((r) => !r.body.contains('operator_user_id')), isTrue);
+      await expectLater(
+        gateway.benchRpc('other', 'workshop_test_definitions', {}),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(
+        await gateway.benchRpc(
+          gateway.accountId!,
+          'workshop_test_definitions',
+          {},
+        ),
+        isA<String>(),
+      );
       await gateway.signOut();
       expect(gateway.accountId, isNull);
     },

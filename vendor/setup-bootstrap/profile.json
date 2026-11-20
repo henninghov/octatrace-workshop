@@ -1,0 +1,40 @@
+{
+  "profile": "octatrace-setup-bootstrap",
+  "version": 1,
+  "owner": "octatrace-firmware",
+  "scope": "Host contract. The only pre-grant ingress is public factory credentials and independently verified signed setup records for the selected delivery.",
+  "wire": {
+    "service": "Use setup-bluetooth v1 selected operation 5 on phone-LINK for LINK records, operation 3 for CORE relay, and operation 4 on LINK-CORE. Keep existing HELLO, FIND, setup-transfer frames and installation report bytes.",
+    "control": "Exactly 20 bytes on the selected control characteristic. Byte 0 selects the v1 opcode, byte 1 is the record selector (low nibble is the setup-transfer v1 kind; high nibble zero denotes ordinary delivery), bytes 2..3 are the nonzero little-endian transfer ID, bytes 4..19 are the delivery/correlation UUIDv4 in network order. ACCEPT, BUSY, REFUSE and CANCEL echo the other 19 bytes.",
+    "opcodes": {
+      "open": 176,
+      "accept": 177,
+      "busy": 178,
+      "refuse": 179,
+      "cancel": 180
+    },
+    "negotiation": "The sender proposes OPEN v1 per record. Send no data until exact ACCEPT on the same live ticket and direction. An unknown control, absent reply, legacy-only peer, mismatched echo or expired attempt leaves the operation unavailable. Never fall back to sending record bytes. The responder's control notification replies to a central write; central control writes reply to peripheral-initiated notifications. Each direction has its own transfer counter and receive slot.",
+    "slot": "Bind OPEN to local role, current operation, intended recipient and first-party outstanding intent. For first signed-only ingress the UUID from OPEN is an untrusted correlation label, not approval. Stage original public context in bounded slots. Cross-check signed subjects, keys, ownership, purpose, allowed relationship and independent release at delivery. An exact pending duplicate repeats ACCEPT. Conflicting concurrent work gets BUSY, retired IDs get REFUSE. At exhaustion reconnect. CANCEL matches the entire pending identity. Exit clears partial RX. No network ACK establishes installation.",
+    "custody": "setup-transfer v1 record kind 8, device=original report target, correlation=delivery UUID, body=32-byte SHA256 of original C6 installation Sig_structure. This is a 100-byte record in nine 20-byte frames. Record body SHA256, raw envelope SHA256, authority content ID and snapshot digest are separate values.",
+    "context_selectors": {
+      "core_credential": 17,
+      "core_owner": 18,
+      "link_credential": 33,
+      "link_owner": 34,
+      "pair_grant": 52
+    }
+  },
+  "authority": {
+    "first_grant": "Resolve CORE and LINK public audiences from original factory credentials, separately signed ownership receipts, selected role/UUID and configured purpose/realm trust. Provisioned local identity anchors its own target. The approved signed relationship can be staged as a dependency before it is installed. For each device install CORE owner, LINK owner and CORE-link grant in independent released deliveries. Two currently eligible owner receipts must precede the grant. The first grant needs no prior grant.",
+    "carrier": "The phone must authenticate the permanent connected owned LINK on the current generation, including environment, owner, UUID, key and epoch. For a grant and its dependencies require the named controlling LINK. A CORE's own ownership record or signed removal may use any current authenticated LINK of the same owner and realm. LINK-target and phone-controller deliveries require the intended LINK. CORE verifies every record independently even over signed-only ingress. The carrier or staged public credential has no command, tracking, ownership or installation authority.",
+    "inputs": "Resource and target differ for cross-device ownership prerequisites. Bind target to its own credential and signed owner receipt, resource to its exact signed source, cross-device copies to a verified current grant naming both parties. Check stored high-water marks and supersession. A foreign record cannot provision another authority or raise its own storage budget.",
+    "staging": "Credential and signed-context staging accepts only originals needed for this selected CORE/LINK pair, one resource owner per role and the named policy. No unbounded queue, unsolicited policy kind, debug command, new trust anchor or new peer identity. A candidate is verified independently before it can supply a factory binding. Unresolved context stays pending; discarded staging never evicts installed or unsynced data. Send each prerequisite under its context selector with the same intended recipient and release UUID. These slots are order-independent and immutable within that staged context. Use the ordinary authority selector for the separately released install, even if its body also appeared in a staging slot. Resolve role/UUID/key/revision against the original factory and owner signatures before use. Invalidate all slots on selection change, cancellation or expiry."
+  },
+  "evidence": {
+    "before_install": "Reserve durable space for the original signed report and persist the exact release, original source, base and intended journal generation/snapshot before authority mutation. Refuse new installs on full storage. One unfinished install per serialized target writer. A reserved intent blocks later journal changes until resolved. The reference slot capacity is injected by its caller. A serialized authorized cancellation may reclaim an untouched reservation only after a fresh read proves the exact pre-install base and that it differs from the planned destination.",
+    "resume": "After power loss reopen both stores. Finish a matching Pending journal only with a fresh trusted guard. From the unchanged base retry the original source; from exact Ready destination sign its readback. Any other state requires recovery. Keep a signing/save failure pending. Publish only after persisting, rereading and verifying the exact signed report. After publication retry the original bytes, including when later authority supersedes them.",
+    "return": "LINK relays original CORE evidence unchanged. Phone verifies original factory credential, device signature, release and journal context; commits and rereads original evidence in its active account before returning typed custody. A detached account, failed save or missing receipt produces no ACK. Cloud upload is independent.",
+    "release": "Only exact typed custody on an independently authenticated eligible return path releases the matching target's retained report. The courier must attest to having obtained that particular ACK from the authenticated phone. An unsigned publicly visible hash, connection icon, transport success or cloud status cannot delete it. Across a removal, keep the installed removal and hold the report for a fresh eligible authenticated courier. Repeated ACK after deletion has no effect."
+  },
+  "lifetime": "Use an injected absolute monotonic deadline. Partial retries, duplicate OPENs and reconnects in the same attempt never extend it. Missing/backward time or expiry retires the attempt. A fresh explicitly admitted attempt can resume the identical durable delivery. Cancellation/invalidation clears partial work and disables stale generations. A driver-borrowed immutable frame remains owned until the driver's matching completion, including after cancellation. Storage slots, native peak memory, retry count and numerical deadlines are measured separately in C8.1.7 and runtime integration."
+}

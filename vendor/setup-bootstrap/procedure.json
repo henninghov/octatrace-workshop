@@ -1,0 +1,12 @@
+{
+  "id":"c8.setup-bootstrap.custody","revision":1,"level":"local host contract",
+  "prerequisites":["Exact firmware owner, app and Workshop pins for setup-bootstrap v1 and its dependencies","Pinned Python/Flutter toolchains, Node, synthetic credential fixtures, writable temporary local storage"],
+  "steps":[
+    {"action":"Record checkout revisions, source digests, toolchain, definition digest and attempt ID.", "expect":"Each report identifies its exact inputs and validation level."},
+    {"action":"Run tools/verify_setup_bootstrap.py in each checkout.", "expect":"Every control byte, rejection and nine-frame custody record matches the same owner vectors."},
+    {"action":"In the app checkout run unittest discovery for test_setup_bootstrap_contract.py. Exercise both targets with signed public fixtures and reopen the authority journal and evidence store.", "expect":"Only approved target-specific records install. Missing prerequisites, interrupted writes, exhausted slots, stale tickets and failed signing preserve the recoverable state."},
+    {"action":"Run the Flutter installation queue, transport and delivery-plan tests, including durable real-file reopen.", "expect":"Only a verified phone save yields kind 8 bound to the original target, delivery and signed report hash. Disconnect, bad data and failed save produce no release."},
+    {"action":"Save exit codes, phase observations, coverage and failure controls for this attempt; link a fresh attempt for a retry.", "expect":"Passed requires the complete host procedure. Physical radio, flash and authenticated courier observations require separately identified live builds."}
+  ],
+  "evidence":["Definition ID/revision and SHA256","Build/source/contract fingerprints","Gate results and fault outcomes","Separate operator observations for any future physical run"]
+}
