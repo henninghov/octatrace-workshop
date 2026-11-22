@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:octatrace:credential-layout:1",
+  "title": "Credential storage reservation metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "profile", "start", "end_exclusive", "page_bytes", "pages", "scope", "runtime_credential", "maintenance_version", "layout_lock_sha256", "linker_guard_sha256"],
+  "properties": {
+    "version": {"type": "integer", "const": 1},
+    "profile": {"const": "t114-nrf52840-s140v6-credential-reservation-v1"},
+    "start": {"const": "0xdf000"},
+    "end_exclusive": {"const": "0xe1000"},
+    "page_bytes": {"type": "integer", "const": 4096},
+    "pages": {"type": "integer", "const": 2},
+    "scope": {"const": "reservation_only"},
+    "runtime_credential": {"type": "boolean", "const": false},
+    "maintenance_version": {"type": "integer", "const": 0},
+    "layout_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "linker_guard_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

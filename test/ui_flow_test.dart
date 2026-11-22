@@ -161,6 +161,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Light mode'));
+    await tester.pumpAndSettle();
   }
 
   testWidgets('magic link keeps operator access closed until verified', (

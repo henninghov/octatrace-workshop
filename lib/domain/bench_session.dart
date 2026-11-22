@@ -25,13 +25,19 @@ typedef IdentityReader = Future<Json> Function(
   ProvisionedIdentityRead selection, {
   void Function(Json diagnostic)? onDiagnostic,
 });
+typedef InspectionReader = Future<Json> Function(
+  String account,
+  ProvisionedIdentityRead selection,
+  String publicKey, {
+  void Function(Json diagnostic)? onDiagnostic,
+});
 
 /// A session belongs to exactly one signed-in operator. Only this instance can
 /// advance its active attempt. Historical attempts are opened for review/export.
 final class BenchSession {
   BenchSession(
     this.account,
-    this.definition,
+    BenchDefinition definition,
     this.store,
     this.discover,
     this.cancelRunner,
@@ -40,9 +46,31 @@ final class BenchSession {
     this.newId,
     this.now, {
     this.sync,
-  });
+    this.inspectionDefinition,
+    this.readInspection,
+    this.lookupPublicKey,
+  }) : definition = definition,
+       identityDefinition = definition;
   final String account;
-  final BenchDefinition definition;
+  BenchDefinition definition;
+  final BenchDefinition identityDefinition;
+  final BenchDefinition? inspectionDefinition;
+  final InspectionReader? readInspection;
+  final Future<String> Function(DeviceRecord, ArticleRevision)? lookupPublicKey;
+  bool get isInspection =>
+      definition.guide['key'] == 'c82-credential-inspection-device';
+
+  void selectDefinition(BenchDefinition value) {
+    if (active || pending != null) {
+      throw StateError('Finish the current attempt first');
+    }
+    if (value != identityDefinition && value != inspectionDefinition) {
+      throw StateError('Unknown test definition');
+    }
+    definition = value;
+    report = null;
+  }
+
   final BenchStore store;
   final Future<Json> Function(String, BenchDefinition) discover;
   final Future<void> Function() cancelRunner;
@@ -128,10 +156,18 @@ final class BenchSession {
     }
     await refresh();
     final previous = history
-        .where((r) => r['device']['id'] == device.id)
+        .where(
+          (r) =>
+              r['device']['id'] == device.id &&
+              r['definition_key'] == definition.guide['key'],
+        )
         .firstOrNull;
     final selected = report;
-    final prior = selected?['device']['id'] == device.id ? selected : previous;
+    final prior =
+        selected?['device']['id'] == device.id &&
+            selected?['definition_key'] == definition.guide['key']
+        ? selected
+        : previous;
     final timestamp = _time;
     final initial = <String, dynamic>{
       'format': 1,
@@ -146,7 +182,7 @@ final class BenchSession {
       'definition_key': definition.guide['key'],
       'definition_revision': definition.guide['revision'],
       'definition_snapshot': definition.snapshot,
-      'definition_sha256': BenchDefinition.digest,
+      'definition_sha256': definition.snapshotDigest,
       'workshop_sha256': fingerprint,
       'device': {
         'id': device.id,
@@ -258,11 +294,35 @@ final class BenchSession {
         target: target,
         build: build,
       );
-      final frame = await readIdentity(
-        account,
-        read,
-        onDiagnostic: (data) => diagnostic = data,
-      );
+      late final Json frame;
+      if (isInspection) {
+        if (lookupPublicKey == null || readInspection == null) {
+          throw const BenchBlocked(
+            'Verified identity key or inspection runner unavailable',
+          );
+        }
+        late final String publicKey;
+        try {
+          publicKey = await lookupPublicKey!(device, article);
+        } on FormatException {
+          throw const BenchBlocked(
+            'Verified provisioning key evidence is missing or ambiguous.',
+          );
+        }
+        if (_stopReason != null) return;
+        frame = await readInspection!(
+          account,
+          read,
+          publicKey,
+          onDiagnostic: (data) => diagnostic = data,
+        );
+      } else {
+        frame = await readIdentity(
+          account,
+          read,
+          onDiagnostic: (data) => diagnostic = data,
+        );
+      }
       result = {'frame': frame};
       status = 'Passed';
     } catch (error) {
@@ -317,9 +377,12 @@ final class BenchSession {
         'Enter the label or a reason (1–256 characters).',
       );
     }
+    final expected = isInspection
+        ? report!['steps'][3]['evidence']['frame']['state']
+        : report!['device']['serial'];
     final status = unavailable
         ? 'Incomplete'
-        : text == report!['device']['serial']
+        : text == expected
         ? 'Passed'
         : 'Failed';
     await _save(

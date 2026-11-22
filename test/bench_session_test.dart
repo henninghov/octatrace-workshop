@@ -61,6 +61,7 @@ class BenchFixture {
   final usbRunner = usb.SetupRunner();
   late Registry registry;
   BenchSync? sync;
+  BenchDefinition? inspection;
   int ids = 0, reads = 0;
   String fingerprint = 'a' * 64;
   Completer<Json>? inventory, response;
@@ -99,6 +100,14 @@ class BenchFixture {
     () => '90510000-0000-4000-8000-${(++ids).toString().padLeft(12, '0')}',
     () => DateTime.utc(2026, 11, 20, 12, 0, ids),
     sync: sync,
+    inspectionDefinition: inspection,
+    lookupPublicKey: (device, article) async => '04${'11' * 64}',
+    readInspection: (account, selection, publicKey, {onDiagnostic}) async {
+      reads++;
+      onDiagnostic?.call({'bounded': 'synthetic inspection diagnostic'});
+      if (error != null) throw error!;
+      return {'state': 'blank', 'sha256': '22' * 32};
+    },
   );
   Future<void> start(BenchSession s) =>
       s.start(registry.devices.single, registry.articles.single);
@@ -123,6 +132,31 @@ void main() {
     s = f.session();
   });
   tearDown(() async => root.delete(recursive: true));
+  test(
+    'legacy attempts retain the original definition digest on disk',
+    () async {
+      final legacy = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.legacyAsset).readAsStringSync(),
+      );
+      final fixture = BenchFixture(TestBenchStore(files), legacy);
+      await fixture.init();
+      final session = fixture.session();
+      await fixture.start(session);
+      final report = session.report!;
+      expect(report['definition_revision'], 1);
+      expect(report['definition_sha256'], BenchDefinition.legacyDigest);
+      final reopened = await files.reopenBench(fixtures.actor, report['id']);
+      expect(
+        readBenchEnvelope(
+          benchEnvelope(reopened),
+          fixtures.actor,
+          report['id'],
+        )['definition_sha256'],
+        BenchDefinition.legacyDigest,
+      );
+    },
+  );
+
   test('real files survive process recreation and export has distinct tester and runner evidence', () async {
     await s.perform(() => f.start(s));
     final id = s.report!['id'];

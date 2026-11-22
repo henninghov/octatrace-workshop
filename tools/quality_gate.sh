@@ -10,6 +10,8 @@ python3 -B tools/verify_proof_context.py
 python3 -B tools/verify_qr_custody.py
 python3 -B tools/verify_authority_storage.py
 python3 -B tools/verify_authority_layout.py
+python3 -B tools/verify_credential_layout.py
+python3 -B tools/verify_credential_inspection.py
 python3 -B tools/verify_field_handshake.py
 python3 -B tools/verify_setup_transfer.py
 python3 -B tools/verify_setup_bluetooth.py

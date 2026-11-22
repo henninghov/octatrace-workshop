@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'domain/bench_definition.dart';
+import 'domain/bench_identity_key.dart';
 import 'domain/bench_session.dart';
 import 'domain/bench_sync.dart';
 import 'services/bench_files.dart';
@@ -37,6 +38,9 @@ Future<void> main() async {
   final definition = BenchDefinition.fromSnapshot(
     await rootBundle.loadString(BenchDefinition.asset),
   );
+  final inspectionDefinition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.inspectionAsset),
+  );
   final gateway = configured ? SupabaseGateway(url, key) : null;
   runApp(
     WorkshopApp(
@@ -57,6 +61,9 @@ Future<void> main() async {
                 workshopBundleFingerprint,
                 newRequestId,
                 DateTime.now,
+                inspectionDefinition: inspectionDefinition,
+                readInspection: provisioner.readBenchInspection,
+                lookupPublicKey: IdentityKeyLookup(gateway).find,
                 sync: BenchSync(
                   gateway.benchRpc,
                   journal.benchVerified,

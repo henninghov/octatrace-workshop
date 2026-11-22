@@ -1,0 +1,134 @@
+{
+  "format": 1,
+  "key": "provisioned-identity",
+  "revision": 2,
+  "title": "Read a provisioned device identity",
+  "purpose": "Check the selected Workshop record against the permanent identity on one USB-connected board and its visible label.",
+  "checkpoint": "Bench-1",
+  "runner": {
+    "id": "p1.identity",
+    "owner": "octatrace-firmware",
+    "source_sha256": "252b49a69d2cdcb95d74520c4149a4ba3126f81589b0bf2054eada0c02a29c77",
+    "transport_sha256": "7ca5b24e2b894a73b892602e7a48009606d766bc049f57dd6c58aaeea915662c",
+    "discovery_sha256": "cf35aff5aaa91a3ab331e97bd70b29eb721b3929e75753e5a933c55829fe230e",
+    "usb_lock_sha256": "49a1cc1f1666c84bbc36914ebde2798b2aabf981e633836baf43cc22d5ea8fd1",
+    "control_lock_sha256": "75c05d84b6a52177271902cc916f1a5e594f950218d88d66bd62f825f5b1642c",
+    "additional_files": {
+      "tools/validate_image.py": "46dff930a192f8ee828b206578a238d03f27cf529561cdadd8dd9706251e8a0c",
+      "tools/client_storage_manifest.py": "4349bcb283b8f9ec7b4f25ddca1b0da82c9e373c51517b2aa31cf5007b89defe",
+      "tools/control_storage_manifest.py": "ee8064907cfc42bb13f334abe1a7360d63d06b08be81a6e56334f1dab0eb3fe2",
+      "tools/authority_layout_manifest.py": "4019185cea563cc092f8aa5f9e831aacbb69b8f21f8a2932ad6f7a326d018eab",
+      "tools/credential_layout_manifest.py": "f0e7026373e9b8da62a16885bec99f27a95334109331c0d4c7da41e513f01afc",
+      "contracts/authority-layout/policy.py": "71961b9936da6b67da7c6a650feeea7a90dbd3b7c66f4e9d9d9340178767d8f1",
+      "contracts/credential-layout/policy.py": "c85a2546098c1d487f0b91f2f5ed3bb5f446a78dc3ca680059159551e4947635",
+      "client-storage.lock.json": "b57a8999c8dbfa99e7239a8bd59a1eaefbaa4aa28bfd0355726c121f43b1564b",
+      "authority-layout.lock.json": "324a7d12dc2650154d34aea85372a96a0017d137e2b9a2b68c7bb86e6b549b5e",
+      "authority-storage.lock.json": "50491889bc972202950aae52bcc05860770f780093be7ba51c70b9e1fc7403ff",
+      "credential-layout.lock.json": "20d90cd13aa61a10b2c9f49dc5fa0d009814a98a44c5d68d087a35f38bc4c7d3",
+      "tools/linker/credential_reservation.ld": "632eae7afadb681dd5e6536e66c290791837a2eaad2cd5d9c2cee94e07853201"
+    }
+  },
+  "capabilities": [
+    "usb.p1.info",
+    "identity.ready"
+  ],
+  "builds": [
+    {
+      "role": "Link",
+      "version": "0.4.0",
+      "source": "0732191cbe923516aa34a5dd0c43359cdfc4b2fcadf4ba8738ae16966afc331e",
+      "artifact": "37b421c95bb9c158bc3562e0273cc35f141c7d9ee4de7461bfc6d25fc1f20c1e"
+    },
+    {
+      "role": "Core",
+      "version": "0.4.0",
+      "source": "0732191cbe923516aa34a5dd0c43359cdfc4b2fcadf4ba8738ae16966afc331e",
+      "artifact": "840b5aca1c07386fd6206dc4009c73b48716020bb5e528e30d2bcd23c59d3642"
+    }
+  ],
+  "prerequisites": [
+    "Use an enabled Workshop operator account with a provisioned device record, its article revision and recorded USB hardware ID. Either ownership state is eligible.",
+    "Use a labelled board already running one of the listed images, a USB data cable, the reviewed P1 runner and a writable private local evidence folder."
+  ],
+  "steps": [
+    {
+      "number": 1,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Sign in, select the provisioned device record and its matching role and build, then choose Run.",
+      "expected": "The selection shows the intended UUID, serial, role and ownership context.",
+      "evidence": [
+        "Operator and selected registry record",
+        "Role, source and expected image hash"
+      ]
+    },
+    {
+      "number": 2,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Save the started attempt locally before prompting for the cable or discovering USB devices.",
+      "expected": "The attempt has an ID, start time, operator, participant, Workshop build and exact definition snapshot and digest. A local save error stops discovery.",
+      "evidence": [
+        "Local start record or visible save error"
+      ]
+    },
+    {
+      "number": 3,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Connect the selected board by USB in normal application mode and acknowledge the connection prompt.",
+      "expected": "The operator identifies the board and records the cable connection.",
+      "evidence": [
+        "Operator acknowledgement or cancellation"
+      ]
+    },
+    {
+      "number": 4,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Check the selected registry hardware ID, application-mode target, role, image binding, runner and contracts. Issue the shared read-only P1 identity action.",
+      "expected": "One target returns a valid ready, idle identity matching the expected hardware, full source, role, registry UUID, serial, article and revision.",
+      "evidence": [
+        "Selected and returned identity bindings",
+        "Runner provenance, bounded response or error, step outcome"
+      ]
+    },
+    {
+      "number": 5,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Read the serial on the physical label and enter what you see. Record an unreadable or missing label explicitly.",
+      "expected": "The observed serial matches the displayed readback. An absent observation leaves this check incomplete.",
+      "evidence": [
+        "Operator, observed label or reason unavailable, comparison and time"
+      ]
+    },
+    {
+      "number": 6,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Save and reopen the private report for this attempt.",
+      "expected": "The reopened report preserves the definition and build bindings, ordered results, observations, outcome and artifact checksums.",
+      "evidence": [
+        "Local report ID and reopen result",
+        "Artifact manifest with lengths and hashes"
+      ]
+    },
+    {
+      "number": 7,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Export the reopened report and record whether the export completed.",
+      "expected": "The operator can identify the exported report. On export failure the local report remains available for retry.",
+      "evidence": [
+        "Export result and exported report digest or error"
+      ]
+    }
+  ],
+  "rules": {
+    "pass": "All required checks and observations succeed with matching bindings, a reopened report and export evidence.",
+    "fail": "A malformed, oversized, timed-out or disconnected read, mismatched permanent identity or observed label fails its step. Retain the diagnostic and leave dependent steps unrun.",
+    "blocked": "Stop on an unsupported or ambiguous target, role, pinned build, runner or contract. Preserve the attempt and reason.",
+    "incomplete": "Keep cancelled or interrupted attempts, missing observations, local save failures and export errors explicit. Leave unexecuted steps unrun. Link each retry to its prior attempt."
+  }
+}

@@ -25,7 +25,7 @@ void main() {
     if (controller != null) {
       expect(
         controller.benchFactory!('test-account').definition.guide['revision'],
-        1,
+        2,
       );
       await tester.runAsync(() async {
         controller.dispose();

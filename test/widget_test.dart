@@ -289,6 +289,10 @@ void main() {
           .onPressed,
       isNull,
     );
+    expect(find.text('Light mode'), findsOneWidget);
+    await tester.tap(find.text('Light mode'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dark mode'), findsOneWidget);
     await tester.tap(find.text('Dark mode'));
     await tester.pumpAndSettle();
     expect(find.text('Light mode'), findsOneWidget);

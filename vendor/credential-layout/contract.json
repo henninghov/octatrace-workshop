@@ -1,0 +1,21 @@
+{
+  "format": "octatrace-credential-layout",
+  "version": 1,
+  "profile": "t114-nrf52840-s140v6-credential-reservation-v1",
+  "application_start": 155648,
+  "application_end_exclusive": 913408,
+  "credential_start": 913408,
+  "credential_end_exclusive": 921600,
+  "page_bytes": 4096,
+  "pages": 2,
+  "scope": "reservation_only",
+  "runtime_credential": false,
+  "maintenance_version": 0,
+  "symbols": {
+    "__octatrace_credential_start": 913408,
+    "__octatrace_credential_end": 921600
+  },
+  "linker_guard_sha256": "632eae7afadb681dd5e6536e66c290791837a2eaad2cd5d9c2cee94e07853201",
+  "initialisation": "Reservation only. No credential writer or erase command. Existing bytes may contain older application data; inspect and prepare only under a separately authorized procedure.",
+  "rollback": "Ordinary guarded application installs only; not secure boot or physical full-flash rollback prevention."
+}

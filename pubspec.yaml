@@ -23,6 +23,8 @@ flutter:
   assets:
     - assets/branding/
     - assets/bench/provisioned-identity.v1.json
+    - assets/bench/provisioned-identity.v2.json
+    - assets/bench/credential-inspection.v1.json
   fonts:
     - family: Excon
       fonts:

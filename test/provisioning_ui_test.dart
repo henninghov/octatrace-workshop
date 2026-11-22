@@ -93,6 +93,8 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
+    await t.tap(find.text('Light mode'));
+    await t.pumpAndSettle();
     await t.tap(find.byTooltip('Open device'));
     await t.pumpAndSettle();
   }

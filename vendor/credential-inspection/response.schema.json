@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "id", "ok", "type", "role", "build", "hardware", "boot", "state", "busy", "failed", "last_request", "sha256"],
+  "properties": {
+    "v": {"const": 1},
+    "id": {"type": "integer", "minimum": 1, "maximum": 4294967295},
+    "ok": {"const": true},
+    "type": {"const": "credential_storage"},
+    "role": {"enum": ["Link", "Core"]},
+    "build": {"type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$"},
+    "hardware": {"type": "string", "minLength": 16, "maxLength": 16, "pattern": "^(?!0{16}$)[0-9a-f]{16}$"},
+    "boot": {"type": "string", "minLength": 32, "maxLength": 32, "pattern": "^(?!0{32}$)[0-9a-f]{32}$"},
+    "state": {"enum": ["unavailable", "blank", "unknown", "recognizable", "interrupted"]},
+    "busy": {"type": "boolean"},
+    "failed": {"type": "boolean"},
+    "last_request": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "sha256": {"anyOf": [{"const": ""}, {"type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$"}]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"state": {"const": "unavailable"}}},
+      "then": {"properties": {"sha256": {"const": ""}}},
+      "else": {"properties": {"sha256": {"minLength": 64, "maxLength": 64, "pattern": "^[0-9a-f]{64}$"}, "busy": {"const": false}, "failed": {"const": false}, "last_request": {"minimum": 1}}}
+    },
+    {"not": {"properties": {"busy": {"const": true}, "failed": {"const": true}}}},
+    {"if": {"anyOf": [{"properties": {"busy": {"const": true}}}, {"properties": {"failed": {"const": true}}}]},
+     "then": {"properties": {"last_request": {"minimum": 1}}}}
+  ]
+}

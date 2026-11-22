@@ -27,7 +27,7 @@ class WorkshopApp extends StatefulWidget {
 }
 
 class _WorkshopAppState extends State<WorkshopApp> {
-  bool dark = false;
+  bool dark = true;
   StreamSubscription<Uri>? _links;
   @override
   void initState() {

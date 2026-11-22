@@ -76,6 +76,126 @@ void main() {
     await t.pump();
   }
 
+  testWidgets('inspection guide uses the same durable guided flow', (t) async {
+    f.inspection = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.inspectionAsset).readAsStringSync(),
+    );
+    await show(t);
+    await t.tap(find.byType(DropdownButton<BenchDefinition>));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Inspect the credential reservation').last);
+    await t.pumpAndSettle();
+    await tap(t, 'Start guided test');
+    await tap(t, 'USB connected · inspect storage');
+    expect(find.textContaining('Storage · blank · SHA-256'), findsOneWidget);
+    await input(t, 'Observed storage classification', 'blank');
+    await tap(t, 'Save observation');
+    expect(controller.bench!.report!['steps'][4]['status'], 'Passed');
+    expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
+  });
+
+  testWidgets('recorded log filters use the saved steps', (t) async {
+    await show(t);
+    await tap(t, 'Start guided test');
+    await tap(t, 'USB connected · read identity');
+    expect(
+      find.textContaining('Step 1 · Select device · Passed'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Step 2 · Save attempt · Passed'),
+      findsOneWidget,
+    );
+    await t.ensureVisible(find.byKey(const ValueKey('bench-log-source')));
+    await t.tap(find.byKey(const ValueKey('bench-log-source')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Runner').last);
+    await t.pumpAndSettle();
+    expect(
+      find.textContaining('Step 1 · Select device · Passed'),
+      findsNothing,
+    );
+    expect(
+      find.textContaining('Step 2 · Save attempt · Passed'),
+      findsOneWidget,
+    );
+    await t.tap(find.byKey(const ValueKey('bench-log-scope')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Current step').last);
+    await t.pumpAndSettle();
+    expect(find.text('No recorded steps for this selection.'), findsOneWidget);
+    await tap(t, 'Device history');
+    expect(find.text('Recorded attempts'), findsOneWidget);
+  });
+
+  testWidgets('unknown device role is visible and cannot start a test', (
+    t,
+  ) async {
+    f.inspection = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.inspectionAsset).readAsStringSync(),
+    );
+    f.gateway.loadOverride = () => Registry.fromJson({
+      'articles': <Object>[],
+      'devices': [
+        {
+          'id': fixtures.device,
+          'serial': 'D000000000001',
+          'article_revision_id': fixtures.revision,
+          'provisioning_state': 'provisioned',
+          'hardware_uid': '1234567800000001',
+        },
+      ],
+      'runs': <Object>[],
+    });
+    await show(t);
+    expect(find.textContaining('Unknown role'), findsOneWidget);
+    expect(
+      find.textContaining('no matching article, role or compatible build'),
+      findsOneWidget,
+    );
+    expect(find.text('Start guided test'), findsNothing);
+    await t.tap(find.text('Light mode'));
+    await t.pumpAndSettle();
+    await t.binding.setSurfaceSize(const Size(1400, 1100));
+    await t.pumpAndSettle();
+    await expectLater(
+      find.byKey(const ValueKey('bench-screen')),
+      matchesGoldenFile('goldens/bench-unknown-role-light.png'),
+    );
+    await t.binding.setSurfaceSize(const Size(640, 850));
+    await t.pumpAndSettle();
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('dark inspection guide matches the reviewed desktop layout', (
+    t,
+  ) async {
+    f.inspection = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.inspectionAsset).readAsStringSync(),
+    );
+    await show(t);
+    await t.binding.setSurfaceSize(const Size(1400, 1100));
+    await t.pumpAndSettle();
+    expect(find.text('Light mode'), findsOneWidget);
+    await t.tap(find.byType(DropdownButton<BenchDefinition>));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Inspect the credential reservation').last);
+    await t.pumpAndSettle();
+    await tap(t, 'Start guided test');
+    await tap(t, 'USB connected · inspect storage');
+    await t.drag(
+      find.byType(SingleChildScrollView).first,
+      const Offset(0, 1800),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('One step at a time.'), findsOneWidget);
+    expect(find.text('Recorded logs'), findsOneWidget);
+    await expectLater(
+      find.byKey(const ValueKey('bench-screen')),
+      matchesGoldenFile('goldens/bench-inspection-dark.png'),
+    );
+  });
+
   for (final error in [SessionExpired(), OperatorDenied()]) {
     test(
       'lost operator access during bench action clears the session ${error.runtimeType}',
@@ -134,7 +254,7 @@ void main() {
               return [
                 {
                   'test_key': f.definition.guide['key'],
-                  'revision': 1,
+                  'revision': f.definition.guide['revision'],
                   'definition_sha256': BenchDefinition.digest,
                   'snapshot': f.definition.snapshot,
                 },
@@ -309,7 +429,7 @@ void main() {
         'runs': [],
       });
       await show(t);
-      await t.tap(find.byType(DropdownButton<String>));
+      await t.tap(find.byKey(const ValueKey('bench-device-selector')));
       await t.pumpAndSettle();
       await tap(t, 'D000000000002');
       await tap(t, 'Start guided test');
@@ -340,6 +460,8 @@ void main() {
   );
   testWidgets('guided identity action matches Workshop design', (t) async {
     await show(t);
+    await t.tap(find.text('Light mode'));
+    await t.pumpAndSettle();
     await tap(t, 'Start guided test');
     await tap(t, 'USB connected · read identity');
     await expectLater(

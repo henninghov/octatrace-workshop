@@ -14,12 +14,21 @@ typedef BenchBuild = ({
 
 /// Catalog text is display data. Only locally reviewed bytes can bind a runner.
 final class BenchDefinition {
-  static const asset = 'assets/bench/provisioned-identity.v1.json';
-  static const digest =
+  static const asset = 'assets/bench/provisioned-identity.v2.json';
+  static const legacyAsset = 'assets/bench/provisioned-identity.v1.json';
+  static const inspectionAsset = 'assets/bench/credential-inspection.v1.json';
+  static const legacyDigest =
       '81bbd6890809bb4ffa8c9ee283d7003c5f3cf2404a8b21fdc56d3d2e39220356';
+  static const digest =
+      '770caed1b53288ac327900b50930e3555ed0a3d9068e2e2b61ab3441e3a9da1b';
+  static const inspectionDigest =
+      'f49a91ec168090155f258c3a04636580cfa5f3fc7fbeb9f90949f203c92f48b4';
 
-  BenchDefinition.fromSnapshot(this.snapshot) {
-    if (sha256.convert(utf8.encode(snapshot)).toString() != digest) {
+  BenchDefinition.fromSnapshot(this.snapshot)
+    : snapshotDigest = sha256.convert(utf8.encode(snapshot)).toString() {
+    if (snapshotDigest != digest &&
+        snapshotDigest != legacyDigest &&
+        snapshotDigest != inspectionDigest) {
       throw const FormatException(
         'Unknown bench definition revision or digest',
       );
@@ -27,6 +36,7 @@ final class BenchDefinition {
   }
 
   final String snapshot;
+  final String snapshotDigest;
   // Return a new view so edits by a caller cannot change the reviewed snapshot.
   Json get guide => jsonDecode(snapshot) as Json;
 
@@ -48,6 +58,8 @@ final class BenchDefinition {
       'tools/provision_platform.py': pins['discovery_sha256'] as String,
       'usb-provisioning.lock.json': pins['usb_lock_sha256'] as String,
       'control-storage.lock.json': pins['control_lock_sha256'] as String,
+      if (pins['additional_files'] != null)
+        ...(pins['additional_files'] as Map).cast<String, String>(),
     };
   }
 
@@ -87,6 +99,16 @@ final class ProvisionedIdentityRead {
     'hardware': device.hardwareUid,
     'source': build.source,
     'role': build.role,
+  };
+
+  Json inspectionParameters(String publicKey) => {
+    ...parameters,
+    'artifact': build.artifact,
+    'public_key': publicKey,
+    'device_id': device.id,
+    'serial': device.serial,
+    'article_id': article.articleId,
+    'article_revision_id': article.id,
   };
 
   /// Python already validated the frame and bound the hardware, role and source.

@@ -1,0 +1,20 @@
+{
+  "profile": "octatrace-credential-inspection",
+  "version": 1,
+  "scope": "read-only inspection; no credential verification, preparation or erasure",
+  "roles": ["Link", "Core"],
+  "start": "0xdf000",
+  "end_exclusive": "0xe1000",
+  "bytes": 8192,
+  "hash": "SHA-256 over all 8192 bytes in address order",
+  "commands": [
+    "P1 <id> inspect-credential <hardware16hex> <boot32hex>",
+    "P1 <id> credential-storage"
+  ],
+  "states": ["unavailable", "blank", "unknown", "recognizable", "interrupted"],
+  "binding": "Owner runner verifies fresh signed identity proof, hardware, boot, role and full source; request queues a serialized worker; status is bound to current boot and accepted request ID.",
+  "results": "Queued, failed, timed-out and completed states remain distinct. A successful scan emits only classification and SHA-256; no credential, raw region bytes or private key is returned. A recognizable marker is not a verified credential.",
+  "preservation": "Inspection never writes or erases. Recognizable and potentially interrupted records remain protected. Unknown bytes require a separate reviewed preparation procedure and explicit content-bound confirmation.",
+  "limits": {"request_id_max": 4294967295, "reply_bytes": 1280, "digest_bytes": 32},
+  "authentication": "SHA-256 is a content change detector, not authentication of an operator, device or credential."
+}

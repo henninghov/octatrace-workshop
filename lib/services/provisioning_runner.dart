@@ -100,6 +100,66 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     return frame;
   }
 
+  Future<Json> readBenchInspection(
+    String account,
+    ProvisionedIdentityRead read,
+    String publicKey, {
+    void Function(Json)? onDiagnostic,
+  }) async {
+    final result = await _execute(
+      account,
+      'credential-inspection',
+      read.inspectionParameters(publicKey),
+      read.definition.runnerFiles,
+      onDiagnostic,
+    );
+    final proof = result['identity_proof'];
+    if (proof is! Json ||
+        result['v'] != 1 ||
+        result['ok'] != true ||
+        result['id'] is! int ||
+        (result['id'] as int) <= 0 ||
+        result['type'] != 'credential_storage' ||
+        result['role'] != read.build.role ||
+        result['build'] != read.build.source ||
+        result['hardware'] != read.device.hardwareUid ||
+        !{
+          'blank',
+          'unknown',
+          'recognizable',
+          'interrupted',
+        }.contains(result['state']) ||
+        result['busy'] != false ||
+        result['failed'] != false ||
+        result['last_request'] is! int ||
+        (result['last_request'] as int) <= 0 ||
+        result['sha256'] is! String ||
+        !hexId(result['sha256'] as String, 64)) {
+      throw const ProvisioningFailure(
+        'Credential inspection returned an invalid result.',
+      );
+    }
+    read.checkRegistryIdentity(proof);
+    if (proof['role'] != read.build.role ||
+        proof['build'] != read.build.source ||
+        proof['hardware'] != read.device.hardwareUid ||
+        proof['public_key'] != publicKey ||
+        proof['boot'] != result['boot'] ||
+        proof['boot'] is! String ||
+        !hexId(proof['boot'] as String, 32) ||
+        proof['boot'] == '0' * 32 ||
+        proof['challenge'] is! String ||
+        !hexId(proof['challenge'] as String, 64) ||
+        proof['challenge'] == '0' * 64 ||
+        proof['signature'] is! String ||
+        !hexId(proof['signature'] as String, 128)) {
+      throw const ProvisioningFailure(
+        'Credential inspection proof does not match the selected device.',
+      );
+    }
+    return result;
+  }
+
   @override
   Future<Json> execute({
     required String account,
@@ -126,11 +186,20 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           'prepare-storage',
           'inspect-control-storage',
           'prepare-control-storage',
+          'credential-inspection',
         }.contains(command)) {
       throw const FormatException('Invalid provisioning request');
     }
-    final args = ['-B', '$firmwareRoot/tools/provision.py', command];
+    final args = command == 'credential-inspection'
+        ? ['-B', '$firmwareRoot/tools/credential_inspection.py']
+        : ['-B', '$firmwareRoot/tools/provision.py', command];
     String? input;
+    if (command == 'credential-inspection') {
+      input = jsonEncode(parameters);
+      if (utf8.encode(input).length > 8192) {
+        throw const FormatException('Inspection input exceeds limit');
+      }
+    }
     if (command == 'install' || command == 'identity') {
       final hardware = parameters['hardware'] as String;
       if (!hexId(hardware, 16)) {
@@ -269,7 +338,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
       }
       if (_cancelled) throw BenchCancelled();
       if (output[2] != 0) {
-        if (command == 'identity') {
+        if (command == 'identity' || command == 'credential-inspection') {
           final error = utf8.decode(
             output[1] as List<int>,
             allowMalformed: true,

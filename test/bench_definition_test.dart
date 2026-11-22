@@ -26,8 +26,9 @@ void main() {
     Json device = const {},
     Json article = const {},
     Json target = const {},
+    BenchDefinition? guide,
   }) {
-    return definition.admit(
+    return (guide ?? definition).admit(
       device: DeviceRecord.fromJson({
         'id': fixtures.device,
         'serial': 'D000000000123',
@@ -53,16 +54,143 @@ void main() {
     );
   }
 
+  test('inspection process is pinned and receives only the selected public binding', () async {
+    final inspection = BenchDefinition.fromSnapshot(
+      await rootBundle.loadString(BenchDefinition.inspectionAsset),
+    );
+    final root = await Directory.systemTemp.createTemp('inspection-contract-');
+    addTearDown(() => root.delete(recursive: true));
+    for (final lock in [
+      'usb-provisioning.lock.json',
+      'control-storage.lock.json',
+    ]) {
+      await File('vendor/$lock').copy('${root.path}/$lock');
+    }
+    final pins = {
+      ...ProcessProvisioningRunner.pins,
+      ...ProcessProvisioningRunner.controlPins,
+      ...inspection.runnerFiles,
+    };
+    final read = admit(inspection.builds.first, guide: inspection);
+    final publicKey = '04${'11' * 64}';
+    final proof = <String, dynamic>{
+      'state': 'ready',
+      'busy': false,
+      'failed': false,
+      'device_id': read.device.id,
+      'serial': read.device.serial,
+      'article_id': read.article.articleId,
+      'article_revision_id': read.article.id,
+      'role': read.build.role,
+      'build': read.build.source,
+      'hardware': read.device.hardwareUid,
+      'boot': '22' * 16,
+      'public_key': publicKey,
+      'challenge': '33' * 32,
+      'signature': '44' * 64,
+    };
+    final valid = <String, dynamic>{
+      'v': 1,
+      'id': 8,
+      'ok': true,
+      'type': 'credential_storage',
+      'role': read.build.role,
+      'build': read.build.source,
+      'hardware': read.device.hardwareUid,
+      'state': 'blank',
+      'busy': false,
+      'failed': false,
+      'last_request': 7,
+      'sha256': '55' * 32,
+      'boot': proof['boot'],
+      'identity_proof': proof,
+    };
+    var returned = valid;
+    final runner = ProcessProvisioningRunner(
+      root.path,
+      root,
+      fileDigest: (file) async =>
+          pins[file.path.substring(root.path.length + 1)]!,
+      startProcess: (path, args) {
+        expect(args, ['-B', '${root.path}/tools/credential_inspection.py']);
+        return Process.start('/usr/bin/python3', [
+          '-c',
+          'import sys; sys.stdin.read(); print(sys.argv[1])',
+          jsonEncode(returned),
+        ]);
+      },
+    );
+    final response = await runner.readBenchInspection(
+      fixtures.actor,
+      read,
+      publicKey,
+    );
+    expect(response, valid);
+    expect(read.inspectionParameters(publicKey)['public_key'], publicKey);
+    for (final change in [
+      {'identity_proof': null},
+      {'v': 2},
+      {'ok': false},
+      {'id': 0},
+      {'role': 'Core'},
+      {'build': '00' * 32},
+      {'hardware': '00' * 8},
+      {'state': 'unavailable'},
+      {'busy': true},
+      {'failed': true},
+      {'last_request': 0},
+      {'sha256': 'bad'},
+      {'boot': '00' * 16},
+      {
+        'identity_proof': {...proof, 'public_key': '04${'22' * 64}'},
+      },
+      {
+        'identity_proof': {...proof, 'challenge': 'bad'},
+      },
+      {
+        'identity_proof': {...proof, 'signature': 'bad'},
+      },
+      {
+        'identity_proof': {...proof, 'challenge': '0' * 64},
+      },
+      {
+        'boot': '0' * 32,
+        'identity_proof': {...proof, 'boot': '0' * 32},
+      },
+    ]) {
+      returned = {...valid, ...change};
+      await expectLater(
+        runner.readBenchInspection(fixtures.actor, read, publicKey),
+        throwsA(isA<ProvisioningFailure>()),
+      );
+    }
+    await expectLater(
+      runner.readBenchInspection(fixtures.actor, read, 'a' * 9000),
+      throwsFormatException,
+    );
+    final failure = ProcessProvisioningRunner(
+      root.path,
+      root,
+      fileDigest: (file) async =>
+          pins[file.path.substring(root.path.length + 1)]!,
+      startProcess: (_, _) => Process.start('/usr/bin/false', []),
+    );
+    await expectLater(
+      failure.readBenchInspection(fixtures.actor, read, publicKey),
+      throwsA(isA<ProvisioningFailure>()),
+    );
+  });
+
   test(
     'only the reviewed guide binds the read, even after a caller edits a view',
     () {
       expect(definition.guide['key'], 'provisioned-identity');
-      expect(definition.guide['revision'], 1);
+      expect(definition.guide['revision'], 2);
       expect(definition.guide['steps'], hasLength(7));
       definition.guide['runner']['id'] = 'install';
       expect(definition.guide['runner']['id'], 'p1.identity');
       for (final changed in [
-        snapshot.replaceFirst('"revision": 1', '"revision": 2'),
+        snapshot.replaceFirst('"revision": 2', '"revision": 3'),
         snapshot.replaceFirst('p1.identity', 'install'),
         snapshot.replaceFirst('"number": 2', '"number": 8'),
         snapshot.replaceFirst('Read the serial', 'Guess the serial'),
@@ -73,6 +201,19 @@ void main() {
           throwsFormatException,
         );
       }
+    },
+  );
+
+  test(
+    'retains the exact legacy definition and its original runner pins',
+    () async {
+      final legacy = BenchDefinition.fromSnapshot(
+        await rootBundle.loadString(BenchDefinition.legacyAsset),
+      );
+      expect(legacy.snapshotDigest, BenchDefinition.legacyDigest);
+      expect(legacy.guide['revision'], 1);
+      expect(legacy.runnerFiles, hasLength(5));
+      expect(definition.runnerFiles.length, greaterThan(5));
     },
   );
 
@@ -264,6 +405,6 @@ void main() {
     );
     expect(diagnostic!['exit_code'], 1);
     expect(commands, ['inventory', 'identity']);
-    expect(launches, 2);
+    expect(launches, definition.builds.length);
   });
 }
