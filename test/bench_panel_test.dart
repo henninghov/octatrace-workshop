@@ -10,6 +10,7 @@ import 'package:octatrace_workshop/domain/bench_definition.dart';
 import 'package:octatrace_workshop/domain/registry.dart';
 import 'package:octatrace_workshop/domain/bench_sync.dart';
 import 'package:octatrace_workshop/domain/bench_session.dart';
+import 'package:octatrace_workshop/domain/ports.dart';
 import 'package:octatrace_workshop/domain/workshop_controller.dart';
 import 'package:octatrace_workshop/ui/workshop_app.dart';
 
@@ -76,6 +77,152 @@ void main() {
     await t.pump();
   }
 
+  for (final mode in ['install', 'stop', 'prepare']) {
+    testWidgets(
+      '$mode shows a separate enabled confirmation during the running action',
+      (t) async {
+        f.installation = BenchDefinition.fromSnapshot(
+          File(BenchDefinition.installationAsset).readAsStringSync(),
+        );
+        f.intentStop = BenchDefinition.fromSnapshot(
+          File(BenchDefinition.intentStopAsset).readAsStringSync(),
+        );
+        f.preparation = BenchDefinition.fromSnapshot(
+          File(BenchDefinition.preparationAsset).readAsStringSync(),
+        );
+        var writes = 0;
+        f.installReader =
+            (a, r, k, credential, id, fault, confirm, {onDiagnostic}) async {
+              final answer = await confirm({
+                'review_token': 'aa' * 32,
+                'expires_ms': 25000,
+                'review': {
+                  'serial': r.device.serial,
+                  'role': r.build.role,
+                  'credential_revision': 1,
+                  'envelope_sha256': credential.digest,
+                  'journal_state': 'empty',
+                  'slots_used': 0,
+                  'fault': fault,
+                },
+              });
+              if (answer['confirm'] != true) throw BenchCancelled();
+              writes++;
+              return {
+                'installation_proof': {
+                  'journal_state': fault == 1 ? 'pending' : 'ready',
+                },
+              };
+            };
+        f.preparationReader = (a, r, k, id, confirm, {onDiagnostic}) async {
+          final answer = await confirm({
+            'review_token': 'aa' * 32,
+            'expires_ms': 25000,
+            'inspection': {
+              'identity_proof': {'serial': r.device.serial},
+              'role': r.build.role,
+              'sha256': 'dd' * 32,
+            },
+          });
+          if (answer['confirm'] != true) throw BenchCancelled();
+          writes++;
+          return {
+            'preparation_result': {'state': 'blank'},
+          };
+        };
+        await show(t);
+        final definition = mode == 'prepare'
+            ? f.preparation!
+            : mode == 'stop'
+            ? f.intentStop!
+            : f.installation!;
+        await t.tap(find.byType(DropdownButton<BenchDefinition>));
+        await t.pumpAndSettle();
+        await t.tap(find.text(definition.guide['title']).last);
+        await t.pumpAndSettle();
+        await tap(t, 'Start guided test');
+        final connect = find.text(
+          mode == 'prepare'
+              ? 'USB connected · inspect for preparation'
+              : 'USB connected · verify for installation',
+        );
+        await t.ensureVisible(connect);
+        await t.tap(connect);
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 50));
+        expect(controller.busy, true);
+        expect(writes, 0);
+        final confirm = find.widgetWithText(
+          FilledButton,
+          mode == 'prepare'
+              ? 'Confirm preparation'
+              : mode == 'stop'
+              ? 'Confirm controlled stop'
+              : 'Confirm installation',
+        );
+        await t.ensureVisible(confirm);
+        expect(t.widget<FilledButton>(confirm).onPressed, isNotNull);
+        await t.tap(confirm);
+        await t.pumpAndSettle();
+        expect(writes, 1);
+        expect(controller.bench!.report!['steps'][3]['status'], 'Passed');
+        expect(
+          find.textContaining(
+            mode == 'prepare'
+                ? 'Preparation result · blank'
+                : mode == 'stop'
+                ? 'Installation result · pending'
+                : 'Installation result · ready',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+  }
+
+  testWidgets(
+    'confirmation cancellation remains incomplete and no-session approval is harmless',
+    (t) async {
+      await controller.confirmBenchInstallation(true);
+      f.installation = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.installationAsset).readAsStringSync(),
+      );
+      f.installReader =
+          (a, r, k, credential, id, fault, confirm, {onDiagnostic}) async {
+            final answer = await confirm({
+              'review_token': 'aa' * 32,
+              'expires_ms': 25000,
+              'review': {
+                'serial': r.device.serial,
+                'role': 'Link',
+                'credential_revision': 1,
+                'envelope_sha256': credential.digest,
+                'journal_state': 'empty',
+                'slots_used': 0,
+                'fault': 0,
+              },
+            });
+            expect(answer['confirm'], false);
+            throw BenchCancelled();
+          };
+      await show(t);
+      await t.tap(find.byType(DropdownButton<BenchDefinition>));
+      await t.pumpAndSettle();
+      await t.tap(find.text(f.installation!.guide['title']).last);
+      await t.pumpAndSettle();
+      await tap(t, 'Start guided test');
+      final connect = find.text('USB connected · verify for installation');
+      await t.ensureVisible(connect);
+      await t.tap(connect);
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 50));
+      await tap(t, 'Cancel installation');
+      expect(controller.bench!.report!['outcome'], 'Incomplete');
+      await controller.confirmBenchInstallation(true);
+      expect(controller.message, contains('confirmation stopped'));
+    },
+  );
+
   testWidgets('inspection guide uses the same durable guided flow', (t) async {
     f.inspection = BenchDefinition.fromSnapshot(
       File(BenchDefinition.inspectionAsset).readAsStringSync(),
@@ -93,6 +240,51 @@ void main() {
     expect(controller.bench!.report!['steps'][4]['status'], 'Passed');
     expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
   });
+
+  testWidgets('readiness guide records the startup state', (t) async {
+    f.readiness = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.readinessAsset).readAsStringSync(),
+    );
+    await show(t);
+    await t.tap(find.byType(DropdownButton<BenchDefinition>));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Check credential readiness at startup').last);
+    await t.pumpAndSettle();
+    await tap(t, 'Start guided test');
+    await tap(t, 'USB connected · check readiness');
+    expect(
+      find.textContaining('Readiness · empty · Storage blank'),
+      findsOneWidget,
+    );
+    await input(t, 'Observed readiness state', 'empty');
+    await tap(t, 'Save observation');
+    expect(controller.bench!.report!['steps'][4]['status'], 'Passed');
+    expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
+  });
+
+  testWidgets(
+    'credential delivery shows verified result and records observation',
+    (t) async {
+      f.delivery = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.deliveryAsset).readAsStringSync(),
+      );
+      await show(t);
+      await t.tap(find.byType(DropdownButton<BenchDefinition>));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Verify a factory credential on the device').last);
+      await t.pumpAndSettle();
+      await tap(t, 'Start guided test');
+      await tap(t, 'USB connected · verify credential');
+      expect(
+        find.textContaining('Credential verification · verified'),
+        findsOneWidget,
+      );
+      await input(t, 'Observed verification result', 'verified');
+      await tap(t, 'Save observation');
+      expect(controller.bench!.report!['steps'][4]['status'], 'Passed');
+      expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
+    },
+  );
 
   testWidgets('recorded log filters use the saved steps', (t) async {
     await show(t);

@@ -1,0 +1,21 @@
+{
+  "format": "octatrace-credential-delivery",
+  "version": 1,
+  "scope": "volatile staging and authenticated verification only; no storage mutation",
+  "max_credential_bytes": 271,
+  "max_chunk_bytes": 96,
+  "usb_line_max_bytes": 320,
+  "commands": ["P1 <id> credential-delivery-status", "P1 <id> credential-delivery-begin <hardware> <boot> <transfer_id> <total> <challenge>", "P1 <id> credential-delivery-chunk <hardware> <boot> <transfer_id> <offset> <hex>", "P1 <id> credential-delivery-verify <hardware> <boot> <transfer_id>", "P1 <id> credential-delivery-proof"],
+  "deadline_ms": 30000,
+  "progress": "In-order chunks, identical prior chunk retries accepted; conflicting or out-of-order chunks fail the transfer. Transfer IDs increase per boot. USB disconnect, timeout or worker safety failure invalidates the candidate; no success is published after cancellation.",
+  "signature": "P-256 ECDSA SHA-256, raw r[32] || s[32]",
+  "proof_domain": "OCTATRACE-CREDENTIAL-DELIVERY-1",
+  "proof_fields": ["role", "build", "boot", "hardware", "device_id", "serial", "article_id", "article_revision_id", "transfer_id", "challenge", "credential_revision", "content_id", "envelope_sha256"],
+  "proof_encoding": "ASCII domain and fields, each followed by LF; lower-case hex and UUID, canonical unsigned decimal integers",
+  "proof_max_bytes": 494,
+  "challenge": "fresh independently random nonzero 32-byte host nonce, never derived from the credential",
+  "credential_digest": "SHA-256 of the exact original complete signed envelope; distinct from the signed-content ID",
+  "trust": "Verify the original factory signature against configured issuer and device-owned identity. Verify this separate result signature against the selected device's independently recorded public key.",
+  "replay": "Bind selected role, device, hardware, source, boot, monotonic nonzero transfer ID, fresh challenge, both hashes and credential revision; discard on disconnect or deadline.",
+  "limits": "A valid result proves a device signed this verification outcome, not installation, durable storage, ownership or command authorization. Runtime resource and device behavior require separate qualification."
+}

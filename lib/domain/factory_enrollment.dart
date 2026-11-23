@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
+
 import 'registry.dart';
 
 bool factoryUuid(Object? value) =>
@@ -18,7 +20,8 @@ final class FactoryStatus {
     required String deviceId,
     required String role,
   }) : state = data['state'] as String,
-       publicKeySha256 = data['public_key_sha256'] as String? {
+       publicKeySha256 = data['public_key_sha256'] as String?,
+       credentialSha256 = data['credential_sha256'] as String? {
     if (data['v'] != 1 ||
         data['device_id'] != deviceId ||
         !factoryUuid(deviceId) ||
@@ -37,8 +40,59 @@ final class FactoryStatus {
     }
   }
   final String state;
-  final String? publicKeySha256;
+  final String? publicKeySha256, credentialSha256;
   bool get ready => state == 'ready';
+}
+
+/// Bounded public bytes and the original issuance digest; no claim material.
+/// Parsing checks the selected record and exact byte digest, not a signature.
+final class PublicFactoryCredential {
+  PublicFactoryCredential._(this.bytes, this.digest);
+  factory PublicFactoryCredential.fromJson(
+    Json data, {
+    required String deviceId,
+    required String role,
+    required String expectedDigest,
+  }) {
+    final raw = data['credential'];
+    if (data.keys.toSet().difference({
+          'v',
+          'device_id',
+          'role',
+          'credential',
+          'credential_sha256',
+        }).isNotEmpty ||
+        data.length != 5 ||
+        data['v'] != 1 ||
+        !factoryUuid(deviceId) ||
+        data['device_id'] != deviceId ||
+        !{'Link', 'Core'}.contains(role) ||
+        data['role'] != role ||
+        !_digest(expectedDigest) ||
+        data['credential_sha256'] != expectedDigest ||
+        raw is! String ||
+        raw.length < 2 ||
+        raw.length > 542 ||
+        raw.length.isOdd ||
+        !RegExp(r'^[0-9a-f]+$').hasMatch(raw)) {
+      throw const FormatException('Public factory credential does not match');
+    }
+    final bytes = <int>[
+      for (var i = 0; i < raw.length; i += 2)
+        int.parse(raw.substring(i, i + 2), radix: 16),
+    ];
+    if (sha256.convert(bytes).toString() != expectedDigest) {
+      throw const FormatException('Public factory credential does not match');
+    }
+    return PublicFactoryCredential._(
+      List<int>.unmodifiable(bytes),
+      expectedDigest,
+    );
+  }
+  final List<int> bytes;
+  final String digest;
+  @override
+  String toString() => '[Public factory credential]';
 }
 
 /// Only the exact, bounded C4.1 structure is accepted. Parsing is not claiming
@@ -106,6 +160,11 @@ final class PrivateClaimQr {
 
 abstract interface class FactoryGateway {
   Future<Json> factoryStatus(String deviceId);
+  Future<PublicFactoryCredential> publicCredential({
+    required String deviceId,
+    required String role,
+    required String expectedDigest,
+  });
   Future<Json> issueFactory({
     required String requestId,
     required String provisioningRequestId,

@@ -1,0 +1,40 @@
+{
+  "synthetic_only": true,
+  "frame": {
+    "v": 1,
+    "id": 7,
+    "ok": true,
+    "type": "credential_delivery",
+    "role": "Link",
+    "build": "abababababababababababababababababababababababababababababababab",
+    "boot": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "hardware": "efefefefefefefef",
+    "device_id": "10000000-0000-4000-8000-000000000001",
+    "serial": "D000000000001",
+    "article_id": "20000000-0000-4000-8000-000000000002",
+    "article_revision_id": "30000000-0000-4000-8000-000000000003",
+    "transfer_id": 3,
+    "challenge": "4242424242424242424242424242424242424242424242424242424242424242",
+    "credential_revision": 1,
+    "content_id": "5555555555555555555555555555555555555555555555555555555555555555",
+    "envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "signature": "9a5fc380133f9c3b1f9e402f45c8d40ee4032421cd02f9aa1da30e3da3f50feefb43092d5a2a7f46e2d99fcb659cfd8acec81aa1ec45f0aec24166c1e1819f06"
+  },
+  "expected": {
+    "role": "Link",
+    "source": "abababababababababababababababababababababababababababababababab",
+    "boot": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "hardware": "efefefefefefefef",
+    "device_id": "10000000-0000-4000-8000-000000000001",
+    "serial": "D000000000001",
+    "article_id": "20000000-0000-4000-8000-000000000002",
+    "article_revision_id": "30000000-0000-4000-8000-000000000003",
+    "transfer_id": 3,
+    "challenge": "4242424242424242424242424242424242424242424242424242424242424242",
+    "credential_revision": 1,
+    "content_id": "5555555555555555555555555555555555555555555555555555555555555555",
+    "envelope_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "public_key": "046ff03b949241ce1dadd43519e6960e0a85b41a69a05c328103aa2bce1594ca163c4f753a55bf01dc53f6c0b0c7eee78b40c6ff7d25a96e2282b989cef71c144a"
+  },
+  "message_ascii": "OCTATRACE-CREDENTIAL-DELIVERY-1\nLink\nabababababababababababababababababababababababababababababababab\ncdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\nefefefefefefefef\n10000000-0000-4000-8000-000000000001\nD000000000001\n20000000-0000-4000-8000-000000000002\n30000000-0000-4000-8000-000000000003\n3\n4242424242424242424242424242424242424242424242424242424242424242\n1\n5555555555555555555555555555555555555555555555555555555555555555\n6666666666666666666666666666666666666666666666666666666666666666\n"
+}

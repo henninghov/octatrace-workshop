@@ -1,3 +1,5 @@
+import 'tool_environment.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -84,6 +86,7 @@ final class ProcessBenchRunner implements BenchRunner {
           build,
         ],
         runInShell: false,
+        environment: workshopToolEnvironment(),
       );
       _process = process;
       if (_cancelled) process.kill();

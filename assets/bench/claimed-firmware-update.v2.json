@@ -1,0 +1,56 @@
+{
+  "format": 1,
+  "key": "c82-claimed-core-test-image-update",
+  "revision": 2,
+  "title": "Update the claimed CORE test firmware",
+  "scope": "Supervised development CORE application-image update; no provisioning, ownership or credential-storage operation.",
+  "preconditions": [
+    "The operator is authorized, the registry record is claimed and provisioned, and the verified original public key is available.",
+    "Only the selected CORE is connected. The old application is running and supports the reviewed P1 proof.",
+    "The new role-specific application image is qualified, guarded and locally available. Retain local evidence before installing."
+  ],
+  "before_source": "93dd066c1d5a872a4335d11f7cf50d08b87cd3192898856ab4c924583c94f36e",
+  "after_source": "a660474242fc2a6f1de4c596a1420099fff2a84a841ce325384c2f097e1e993d",
+  "proof_runner_sha256": "ee9e0ce34d7dea32bc961140917075f0000a87aae09e4e408790c4f2060982ba",
+  "owner_dependency_guide_sha256": "f49a91ec168090155f258c3a04636580cfa5f3fc7fbeb9f90949f203c92f48b4",
+  "after_artifact": "fd61b4c2c620e7a9ae1082c33854c2a24afa6819b268b6d6f27c8ff416203d8a",
+  "steps": [
+    {
+      "number": 1,
+      "actor": "tester",
+      "action": "Select the claimed CORE and confirm only it is connected.",
+      "expected": "Registry identity, role, current application target and expected builds match."
+    },
+    {
+      "number": 2,
+      "actor": "runner",
+      "action": "Save the attempt and verify a fresh identity proof using the existing server-verified public key.",
+      "expected": "The old firmware, identity, key and current boot match; a durable attempt is retained."
+    },
+    {
+      "number": 3,
+      "actor": "tester",
+      "action": "Enter Heltec USB bootloader, refresh and explicitly confirm the identified device and image.",
+      "expected": "The selected hardware matches the preflight and the operator reviews the application update."
+    },
+    {
+      "number": 4,
+      "actor": "runner",
+      "action": "Save the write intent, validate the image and install through the guarded firmware owner.",
+      "expected": "Only the qualified CORE application image is written; failure or interruption remains unresolved without automatic retry."
+    },
+    {
+      "number": 5,
+      "actor": "runner",
+      "action": "Verify a fresh identity proof after boot and compare the registry ownership.",
+      "expected": "The same identity and public key return with the new source and a different boot; ownership remains unchanged."
+    },
+    {
+      "number": 6,
+      "actor": "tester",
+      "action": "Review and retain the private update report.",
+      "expected": "The completed or incomplete attempt, proofs and installation evidence are retained locally."
+    }
+  ],
+  "limits": "The bootloader USB identifier is not a cryptographic proof. Physical preservation and interrupted-write recovery require device evidence. No ownership, provisioning or credential area mutation is part of this procedure."
+}

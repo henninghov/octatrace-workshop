@@ -6,6 +6,7 @@ import '../domain/registry.dart';
 import '../domain/provisioning.dart';
 import '../domain/workshop_controller.dart';
 import 'copyable_text.dart';
+import 'claimed_update_panel.dart';
 
 class ProvisioningPanel extends StatefulWidget {
   const ProvisioningPanel({
@@ -74,6 +75,16 @@ class _ProvisioningPanelState extends State<ProvisioningPanel> {
   @override
   Widget build(BuildContext context) {
     final c = widget.controller, device = widget.device;
+    if (device.ownerId != null &&
+        device.state == 'provisioned' &&
+        widget.article?.role == 'Core' &&
+        c.claimedUpdateFactory != null) {
+      return ClaimedUpdatePanel(
+        controller: c,
+        device: device,
+        article: widget.article!,
+      );
+    }
     final inventory = c.usbInventory;
     final target = inventory?.targets
         .where((t) => t.key == targetKey)

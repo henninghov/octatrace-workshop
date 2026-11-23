@@ -5,8 +5,10 @@ import 'package:crypto/crypto.dart';
 
 import 'bench_definition.dart';
 import 'bench_sync.dart';
+import 'factory_enrollment.dart';
 import 'provisioning.dart';
 import 'registry.dart';
+import 'ports.dart';
 
 String benchHash(String text) => sha256.convert(utf8.encode(text)).toString();
 
@@ -32,6 +34,34 @@ typedef InspectionReader = Future<Json> Function(
   void Function(Json diagnostic)? onDiagnostic,
 });
 
+typedef DeliveryReader = Future<Json> Function(
+  String account,
+  ProvisionedIdentityRead selection,
+  String publicKey,
+  PublicFactoryCredential credential, {
+  void Function(Json diagnostic)? onDiagnostic,
+});
+
+typedef InstallationReader = Future<Json> Function(
+  String account,
+  ProvisionedIdentityRead selection,
+  String publicKey,
+  PublicFactoryCredential credential,
+  String attemptId,
+  int fault,
+  Future<Json> Function(Json review) confirm, {
+  void Function(Json diagnostic)? onDiagnostic,
+});
+
+typedef PreparationReader = Future<Json> Function(
+  String account,
+  ProvisionedIdentityRead selection,
+  String publicKey,
+  String attemptId,
+  Future<Json> Function(Json review) confirm, {
+  void Function(Json diagnostic)? onDiagnostic,
+});
+
 /// A session belongs to exactly one signed-in operator. Only this instance can
 /// advance its active attempt. Historical attempts are opened for review/export.
 final class BenchSession {
@@ -48,7 +78,17 @@ final class BenchSession {
     this.sync,
     this.inspectionDefinition,
     this.readInspection,
+    this.readinessDefinition,
+    this.readReadiness,
     this.lookupPublicKey,
+    this.deliveryDefinition,
+    this.readDelivery,
+    this.lookupCredential,
+    this.installationDefinition,
+    this.intentStopDefinition,
+    this.readInstallation,
+    this.preparationDefinition,
+    this.readPreparation,
   }) : definition = definition,
        identityDefinition = definition;
   final String account;
@@ -56,19 +96,134 @@ final class BenchSession {
   final BenchDefinition identityDefinition;
   final BenchDefinition? inspectionDefinition;
   final InspectionReader? readInspection;
+  final BenchDefinition? readinessDefinition;
+  final InspectionReader? readReadiness;
   final Future<String> Function(DeviceRecord, ArticleRevision)? lookupPublicKey;
+  final BenchDefinition? deliveryDefinition;
+  final DeliveryReader? readDelivery;
+  final BenchDefinition? installationDefinition, intentStopDefinition;
+  final InstallationReader? readInstallation;
+  final BenchDefinition? preparationDefinition;
+  final PreparationReader? readPreparation;
+  void Function()? onChanged;
+  Json? installationReview;
+  bool confirmationSaving = false;
+  Completer<bool>? _confirmation;
+  ProvisionedIdentityRead? _installationRead;
+  String? _installationKey;
+  PublicFactoryCredential? _installationCredential;
+  final Future<PublicFactoryCredential> Function(
+    DeviceRecord,
+    ArticleRevision,
+    String,
+  )?
+  lookupCredential;
   bool get isInspection =>
       definition.guide['key'] == 'c82-credential-inspection-device';
+
+  bool get isReadiness =>
+      definition.guide['key'] == 'c82-credential-startup-device';
+  bool get isDelivery =>
+      definition.guide['key'] == 'c822-credential-delivery-device';
+  bool get isInstallation =>
+      definition.guide['key'] == 'c823-credential-installation-device' ||
+      isIntentStop;
+  bool get isIntentStop =>
+      definition.guide['key'] == 'c823-credential-intent-stop-device';
+  bool get isPreparation =>
+      definition.guide['key'] == 'c823-credential-preparation-device';
+  bool get isWrite => isInstallation || isPreparation;
+  bool get isCredentialTest =>
+      isInspection || isReadiness || isDelivery || isWrite;
 
   void selectDefinition(BenchDefinition value) {
     if (active || pending != null) {
       throw StateError('Finish the current attempt first');
     }
-    if (value != identityDefinition && value != inspectionDefinition) {
+    if (value != identityDefinition &&
+        value != inspectionDefinition &&
+        value != readinessDefinition &&
+        value != deliveryDefinition &&
+        value != installationDefinition &&
+        value != intentStopDefinition &&
+        value != preparationDefinition) {
       throw StateError('Unknown test definition');
     }
     definition = value;
     report = null;
+  }
+
+  Future<Json> _reviewInstallation(Json review) async {
+    if (_stopReason != null) throw BenchCancelled();
+    final updated = jsonDecode(jsonEncode(report)) as Json;
+    updated['generation']++;
+    updated['installation_review'] = review;
+    updated['installation_consent'] = {
+      'status': 'Awaiting confirmation',
+      'operator': account,
+      'at': _time,
+    };
+    await _save(updated);
+    if (_stopReason != null) throw BenchCancelled();
+    _confirmation = Completer<bool>();
+    installationReview = review;
+    onChanged?.call();
+    final accepted = await _confirmation!.future;
+    return {'confirm': accepted, 'review_token': review['review_token']};
+  }
+
+  Future<void> respondInstallation(bool accepted) async {
+    final reply = _confirmation;
+    final review = installationReview;
+    if (reply == null ||
+        reply.isCompleted ||
+        review == null ||
+        confirmationSaving) {
+      throw StateError('No current installation confirmation');
+    }
+    confirmationSaving = true;
+    onChanged?.call();
+    var authorized = false;
+    try {
+      if (accepted) {
+        final selected = _installationRead!;
+        if (isPreparation) {
+          if (await lookupPublicKey!(selected.device, selected.article) !=
+              _installationKey) {
+            throw const ProvisioningFailure(
+              'Registry identity changed; inspect again.',
+            );
+          }
+        } else {
+          final fresh = await lookupCredential!(
+            selected.device,
+            selected.article,
+            _installationKey!,
+          );
+          if (fresh.digest != _installationCredential!.digest) {
+            throw const ProvisioningFailure(
+              'Credential changed; verify again before confirming.',
+            );
+          }
+        }
+      }
+      if (_stopReason != null || reply.isCompleted) return;
+      final updated = jsonDecode(jsonEncode(report)) as Json;
+      updated['generation']++;
+      updated['installation_consent'] = {
+        'status': accepted ? 'Approved' : 'Cancelled',
+        'operator': account,
+        'at': _time,
+        'review_token': review['review_token'],
+      };
+      await _save(updated);
+      authorized = accepted;
+    } finally {
+      if (!reply.isCompleted) reply.complete(authorized);
+      installationReview = null;
+      confirmationSaving = false;
+      onChanged?.call();
+    }
   }
 
   final BenchStore store;
@@ -175,6 +330,15 @@ final class BenchSession {
       'operator': account,
       'generation': 1,
       'prior_attempt': prior?['id'],
+      if (isInstallation && !isIntentStop)
+        'recovery_of': history
+            .where(
+              (r) =>
+                  r['device']['id'] == device.id &&
+                  r['definition_key'] == 'c823-credential-intent-stop-device' &&
+                  r['steps'][3]['status'] == 'Passed',
+            )
+            .firstOrNull?['id'],
       'started_at': timestamp,
       'ended_at': null,
       'outcome': 'Incomplete',
@@ -295,8 +459,36 @@ final class BenchSession {
         build: build,
       );
       late final Json frame;
-      if (isInspection) {
-        if (lookupPublicKey == null || readInspection == null) {
+      if (isPreparation) {
+        if (readPreparation == null ||
+            readInspection == null ||
+            lookupPublicKey == null) {
+          throw const BenchBlocked(
+            'Preparation runner or verified identity key unavailable',
+          );
+        }
+        final key = await lookupPublicKey!(device, article);
+        if (_stopReason != null) return;
+        _installationRead = read;
+        _installationKey = key;
+        final prepared = await readPreparation!(
+          account,
+          read,
+          key,
+          report!['id'] as String,
+          _reviewInstallation,
+          onDiagnostic: (data) => diagnostic = data,
+        );
+        frame = {'state': prepared['preparation_result']['state'], ...prepared};
+      } else if (isCredentialTest) {
+        final reader = isReadiness ? readReadiness : readInspection;
+        if (lookupPublicKey == null ||
+            (isDelivery || isInstallation
+                ? (isInstallation
+                          ? readInstallation == null || readReadiness == null
+                          : readDelivery == null) ||
+                      lookupCredential == null
+                : reader == null)) {
           throw const BenchBlocked(
             'Verified identity key or inspection runner unavailable',
           );
@@ -310,12 +502,49 @@ final class BenchSession {
           );
         }
         if (_stopReason != null) return;
-        frame = await readInspection!(
-          account,
-          read,
-          publicKey,
-          onDiagnostic: (data) => diagnostic = data,
-        );
+        if (isDelivery || isInstallation) {
+          final credential = await lookupCredential!(
+            device,
+            article,
+            publicKey,
+          );
+          if (_stopReason != null) return;
+          if (isInstallation) {
+            _installationRead = read;
+            _installationKey = publicKey;
+            _installationCredential = credential;
+            final installed = await readInstallation!(
+              account,
+              read,
+              publicKey,
+              credential,
+              report!['id'] as String,
+              isIntentStop ? 1 : 0,
+              _reviewInstallation,
+              onDiagnostic: (data) => diagnostic = data,
+            );
+            frame = {
+              'state': installed['installation_proof']['journal_state'],
+              ...installed,
+            };
+          } else {
+            final result = await readDelivery!(
+              account,
+              read,
+              publicKey,
+              credential,
+              onDiagnostic: (data) => diagnostic = data,
+            );
+            frame = {'state': 'verified', ...result};
+          }
+        } else {
+          frame = await reader!(
+            account,
+            read,
+            publicKey,
+            onDiagnostic: (data) => diagnostic = data,
+          );
+        }
       } else {
         frame = await readIdentity(
           account,
@@ -326,10 +555,11 @@ final class BenchSession {
       result = {'frame': frame};
       status = 'Passed';
     } catch (error) {
-      status =
-          error is BenchBlocked ||
-              (error is FormatException &&
-                  error.message == 'Ambiguous USB inventory')
+      status = error is BenchCancelled
+          ? 'Incomplete'
+          : error is BenchBlocked ||
+                (error is FormatException &&
+                    error.message == 'Ambiguous USB inventory')
           ? 'Blocked'
           : 'Failed';
       result = {
@@ -339,13 +569,40 @@ final class BenchSession {
       };
     } finally {
       _reading = false;
+      final reply = _confirmation;
+      if (reply != null && !reply.isCompleted) reply.complete(false);
+      _confirmation = null;
+      installationReview = null;
+      confirmationSaving = false;
+      onChanged?.call();
+    }
+    if (pending != null && isWrite) {
+      // Preserve the unsaved review/consent. No authorization was sent after a
+      // failed save; retrying persistence must not restart the USB operation.
+      final unsaved = jsonDecode(jsonEncode(pending)) as Json;
+      unsaved['steps'][3].addAll({
+        'status': 'Incomplete',
+        'at': _time,
+        'evidence': {'local_save_failed': true, 'result': result},
+      });
+      unsaved['outcome'] = 'Incomplete';
+      unsaved['ended_at'] = _time;
+      if (unsaved['installation_consent'] is Json) {
+        unsaved['installation_consent']['status'] =
+            'Not sent; local save failed';
+      }
+      pending = unsaved;
+      return;
     }
     final interruption = _stopReason;
     if (interruption != null) {
       // Retain the owner's bounded diagnostic on this attempt. A late frame
       // cannot become a passed step after cancellation or logout.
       status = 'Incomplete';
-      result = {'interruption': interruption};
+      result = {
+        'interruption': interruption,
+        if (isWrite) 'late_result': result,
+      };
     }
     final updated = _change(
       4,
@@ -377,21 +634,83 @@ final class BenchSession {
         'Enter the label or a reason (1–256 characters).',
       );
     }
-    final expected = isInspection
+    final expected = isCredentialTest
         ? report!['steps'][3]['evidence']['frame']['state']
         : report!['device']['serial'];
-    final status = unavailable
+    var status = unavailable
         ? 'Incomplete'
         : text == expected
         ? 'Passed'
         : 'Failed';
-    await _save(
-      _change(5, status, {
+    Json? restart;
+    Json? restartDiagnostic;
+    String? restartError;
+    if (isWrite && !unavailable) {
+      _reading = true;
+      try {
+        final selected = _installationRead!;
+        if (await lookupPublicKey!(selected.device, selected.article) !=
+            _installationKey) {
+          throw const ProvisioningFailure(
+            'Registry identity or ownership changed before restart verification.',
+          );
+        }
+        if (_stopReason != null) throw BenchCancelled();
+        restart = await (isPreparation ? readInspection! : readReadiness!)(
+          account,
+          _installationRead!,
+          _installationKey!,
+          onDiagnostic: (value) => restartDiagnostic = value,
+        );
+        final installed = report!['steps'][3]['evidence']['frame'];
+        final proof = isPreparation
+            ? installed['preparation_result']
+            : installed['installation_proof'];
+        if (restart['boot'] == proof['boot'] ||
+            restart['state'] != expected ||
+            (expected == 'ready' &&
+                (restart['revision'] != proof['credential_revision'] ||
+                    restart['content_id'] != proof['content_id']))) {
+          throw const ProvisioningFailure(
+            'Restart readiness did not match the verified installation.',
+          );
+        }
+      } catch (error) {
+        status = 'Failed';
+        restartError = error.toString();
+      } finally {
+        _reading = false;
+      }
+      if (_stopReason != null) status = 'Incomplete';
+    }
+    final updated = _change(
+      5,
+      status,
+      {
         'operator': account,
         'observation': text,
         'unavailable': unavailable,
-      }, outcome: status == 'Passed' ? null : status),
+        'automatic_restart_check': ?restart,
+        'automatic_error': ?restartError,
+      },
+      outcome: status == 'Passed'
+          ? null
+          : _stopReason != null
+          ? _interruptedOutcome(_stopReason!)
+          : status,
     );
+    if (restartDiagnostic != null) {
+      final raw = jsonEncode(restartDiagnostic);
+      updated['artifacts'].add({
+        'run_id': report!['id'],
+        'step': 5,
+        'type': 'application/json',
+        'bytes': utf8.encode(raw).length,
+        'sha256': benchHash(raw),
+        'content': raw,
+      });
+    }
+    await _save(updated);
     if (status == 'Passed' && _stopReason == null) await verifyReopen();
   }
 
@@ -464,6 +783,12 @@ final class BenchSession {
 
   Future<void> _stop(String reason) async {
     _stopReason = reason;
+    final confirmation = _confirmation;
+    if (confirmation != null && !confirmation.isCompleted) {
+      confirmation.complete(false);
+    }
+    installationReview = null;
+    onChanged?.call();
     try {
       if (_reading) await cancelRunner();
     } finally {

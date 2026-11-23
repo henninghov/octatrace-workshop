@@ -59,6 +59,13 @@ void main() {
   tearDown(() async {
     await root.delete(recursive: true);
   });
+  test('GUI-launched runner can find the independent Node verifier', () async {
+    await helper(
+      'import json,subprocess\nprint(json.dumps({"node":subprocess.check_output(["node","-e","process.stdout.write(String(6*7))"],text=True)}))',
+    );
+    expect((await execute(runner()))['node'], '42');
+  });
+
   test('control storage lock and exact contract bytes are required', () async {
     final lock = File('${root.path}/control-storage.lock.json');
     final original = await lock.readAsString();

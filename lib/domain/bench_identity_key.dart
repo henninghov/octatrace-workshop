@@ -24,7 +24,8 @@ String provisionedKey(
       current.single.state != 'provisioned' ||
       current.single.serial != device.serial ||
       current.single.revisionId != article.id ||
-      current.single.hardwareUid != device.hardwareUid) {
+      current.single.hardwareUid != device.hardwareUid ||
+      current.single.ownerId != device.ownerId) {
     throw const FormatException('Selected registry identity changed');
   }
   final candidates = <String>{};

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Authenticated credential delivery verification result",
+  "type": "object",
+  "additionalProperties": false,
+  "$id": "https://octatrace.local/credential-installation/status.schema.json",
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "ok": {
+      "const": true
+    },
+    "type": {
+      "const": "credential_installation_status"
+    },
+    "role": {
+      "enum": [
+        "Link",
+        "Core"
+      ]
+    },
+    "build": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "hardware": {
+      "type": "string",
+      "pattern": "^(?!0{16}$)[0-9a-f]{16}$"
+    },
+    "boot": {
+      "type": "string",
+      "pattern": "^(?!0{32}$)[0-9a-f]{32}$"
+    },
+    "state": {
+      "enum": [
+        "idle",
+        "reviewing",
+        "reviewed",
+        "writing",
+        "complete",
+        "failed"
+      ]
+    }
+  },
+  "required": [
+    "v",
+    "id",
+    "ok",
+    "type",
+    "role",
+    "build",
+    "hardware",
+    "boot",
+    "state"
+  ]
+}

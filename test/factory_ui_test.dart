@@ -61,6 +61,16 @@ class FactoryUiGateway extends p.SetupGateway implements FactoryGateway {
   @override
   Future<Json> factoryStatus(String id) => backend.factoryStatus(id);
   @override
+  Future<PublicFactoryCredential> publicCredential({
+    required String deviceId,
+    required String role,
+    required String expectedDigest,
+  }) => backend.publicCredential(
+    deviceId: deviceId,
+    role: role,
+    expectedDigest: expectedDigest,
+  );
+  @override
   Future<Json> issueFactory({
     required String requestId,
     required String provisioningRequestId,

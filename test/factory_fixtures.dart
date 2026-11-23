@@ -64,6 +64,12 @@ class FactoryFake implements FactoryGateway {
   Json? issuedStatus;
   String? payload;
   @override
+  Future<PublicFactoryCredential> publicCredential({
+    required String deviceId,
+    required String role,
+    required String expectedDigest,
+  }) async => throw UnimplementedError();
+  @override
   Future<Json> factoryStatus(String deviceId) async {
     statuses++;
     if (failure != null) throw failure!;

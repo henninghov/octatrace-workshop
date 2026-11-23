@@ -1,0 +1,12 @@
+{
+  "profile": "octatrace-credential-readiness",
+  "version": 1,
+  "scope": "read-only application startup credential readiness",
+  "roles": ["Link", "Core"],
+  "command": "P1 <id> credential-readiness",
+  "states": ["unavailable", "empty", "ready", "pending"],
+  "binding": "The owner runner verifies a fresh signed identity proof and matches hardware, role, source and current boot before accepting the result.",
+  "semantics": "Empty contains no credential. Ready means two matching copies were authenticated against configured factory issuer trust and this device identity. Pending and unavailable never expose a ready credential. This does not grant ownership or command permission.",
+  "preservation": "This operation is read-only. It does not deliver, write, prepare or erase credential storage.",
+  "limits": {"request_id_max": 4294967295, "reply_bytes": 1280, "content_id_bytes": 32}
+}

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -223,6 +224,54 @@ void main() {
     held!.complete(
       http.Response(
         jsonEncode(f.status('ready')),
+        200,
+        headers: {'content-type': 'application/json'},
+        request: requests.lastWhere((r) => r.url.path.contains('/rpc/')),
+      ),
+    );
+    await check;
+  });
+  test('public credential request is account-bound and denies late session replacement', () async {
+    final device = f.unit().id;
+    final hash = sha256.convert([1, 2, 3]).toString();
+    final payload = {
+      'v': 1,
+      'device_id': device,
+      'role': 'Link',
+      'credential': '010203',
+      'credential_sha256': hash,
+    };
+    Future<PublicFactoryCredential> retrieve() => gateway.publicCredential(
+      deviceId: device,
+      role: 'Link',
+      expectedDigest: hash,
+    );
+    await expectLater(retrieve(), throwsA(isA<SessionExpired>()));
+    await login();
+    reply = payload;
+    expect((await retrieve()).bytes, [1, 2, 3]);
+    expect(
+      requests.last.url.path,
+      '/rest/v1/rpc/workshop_public_factory_credential',
+    );
+    expect(jsonDecode(requests.last.body), {'p_device_id': device});
+    expect(requests.last.headers['Authorization'], 'Bearer synthetic-access-1');
+    reply = 1;
+    await expectLater(retrieve(), throwsA(isA<FactoryFailure>()));
+    reply = {...payload, 'credential': 'ff'};
+    await expectLater(retrieve(), throwsFormatException);
+    status = 403;
+    reply = {'code': '42501'};
+    await expectLater(retrieve(), throwsA(isA<OperatorDenied>()));
+    status = 200;
+    held = Completer();
+    final future = retrieve();
+    final check = expectLater(future, throwsA(isA<FactoryFailure>()));
+    await Future<void>.delayed(Duration.zero);
+    await login();
+    held!.complete(
+      http.Response(
+        jsonEncode(payload),
         200,
         headers: {'content-type': 'application/json'},
         request: requests.lastWhere((r) => r.url.path.contains('/rpc/')),

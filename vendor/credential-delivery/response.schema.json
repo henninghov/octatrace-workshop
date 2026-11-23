@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Authenticated credential delivery verification result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "id", "ok", "type", "role", "build", "boot", "hardware", "device_id", "serial", "article_id", "article_revision_id", "transfer_id", "challenge", "credential_revision", "content_id", "envelope_sha256", "signature"],
+  "properties": {
+    "v": {"const": 1},
+    "id": {"type": "integer", "minimum": 1, "maximum": 4294967295},
+    "ok": {"const": true},
+    "type": {"const": "credential_delivery"},
+    "role": {"enum": ["Link", "Core"]},
+    "build": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "boot": {"type": "string", "pattern": "^(?!0{32}$)[0-9a-f]{32}$"},
+    "hardware": {"type": "string", "pattern": "^(?!0{16}$)[0-9a-f]{16}$"},
+    "device_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "serial": {"type": "string", "pattern": "^D(?!0{12}$)[0-9]{12}$"},
+    "article_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "article_revision_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "transfer_id": {"type": "integer", "minimum": 1, "maximum": 4294967295},
+    "challenge": {"type": "string", "pattern": "^(?!0{64}$)[0-9a-f]{64}$"},
+    "credential_revision": {"type": "integer", "minimum": 1, "maximum": 4294967295},
+    "content_id": {"type": "string", "pattern": "^(?!0{64}$)[0-9a-f]{64}$"},
+    "envelope_sha256": {"type": "string", "pattern": "^(?!0{64}$)[0-9a-f]{64}$"},
+    "signature": {"type": "string", "pattern": "^(?!0{128}$)[0-9a-f]{128}$"}
+  }
+}

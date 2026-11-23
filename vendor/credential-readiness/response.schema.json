@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "id",
+    "ok",
+    "type",
+    "role",
+    "build",
+    "hardware",
+    "boot",
+    "state",
+    "revision",
+    "content_id"
+  ],
+  "properties": {
+    "v": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "ok": {
+      "const": true
+    },
+    "type": {
+      "const": "credential_readiness"
+    },
+    "role": {
+      "enum": [
+        "Link",
+        "Core"
+      ]
+    },
+    "build": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "hardware": {
+      "type": "string",
+      "pattern": "^(?!0{16}$)[0-9a-f]{16}$",
+      "minLength": 16,
+      "maxLength": 16
+    },
+    "boot": {
+      "type": "string",
+      "pattern": "^(?!0{32}$)[0-9a-f]{32}$",
+      "minLength": 32,
+      "maxLength": 32
+    },
+    "state": {
+      "enum": [
+        "unavailable",
+        "empty",
+        "ready",
+        "pending"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "content_id": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "ready"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "revision": {
+            "minimum": 1
+          },
+          "content_id": {
+            "pattern": "^[0-9a-f]{64}$",
+            "minLength": 64,
+            "maxLength": 64
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "revision": {
+            "const": 0
+          },
+          "content_id": {
+            "const": ""
+          }
+        }
+      }
+    }
+  ]
+}

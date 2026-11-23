@@ -6,13 +6,24 @@ import 'package:crypto/crypto.dart';
 import '../domain/registry.dart';
 import '../domain/ports.dart';
 import '../domain/bench_session.dart';
+import '../domain/claimed_update.dart';
 import 'bench_files.dart';
 
 /// Private operator-scoped evidence and reservation retry identities.
 /// Cloud failure and logout leave files intact. No passwords/tokens are stored.
-final class EvidenceJournal implements EvidenceStore, BenchStore {
-  EvidenceJournal(this.root);
+final class EvidenceJournal
+    implements EvidenceStore, BenchStore, ClaimedUpdateStore {
+  EvidenceJournal(
+    this.root, {
+    Directory? updateLocks,
+    Future<bool> Function()? flushUpdateIntent,
+  }) : updateLocks = updateLocks ?? Directory('${root.path}/update-locks'),
+       flushUpdateIntent = flushUpdateIntent ?? _flushUpdateIntent;
   final Directory root;
+  final Directory updateLocks;
+  final Future<bool> Function() flushUpdateIntent;
+  static Future<bool> _flushUpdateIntent() async =>
+      (await Process.run('/bin/sync', const <String>[])).exitCode == 0;
   Future<Directory> _account(String account) async {
     if (!RegExp(r'^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$')
         .hasMatch(account)) {
@@ -149,6 +160,241 @@ final class EvidenceJournal implements EvidenceStore, BenchStore {
     await synced.create(recursive: true);
     await File('${dir.path}/pending/$id.json')
         .rename('${synced.path}/$id.json');
+  }
+
+  Future<File> _updateLock(Json record) async {
+    final hardware = record['hardware'];
+    if (hardware is! String || !RegExp(r'^[0-9a-f]{16}$').hasMatch(hardware)) {
+      throw const FormatException('Invalid update hardware');
+    }
+    await updateLocks.create(recursive: true);
+    return File('${updateLocks.path}/${_key(hardware)}.json');
+  }
+
+  Future<Directory> _updateAttempt(Json record) async {
+    final account = record['account'];
+    final id = record['id'];
+    if (account is! String ||
+        id is! String ||
+        !RegExp(r'^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$').hasMatch(id)) {
+      throw const FormatException('Invalid update attempt identity');
+    }
+    return Directory('${(await _account(account)).path}/firmware-updates/$id');
+  }
+
+  @override
+  Future<Json?> pendingUpdate(String account, String hardware) async {
+    await _account(account);
+    final lock = await _updateLock({'hardware': hardware});
+    if (!await lock.exists()) return null;
+    final binding = jsonDecode(await lock.readAsString()) as Json;
+    if (binding['account'] != account ||
+        binding['hardware'] != hardware ||
+        binding['id'] is! String) {
+      throw const FormatException('A prior device update requires review');
+    }
+    final dir = await _updateAttempt(binding);
+    if (!await dir.exists()) {
+      throw const FormatException('Prior update evidence requires review');
+    }
+    final records = <int>[];
+    await for (final entry in dir.list(followLinks: false)) {
+      if (entry is File &&
+          RegExp(r'^[0-9]+\.json$').hasMatch(entry.uri.pathSegments.last)) {
+        records.add(int.parse(entry.uri.pathSegments.last.split('.').first));
+      }
+    }
+    records.sort();
+    if (records.isEmpty ||
+        records.first != 1 ||
+        records.last != records.length) {
+      throw const FormatException('Prior update evidence is incomplete');
+    }
+    Json? latest;
+    for (final number in records) {
+      final envelope = jsonDecode(
+        await File('${dir.path}/$number.json').readAsString(),
+      ) as Json;
+      final record = envelope['record'] as Json;
+      if (envelope['sha256'] != benchHash(jsonEncode(record)) ||
+          record['generation'] != number ||
+          record['account'] != account ||
+          record['id'] != binding['id'] ||
+          record['hardware'] != hardware) {
+        throw const FormatException('Prior update evidence differs');
+      }
+      latest = record;
+    }
+    return latest;
+  }
+
+  @override
+  Future<void> beginUpdate(Json record) async {
+    if (record['generation'] != 1 || record['phase'] != 'preflight') {
+      throw const FormatException('Invalid update start');
+    }
+    await _account(record['account'] as String);
+    final lock = await _updateLock(record);
+    // Atomic exclusive publication prevents concurrent starts for this hardware,
+    // including from another operator or another Workshop process.
+    await publishBenchFile(
+      lock,
+      jsonEncode({
+        'id': record['id'],
+        'account': record['account'],
+        'hardware': record['hardware'],
+      }),
+    );
+    await saveUpdate(record);
+  }
+
+  @override
+  Future<void> saveUpdate(Json record) async {
+    final lock = await _updateLock(record);
+    final expected = {
+      'id': record['id'],
+      'account': record['account'],
+      'hardware': record['hardware'],
+    };
+    if (!await lock.exists() ||
+        await lock.readAsString() != jsonEncode(expected)) {
+      throw const FormatException('Update attempt is not exclusively held');
+    }
+    final dir = await _updateAttempt(record);
+    await dir.create(recursive: true);
+    final generation = record['generation'];
+    if (generation is! int ||
+        generation < 1 ||
+        (generation > 1 &&
+            !await File('${dir.path}/${generation - 1}.json').exists())) {
+      throw const FormatException('Update attempt generation is missing');
+    }
+    if (generation > 1) {
+      final previousEnvelope = jsonDecode(
+        await File('${dir.path}/${generation - 1}.json').readAsString(),
+      ) as Json;
+      final previous = previousEnvelope['record'] as Json;
+      if (previousEnvelope['sha256'] != benchHash(jsonEncode(previous)) ||
+          previous['generation'] != generation - 1 ||
+          [
+            'id',
+            'account',
+            'device_id',
+            'hardware',
+            'owner_id',
+            'serial',
+            'role',
+            'operator_ready_confirmation',
+            'before_source',
+            'after_source',
+            'after_artifact',
+            'guide_snapshot',
+            'guide_sha256',
+            'proof_runner_sha256',
+            'owner_dependency_guide_sha256',
+            'workshop_sha256',
+            'started_at',
+          ].any((key) => previous[key] != record[key]) ||
+          (previous.containsKey('before_proof') &&
+              jsonEncode(previous['before_proof']) !=
+                  jsonEncode(record['before_proof'])) ||
+          (previous.containsKey('installation') &&
+              jsonEncode(previous['installation']) !=
+                  jsonEncode(record['installation']))) {
+        throw const FormatException('Update history or binding changed');
+      }
+      const transitions = {
+        'preflight': {'awaiting_bootloader', 'preflight_failed'},
+        'awaiting_bootloader': {'write_started', 'cancelled_before_write'},
+        'write_started': {'awaiting_postflight', 'interrupted_after_write'},
+        'awaiting_postflight': {'verified', 'interrupted_after_write'},
+      };
+      if (!(transitions[previous['phase']]?.contains(record['phase']) ??
+          false)) {
+        throw const FormatException('Invalid update phase transition');
+      }
+    }
+    final file = File('${dir.path}/$generation.json');
+    final payload = jsonEncode(record);
+    final envelope = jsonEncode({
+      'sha256': benchHash(payload),
+      'record': record,
+    });
+    if (await file.exists()) {
+      if (await file.readAsString() != envelope) {
+        throw const FormatException('Update attempt generation changed');
+      }
+    } else {
+      await publishBenchFile(file, envelope);
+    }
+    if (record['phase'] == 'write_started' && !await flushUpdateIntent()) {
+      // No device write may follow a failed flush, even on exact replay.
+      throw const FileSystemException('Cannot flush update intent');
+    }
+  }
+
+  @override
+  Future<void> releaseUpdate(Json record) async {
+    if (!{
+      'verified',
+      'cancelled_before_write',
+      'preflight_failed',
+    }.contains(record['phase'])) {
+      throw const FormatException('Interrupted update requires review');
+    }
+    final dir = await _updateAttempt(record);
+    final generation = record['generation'];
+    final file = File('${dir.path}/$generation.json');
+    final payload = jsonEncode(record);
+    if (!await file.exists() ||
+        await file.readAsString() !=
+            jsonEncode({'sha256': benchHash(payload), 'record': record})) {
+      throw const FormatException('Update outcome is not durable');
+    }
+    final lock = await _updateLock(record);
+    final expected = {
+      'id': record['id'],
+      'account': record['account'],
+      'hardware': record['hardware'],
+    };
+    if (!await lock.exists() ||
+        await lock.readAsString() != jsonEncode(expected)) {
+      throw const FormatException('Update lock changed');
+    }
+    await lock.delete();
+  }
+
+  @override
+  Future<String> exportUpdate(Json record, String folder) async {
+    final dir = await _updateAttempt(record);
+    final generation = record['generation'];
+    final saved = File('${dir.path}/$generation.json');
+    final payload = jsonEncode(record);
+    final envelope = jsonEncode({
+      'sha256': benchHash(payload),
+      'record': record,
+    });
+    if (!await saved.exists() || await saved.readAsString() != envelope) {
+      throw const FormatException('Update report is not durably saved');
+    }
+    final destination = Directory(folder);
+    if (!destination.isAbsolute || !await destination.exists()) {
+      throw const FileSystemException(
+        'Choose an existing absolute export folder',
+      );
+    }
+    final digest = benchHash(envelope);
+    final file = File(
+      '${destination.path}/octatrace-update-${record['id']}-$digest.json',
+    );
+    if (await file.exists()) {
+      if (await file.readAsString() != envelope) {
+        throw const FormatException('Existing export differs');
+      }
+    } else {
+      await publishBenchFile(file, envelope);
+    }
+    return file.path;
   }
 
   Future<Directory> _benchDirectory(String account) async =>

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import 'ports.dart';
+import 'claimed_update.dart';
 import 'bench_session.dart';
 import 'provisioning.dart';
 import 'registry.dart';
@@ -26,16 +27,25 @@ final class WorkshopController extends ChangeNotifier {
     this.journal, {
     this.provisioner,
     this.benchFactory,
+    this.claimedUpdateFactory,
     String Function()? idFactory,
     DateTime Function()? now,
   }) : _idFactory = idFactory ?? newRequestId,
        _now = now ?? DateTime.now;
   final ProvisioningRunner? provisioner;
   final BenchSession Function(String account)? benchFactory;
+  final ClaimedUpdateSession Function(
+    String,
+    DeviceRecord,
+    ArticleRevision,
+    bool Function(),
+  )?
+  claimedUpdateFactory;
   BenchSession? bench;
 
   Future<void> enterBench() => action(() async {
     final session = bench ??= benchFactory!(gateway.accountId!);
+    session.onChanged = _changed;
     _checkBenchAccount(session);
     await session.refresh();
     _checkBenchAccount(session);
@@ -45,6 +55,7 @@ final class WorkshopController extends ChangeNotifier {
     Future<void> Function(BenchSession) work,
   ) => action(() async {
     final session = bench!;
+    session.onChanged = _changed;
     _checkBenchAccount(session);
     try {
       await session.perform(() => work(session));
@@ -72,6 +83,18 @@ final class WorkshopController extends ChangeNotifier {
       if (identical(bench, session)) {
         message = 'Local evidence save failed. $error';
       }
+    }
+    _changed();
+  }
+
+  Future<void> confirmBenchInstallation(bool accepted) async {
+    final session = bench;
+    if (session == null) return;
+    try {
+      _checkBenchAccount(session);
+      await session.respondInstallation(accepted);
+    } catch (error) {
+      message = 'Installation confirmation stopped. $error';
     }
     _changed();
   }

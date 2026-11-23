@@ -211,6 +211,26 @@ final class SupabaseGateway
     return Map<String, dynamic>.from(data);
   }
 
+  @override
+  Future<PublicFactoryCredential> publicCredential({
+    required String deviceId,
+    required String role,
+    required String expectedDigest,
+  }) async {
+    final session = _client.auth.currentSession;
+    if (session == null) throw SessionExpired();
+    final data = await _rpc('workshop_public_factory_credential', {
+      'p_device_id': deviceId,
+    });
+    if (!_sameSession(session) || data is! Map) throw const FactoryFailure();
+    return PublicFactoryCredential.fromJson(
+      Map<String, dynamic>.from(data),
+      deviceId: deviceId,
+      role: role,
+      expectedDigest: expectedDigest,
+    );
+  }
+
   Future<Json> _factory(Json body) async {
     final session = _client.auth.currentSession;
     if (session == null) throw SessionExpired();

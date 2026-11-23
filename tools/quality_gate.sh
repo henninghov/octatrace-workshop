@@ -12,6 +12,9 @@ python3 -B tools/verify_authority_storage.py
 python3 -B tools/verify_authority_layout.py
 python3 -B tools/verify_credential_layout.py
 python3 -B tools/verify_credential_inspection.py
+python3 -B tools/verify_credential_readiness.py
+python3 -B tools/verify_credential_delivery.py
+python3 -B tools/verify_credential_installation.py
 python3 -B tools/verify_field_handshake.py
 python3 -B tools/verify_setup_transfer.py
 python3 -B tools/verify_setup_bluetooth.py

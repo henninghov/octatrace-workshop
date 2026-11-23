@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:octatrace_workshop/domain/bench_definition.dart';
 import 'package:octatrace_workshop/domain/bench_session.dart';
 import 'package:octatrace_workshop/domain/bench_sync.dart';
+import 'package:octatrace_workshop/domain/factory_enrollment.dart';
 import 'package:octatrace_workshop/domain/provisioning.dart';
 import 'package:octatrace_workshop/domain/registry.dart';
 import 'package:octatrace_workshop/services/evidence_journal.dart';
@@ -62,6 +63,18 @@ class BenchFixture {
   late Registry registry;
   BenchSync? sync;
   BenchDefinition? inspection;
+  BenchDefinition? readiness;
+  BenchDefinition? delivery;
+  BenchDefinition? installation, intentStop, preparation;
+  InstallationReader? installReader;
+  PreparationReader? preparationReader;
+  InspectionReader? readinessReader, inspectionReader;
+  Object? credentialError;
+  PublicFactoryCredential? overrideCredential;
+  String publicKey = '04${'11' * 64}';
+  Completer<String>? heldKey;
+  int credentials = 0, deliveryReads = 0;
+  Completer<PublicFactoryCredential>? heldCredential;
   int ids = 0, reads = 0;
   String fingerprint = 'a' * 64;
   Completer<Json>? inventory, response;
@@ -101,13 +114,60 @@ class BenchFixture {
     () => DateTime.utc(2026, 11, 20, 12, 0, ids),
     sync: sync,
     inspectionDefinition: inspection,
-    lookupPublicKey: (device, article) async => '04${'11' * 64}',
-    readInspection: (account, selection, publicKey, {onDiagnostic}) async {
-      reads++;
-      onDiagnostic?.call({'bounded': 'synthetic inspection diagnostic'});
-      if (error != null) throw error!;
-      return {'state': 'blank', 'sha256': '22' * 32};
+    readinessDefinition: readiness,
+    deliveryDefinition: delivery,
+    installationDefinition: installation,
+    intentStopDefinition: intentStop,
+    preparationDefinition: preparation,
+    readInstallation: installReader,
+    readPreparation: preparationReader,
+    lookupCredential: (device, article, publicKey) async {
+      credentials++;
+      if (credentialError != null) throw credentialError!;
+      if (overrideCredential != null) return overrideCredential!;
+      if (heldCredential != null) return heldCredential!.future;
+      return PublicFactoryCredential.fromJson(
+        {
+          'v': 1,
+          'device_id': device.id,
+          'role': article.role,
+          'credential': '010203',
+          'credential_sha256': '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+        },
+        deviceId: device.id,
+        role: article.role,
+        expectedDigest:
+            '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+      );
     },
+    readDelivery:
+        (account, selection, publicKey, credential, {onDiagnostic}) async {
+          deliveryReads++;
+          onDiagnostic?.call({'bounded': 'signed proof only'});
+          if (error != null) throw error!;
+          return {
+            'delivery_proof': {'envelope_sha256': credential.digest},
+          };
+        },
+    readReadiness:
+        readinessReader ??
+        (account, selection, publicKey, {onDiagnostic}) async {
+          reads++;
+          return {
+            'state': 'empty',
+            'inspection': {'state': 'blank', 'sha256': '22' * 32},
+          };
+        },
+    lookupPublicKey: (device, article) async =>
+        heldKey != null ? await heldKey!.future : publicKey,
+    readInspection:
+        inspectionReader ??
+        (account, selection, publicKey, {onDiagnostic}) async {
+          reads++;
+          onDiagnostic?.call({'bounded': 'synthetic inspection diagnostic'});
+          if (error != null) throw error!;
+          return {'state': 'blank', 'sha256': '22' * 32};
+        },
   );
   Future<void> start(BenchSession s) =>
       s.start(registry.devices.single, registry.articles.single);
@@ -283,6 +343,62 @@ void main() {
       throwsA(isA<FileSystemException>()),
     );
     expect(s.report!['outcome'], 'Incomplete');
+  });
+
+  test('delivery saves separate verified observation and never saves credential bytes', () async {
+    f.delivery = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.deliveryAsset).readAsStringSync(),
+    );
+    s = f.session();
+    s.selectDefinition(f.delivery!);
+    await f.start(s);
+    await f.connected(s);
+    expect(f.credentials, 1);
+    expect(f.deliveryReads, 1);
+    expect(s.report!['steps'][3]['evidence']['frame']['state'], 'verified');
+    await s.observe('verified');
+    expect(s.next, 7);
+    await s.export(out.path);
+    expect(s.report!['outcome'], 'Passed');
+    expect(jsonEncode(s.report), isNot(contains('010203')));
+    expect(s.report!['steps'][4]['evidence']['observation'], 'verified');
+  });
+
+  test('logout while fetching a credential prevents the USB delivery', () async {
+    f.delivery = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.deliveryAsset).readAsStringSync(),
+    );
+    f.heldCredential = Completer<PublicFactoryCredential>();
+    s = f.session();
+    s.selectDefinition(f.delivery!);
+    await f.start(s);
+    final running = s.perform(() => f.connected(s));
+    while (f.credentials == 0) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+    final stopped = s.stop('Operator session ended');
+    final device = f.registry.devices.single,
+        article = f.registry.articles.single;
+    f.heldCredential!.complete(
+      PublicFactoryCredential.fromJson(
+        {
+          'v': 1,
+          'device_id': device.id,
+          'role': article.role,
+          'credential': '010203',
+          'credential_sha256': '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+        },
+        deviceId: device.id,
+        role: article.role,
+        expectedDigest:
+            '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+      ),
+    );
+    await running;
+    await stopped;
+    expect(f.deliveryReads, 0);
+    expect(s.report!['outcome'], 'Interrupted');
+    expect(jsonEncode(s.report), isNot(contains('010203')));
   });
 
   test('cancel and logout during discovery or read discard late completion and retain original account', () async {

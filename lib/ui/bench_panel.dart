@@ -63,7 +63,16 @@ class _BenchPanelState extends State<BenchPanel> {
     final guide = viewing
         ? BenchDefinition.fromSnapshot(report['definition_snapshot']).guide
         : s.definition.guide;
+    final readiness = guide['key'] == 'c82-credential-startup-device';
     final inspection = guide['key'] == 'c82-credential-inspection-device';
+    final delivery = guide['key'] == 'c822-credential-delivery-device';
+    final installation = {
+      'c823-credential-installation-device',
+      'c823-credential-intent-stop-device',
+    }.contains(guide['key']);
+    final preparation = guide['key'] == 'c823-credential-preparation-device';
+    final credentialTest =
+        inspection || readiness || delivery || installation || preparation;
     final steps = guide['steps'] as List;
     final next = s.active && report != null ? s.next : 0;
     final theme = Theme.of(context);
@@ -77,7 +86,37 @@ class _BenchPanelState extends State<BenchPanel> {
     final successSurface = dark
         ? const Color(0xff24372d)
         : const Color(0xffedf5ef);
-    final names = inspection
+    final names = installation || preparation
+        ? const [
+            'Select device',
+            'Save attempt',
+            'Connect USB',
+            'Verify and confirm',
+            'Restart and check',
+            'Reopen report',
+            'Export report',
+          ]
+        : delivery
+        ? const [
+            'Select device',
+            'Save attempt',
+            'Connect USB',
+            'Verify credential',
+            'Record observation',
+            'Reopen report',
+            'Export report',
+          ]
+        : readiness
+        ? const [
+            'Select device',
+            'Save attempt',
+            'Connect USB',
+            'Read readiness',
+            'Record observation',
+            'Reopen report',
+            'Export report',
+          ]
+        : inspection
         ? const [
             'Select device',
             'Save attempt',
@@ -162,7 +201,13 @@ class _BenchPanelState extends State<BenchPanel> {
                     }),
             ),
           );
-    final sequenceField = s.inspectionDefinition == null
+    final sequenceField =
+        s.inspectionDefinition == null &&
+            s.readinessDefinition == null &&
+            s.deliveryDefinition == null &&
+            s.installationDefinition == null &&
+            s.intentStopDefinition == null &&
+            s.preparationDefinition == null
         ? field(
             'Test sequence',
             DropdownButton<String>(
@@ -198,7 +243,13 @@ class _BenchPanelState extends State<BenchPanel> {
               items: [
                 for (final definition in [
                   s.identityDefinition,
-                  s.inspectionDefinition!,
+                  if (s.inspectionDefinition != null) s.inspectionDefinition!,
+                  if (s.readinessDefinition != null) s.readinessDefinition!,
+                  if (s.deliveryDefinition != null) s.deliveryDefinition!,
+                  if (s.intentStopDefinition != null) s.intentStopDefinition!,
+                  if (s.installationDefinition != null)
+                    s.installationDefinition!,
+                  if (s.preparationDefinition != null) s.preparationDefinition!,
                 ])
                   DropdownMenuItem(
                     value: definition,
@@ -360,7 +411,15 @@ class _BenchPanelState extends State<BenchPanel> {
             ),
           if (viewing && report['steps'][3]['status'] == 'Passed')
             SelectableText(
-              inspection
+              preparation
+                  ? "Preparation result · ${report['steps'][3]['evidence']['frame']['state']}"
+                  : installation
+                  ? "Installation result · ${report['steps'][3]['evidence']['frame']['state']}"
+                  : delivery
+                  ? "Credential verification · ${report['steps'][3]['evidence']['frame']['state']}"
+                  : readiness
+                  ? "Readiness · ${report['steps'][3]['evidence']['frame']['state']} · Storage ${report['steps'][3]['evidence']['frame']['inspection']['state']}"
+                  : inspection
                   ? "Storage · ${report['steps'][3]['evidence']['frame']['state']} · SHA-256 ${report['steps'][3]['evidence']['frame']['sha256']}"
                   : "USB readback · ${report['steps'][3]['evidence']['frame']['serial']}",
             ),
@@ -427,7 +486,15 @@ class _BenchPanelState extends State<BenchPanel> {
                   ? null
                   : () => c.benchAction((s) => s.connected(selected, article)),
               child: Text(
-                inspection
+                preparation
+                    ? 'USB connected · inspect for preparation'
+                    : installation
+                    ? 'USB connected · verify for installation'
+                    : delivery
+                    ? 'USB connected · verify credential'
+                    : readiness
+                    ? 'USB connected · check readiness'
+                    : inspection
                     ? 'USB connected · inspect storage'
                     : 'USB connected · read identity',
               ),
@@ -439,17 +506,111 @@ class _BenchPanelState extends State<BenchPanel> {
                   : () => c.benchAction(
                       (session) => session.readDevice(selected, article),
                     ),
-              child: Text(inspection ? 'Inspect storage' : 'Read identity'),
+              child: Text(
+                preparation
+                    ? 'Inspect for preparation'
+                    : installation
+                    ? 'Verify for installation'
+                    : delivery
+                    ? 'Verify credential'
+                    : readiness
+                    ? 'Check readiness'
+                    : inspection
+                    ? 'Inspect storage'
+                    : 'Read identity',
+              ),
             ),
+          if (s.installationReview case final review?) ...[
+            const SizedBox(height: 12),
+            if (preparation) ...[
+              Text(
+                'Confirm storage preparation',
+                style: theme.textTheme.titleMedium,
+              ),
+              SelectableText(
+                'Device ${review['inspection']['identity_proof']['serial']} · ${review['inspection']['role']}\n'
+                'Unknown storage SHA-256 ${review['inspection']['sha256']}',
+              ),
+              const Text(
+                'Erase only the inspected unknown bytes in the credential reservation. Recognizable partial records are protected. Confirmation expires after 25 seconds.',
+              ),
+              Wrap(
+                spacing: 12,
+                children: [
+                  OutlinedButton(
+                    onPressed: s.confirmationSaving
+                        ? null
+                        : () => c.confirmBenchInstallation(false),
+                    child: const Text('Cancel preparation'),
+                  ),
+                  FilledButton(
+                    onPressed: s.confirmationSaving
+                        ? null
+                        : () => c.confirmBenchInstallation(true),
+                    child: const Text('Confirm preparation'),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Text(
+                'Confirm ${review['review']['fault'] == 1 ? 'controlled stop' : 'installation'}',
+                style: theme.textTheme.titleMedium,
+              ),
+              SelectableText(
+                'Device ${review['review']['serial']} · ${review['review']['role']}\n'
+                'Credential revision ${review['review']['credential_revision']}\n'
+                'Envelope SHA-256 ${review['review']['envelope_sha256']}\n'
+                'Storage ${review['review']['journal_state']} · ${review['review']['slots_used']} of 9 positions used',
+              ),
+              Text(
+                review['review']['fault'] == 1
+                    ? 'This test saves an installation intent and stops before writing credential copies. Restart, check pending, then run recovery with the same credential.'
+                    : 'Install the verified credential or resume its pending installation. Confirmation expires after 25 seconds. Reverify after a disconnect.',
+              ),
+              Wrap(
+                spacing: 12,
+                children: [
+                  OutlinedButton(
+                    onPressed: s.confirmationSaving
+                        ? null
+                        : () => c.confirmBenchInstallation(false),
+                    child: const Text('Cancel installation'),
+                  ),
+                  FilledButton(
+                    onPressed: s.confirmationSaving
+                        ? null
+                        : () => c.confirmBenchInstallation(true),
+                    child: Text(
+                      review['review']['fault'] == 1
+                          ? 'Confirm controlled stop'
+                          : 'Confirm installation',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
           if (next == 5) ...[
+            if (installation || preparation)
+              const Text(
+                'Restart the selected device, reconnect USB, then enter the displayed state. Workshop checks a fresh boot and identity automatically.',
+              ),
             TextField(
               controller: label,
               maxLength: 256,
               decoration: InputDecoration(
                 labelText: unreadable
-                    ? inspection
+                    ? credentialTest
                           ? 'Reason observation is unavailable'
                           : 'Reason label is unavailable'
+                    : preparation
+                    ? 'Observed storage after restart'
+                    : installation
+                    ? 'Observed readiness after restart'
+                    : delivery
+                    ? 'Observed verification result'
+                    : readiness
+                    ? 'Observed readiness state'
                     : inspection
                     ? 'Observed storage classification'
                     : 'Observed label serial',
@@ -463,7 +624,9 @@ class _BenchPanelState extends State<BenchPanel> {
                     ? null
                     : (v) => setState(() => unreadable = v!),
                 title: Text(
-                  inspection ? 'Observation unavailable' : 'Label unavailable',
+                  credentialTest
+                      ? 'Observation unavailable'
+                      : 'Label unavailable',
                 ),
               ),
             ),

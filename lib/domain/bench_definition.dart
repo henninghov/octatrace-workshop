@@ -17,6 +17,12 @@ final class BenchDefinition {
   static const asset = 'assets/bench/provisioned-identity.v2.json';
   static const legacyAsset = 'assets/bench/provisioned-identity.v1.json';
   static const inspectionAsset = 'assets/bench/credential-inspection.v1.json';
+  static const readinessAsset = 'assets/bench/credential-readiness.v1.json';
+  static const deliveryAsset = 'assets/bench/credential-delivery.v1.json';
+  static const installationAsset =
+      'assets/bench/credential-installation.v1.json';
+  static const intentStopAsset = 'assets/bench/credential-intent-stop.v1.json';
+  static const preparationAsset = 'assets/bench/credential-preparation.v1.json';
   static const legacyDigest =
       '81bbd6890809bb4ffa8c9ee283d7003c5f3cf2404a8b21fdc56d3d2e39220356';
   static const digest =
@@ -24,11 +30,28 @@ final class BenchDefinition {
   static const inspectionDigest =
       'f49a91ec168090155f258c3a04636580cfa5f3fc7fbeb9f90949f203c92f48b4';
 
+  static const readinessDigest =
+      'd74c1e354ebdde8789c1c20edb2f5b9b3c10e18747bd2020e1b1625c6b326eff';
+  static const deliveryDigest =
+      '862ff3465ff13721a7976afcd11d9fe2d6ca9cb21775a21572d9365eca71dc9d';
+
+  static const installationDigest =
+      '3d9ae1f7803f294431922ba559ffc65ad9013d8456b4d5b67a9a832757f57e1d';
+  static const intentStopDigest =
+      '5d07f3e795e4858d44991db91429e69f45d4cfbc09bfed10418e669245e5b813';
+  static const preparationDigest =
+      '072e00b2d37e1ae0330f928a077b5069e83decea6f12ff581963096910332a76';
+
   BenchDefinition.fromSnapshot(this.snapshot)
     : snapshotDigest = sha256.convert(utf8.encode(snapshot)).toString() {
     if (snapshotDigest != digest &&
         snapshotDigest != legacyDigest &&
-        snapshotDigest != inspectionDigest) {
+        snapshotDigest != inspectionDigest &&
+        snapshotDigest != readinessDigest &&
+        snapshotDigest != deliveryDigest &&
+        snapshotDigest != installationDigest &&
+        snapshotDigest != intentStopDigest &&
+        snapshotDigest != preparationDigest) {
       throw const FormatException(
         'Unknown bench definition revision or digest',
       );

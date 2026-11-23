@@ -119,6 +119,9 @@ void main() {
       [
         {...deviceData, 'hardware_uid': '22' * 8},
       ],
+      [
+        {...deviceData, 'owner_user_id': 'another-owner'},
+      ],
     ]) {
       expect(
         () => provisionedKey(
