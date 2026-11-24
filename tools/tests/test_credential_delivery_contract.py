@@ -12,6 +12,8 @@ from jsonschema import Draft202012Validator
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'tools'))
 import verify_credential_delivery
+from consumer_contract_test_loader import load as _load_consumer_suite
+_load_consumer_suite('delivery_common.py', globals())
 
 class DeliveryContractTest(unittest.TestCase):
     def setUp(self):
@@ -19,18 +21,7 @@ class DeliveryContractTest(unittest.TestCase):
         shutil.copytree(ROOT/'vendor',self.root/'vendor')
         for path in ROOT.glob('*.lock.json'):shutil.copy2(path,self.root/path.name)
     def tearDown(self):self.temp.cleanup()
-    def test_signed_vector_and_schema(self):
-        self.assertEqual(verify_credential_delivery.verify(self.root)['scope'],'volatile verification only')
-        folder=self.root/'vendor/credential-delivery'
-        vector=json.loads((folder/'vectors.json').read_text());frame=vector['frame']
-        schema=Draft202012Validator(json.loads((folder/'response.schema.json').read_text()))
-        self.assertTrue(schema.is_valid(frame))
-        policy=runpy.run_path(str(folder/'policy.py'))
-        self.assertEqual(policy['verify'](frame,frame['id'],vector['expected']),frame)
-        for change in ({'signature':'00'*64},{'boot':'00'*16},{'transfer_id':0},{'extra':1}):
-            bad=dict(frame,**change)
-            self.assertFalse(schema.is_valid(bad))
-            with self.assertRaises(ValueError):policy['verify'](bad,frame['id'],vector['expected'])
+    test_signed_vector_and_schema = _delivery_signed_vector_and_schema
     def test_guide_pins_the_same_contract_and_qualified_builds(self):
         guide=json.loads((ROOT/'assets/bench/credential-delivery.v1.json').read_text())
         pin=json.loads((ROOT/'credential-delivery.lock.json').read_text())

@@ -34,6 +34,14 @@ typedef InspectionReader = Future<Json> Function(
   void Function(Json diagnostic)? onDiagnostic,
 });
 
+typedef StartupDiagnosticsReader = Future<Json> Function(
+  String account,
+  ProvisionedIdentityRead selection,
+  String publicKey,
+  String check, {
+  void Function(Json diagnostic)? onDiagnostic,
+});
+
 typedef DeliveryReader = Future<Json> Function(
   String account,
   ProvisionedIdentityRead selection,
@@ -80,6 +88,8 @@ final class BenchSession {
     this.readInspection,
     this.readinessDefinition,
     this.readReadiness,
+    this.startupDiagnosticsDefinition,
+    this.readStartupDiagnostics,
     this.lookupPublicKey,
     this.deliveryDefinition,
     this.readDelivery,
@@ -98,6 +108,19 @@ final class BenchSession {
   final InspectionReader? readInspection;
   final BenchDefinition? readinessDefinition;
   final InspectionReader? readReadiness;
+  final BenchDefinition? startupDiagnosticsDefinition;
+  final StartupDiagnosticsReader? readStartupDiagnostics;
+  static const startupChecks = [
+    'all',
+    'configuration',
+    'clock',
+    'usb_parser',
+    'display_init',
+    'identity',
+    'storage',
+    'crypto',
+    'radio',
+  ];
   final Future<String> Function(DeviceRecord, ArticleRevision)? lookupPublicKey;
   final BenchDefinition? deliveryDefinition;
   final DeliveryReader? readDelivery;
@@ -118,6 +141,8 @@ final class BenchSession {
     String,
   )?
   lookupCredential;
+  bool get isStartupDiagnostics =>
+      definition.guide['key'] == 'cleanup-startup-diagnostics-device';
   bool get isInspection =>
       definition.guide['key'] == 'c82-credential-inspection-device';
 
@@ -141,6 +166,7 @@ final class BenchSession {
       throw StateError('Finish the current attempt first');
     }
     if (value != identityDefinition &&
+        value != startupDiagnosticsDefinition &&
         value != inspectionDefinition &&
         value != readinessDefinition &&
         value != deliveryDefinition &&
@@ -295,7 +321,14 @@ final class BenchSession {
     report = await store.reopenBench(account, id);
   }
 
-  Future<void> start(DeviceRecord device, ArticleRevision article) async {
+  Future<void> start(
+    DeviceRecord device,
+    ArticleRevision article, {
+    String startupCheck = 'all',
+  }) async {
+    if (isStartupDiagnostics && !startupChecks.contains(startupCheck)) {
+      throw const FormatException('Unknown startup check');
+    }
     if (active ||
         pending != null ||
         device.state != 'provisioned' ||
@@ -343,6 +376,7 @@ final class BenchSession {
       'ended_at': null,
       'outcome': 'Incomplete',
       'sync': 'Local only',
+      if (isStartupDiagnostics) 'startup_check': startupCheck,
       'definition_key': definition.guide['key'],
       'definition_revision': definition.guide['revision'],
       'definition_snapshot': definition.snapshot,
@@ -427,7 +461,8 @@ final class BenchSession {
 
   Future<void> readDevice(DeviceRecord device, ArticleRevision article) async {
     _require(4);
-    Json? diagnostic;
+    Json? diagnostic, measuredStartup;
+    Object? accessError;
     Json result;
     String status;
     try {
@@ -459,7 +494,38 @@ final class BenchSession {
         build: build,
       );
       late final Json frame;
-      if (isPreparation) {
+      if (isStartupDiagnostics) {
+        if (readStartupDiagnostics == null || lookupPublicKey == null) {
+          throw const BenchBlocked(
+            'Startup diagnostics runner or verified identity key unavailable',
+          );
+        }
+        late final String key;
+        try {
+          key = await lookupPublicKey!(device, article);
+        } on FormatException {
+          throw const BenchBlocked(
+            'Verified registry identity, ownership or key evidence is unavailable.',
+          );
+        }
+        if (_stopReason != null) return;
+        frame = await readStartupDiagnostics!(
+          account,
+          read,
+          key,
+          report!['startup_check'] as String,
+          onDiagnostic: (data) => diagnostic = data,
+        );
+        measuredStartup = frame;
+        if (_stopReason != null) throw BenchCancelled();
+        final freshKey = await lookupPublicKey!(device, article);
+        if (freshKey != key) {
+          throw const ProvisioningFailure(
+            'Registry identity or ownership changed.',
+          );
+        }
+        if (_stopReason != null) throw BenchCancelled();
+      } else if (isPreparation) {
         if (readPreparation == null ||
             readInspection == null ||
             lookupPublicKey == null) {
@@ -556,10 +622,26 @@ final class BenchSession {
           onDiagnostic: (data) => diagnostic = data,
         );
       }
-      result = {'frame': frame};
-      status = 'Passed';
+      result = {
+        'frame': frame,
+        if (isStartupDiagnostics)
+          'registry_check': {
+            'matched': true,
+            'claimed': device.ownerId != null,
+            if (device.ownerId != null)
+              'owner_sha256': benchHash(device.ownerId!),
+            'checked_at': _time,
+          },
+      };
+      status = isStartupDiagnostics && frame['outcome'] != 'passed'
+          ? 'Failed'
+          : 'Passed';
     } catch (error) {
-      status = error is BenchCancelled
+      if (isStartupDiagnostics &&
+          (error is SessionExpired || error is OperatorDenied)) {
+        accessError = error;
+      }
+      status = error is BenchCancelled || accessError != null
           ? 'Incomplete'
           : error is BenchBlocked ||
                 (error is FormatException &&
@@ -567,7 +649,10 @@ final class BenchSession {
           ? 'Blocked'
           : 'Failed';
       result = {
-        'error': error is ProvisioningFailure
+        'frame': ?measuredStartup,
+        'error': accessError != null
+            ? 'Operator access is no longer available.'
+            : error is ProvisioningFailure
             ? error.message
             : error.toString(),
       };
@@ -605,7 +690,7 @@ final class BenchSession {
       status = 'Incomplete';
       result = {
         'interruption': interruption,
-        if (isWrite) 'late_result': result,
+        if (isWrite || isStartupDiagnostics) 'late_result': result,
       };
     }
     final updated = _change(
@@ -614,6 +699,8 @@ final class BenchSession {
       result,
       outcome: interruption != null
           ? _interruptedOutcome(interruption)
+          : accessError != null
+          ? 'Interrupted'
           : status == 'Passed'
           ? null
           : status,
@@ -628,11 +715,19 @@ final class BenchSession {
       'content': raw,
     });
     await _save(updated);
+    if (accessError != null) throw accessError;
+  }
+
+  Future<void> reviewStartupResults() async {
+    _require(5);
+    if (!isStartupDiagnostics) throw StateError('Not a startup diagnostic');
+    await _save(_change(5, 'Passed', {'operator': account, 'reviewed': true}));
+    if (_stopReason == null) await verifyReopen();
   }
 
   Future<void> observe(String value, {bool unavailable = false}) async {
     _require(5);
-    if (isWrite || isReadiness) {
+    if (isWrite || isReadiness || isStartupDiagnostics) {
       throw StateError('Confirm the restart and use the automatic check');
     }
     final text = value.trim();

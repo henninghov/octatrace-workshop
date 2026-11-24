@@ -8,7 +8,7 @@ import 'package:octatrace_workshop/domain/bench_sync.dart';
 import 'package:octatrace_workshop/domain/registry.dart';
 import 'package:octatrace_workshop/services/evidence_journal.dart';
 
-import 'bench_session_test.dart' show BenchFixture, TestBenchStore;
+import 'support/bench_fixture.dart' show BenchFixture, TestBenchStore;
 import 'widget_test.dart' as fixtures;
 
 class BenchServer {

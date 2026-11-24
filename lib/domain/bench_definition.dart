@@ -16,6 +16,10 @@ typedef BenchBuild = ({
 final class BenchDefinition {
   static const asset = 'assets/bench/provisioned-identity.v2.json';
   static const legacyAsset = 'assets/bench/provisioned-identity.v1.json';
+  static const startupDiagnosticsAsset =
+      'assets/bench/startup-diagnostics.v1.json';
+  static const startupDiagnosticsDigest =
+      '42e13ec4125c88308b276ecf98419b6629c7e19bcb216c57910adc5e53dade93';
   static const inspectionAsset = 'assets/bench/credential-inspection.v1.json';
   static const readinessAsset = 'assets/bench/credential-readiness.v2.json';
   static const legacyReadinessAsset =
@@ -54,7 +58,8 @@ final class BenchDefinition {
 
   BenchDefinition.fromSnapshot(this.snapshot)
     : snapshotDigest = sha256.convert(utf8.encode(snapshot)).toString() {
-    if (snapshotDigest != digest &&
+    if (snapshotDigest != startupDiagnosticsDigest &&
+        snapshotDigest != digest &&
         snapshotDigest != legacyDigest &&
         snapshotDigest != inspectionDigest &&
         snapshotDigest != readinessDigest &&

@@ -21,12 +21,21 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - tools/firmware_test_adapter.py
+    - assets/bench/firmware-host-regression.v1.json
+    - assets/bench/firmware-host-regression.v2.json
+    - assets/bench/firmware-host-regression.v3.json
+    - assets/bench/firmware-host-regression.v4.json
+    - assets/bench/firmware-host-regression.v5.json
+    - assets/bench/firmware-host-regression.v6.json
+    - assets/bench/firmware-host-regression.v7.json
     - assets/branding/
     - assets/bench/provisioned-identity.v1.json
     - assets/bench/provisioned-identity.v2.json
     - assets/bench/credential-inspection.v1.json
     - assets/bench/credential-readiness.v1.json
     - assets/bench/credential-readiness.v2.json
+    - assets/bench/startup-diagnostics.v1.json
     - assets/bench/credential-delivery.v1.json
     - assets/bench/credential-installation.v1.json
     - assets/bench/credential-installation.v2.json

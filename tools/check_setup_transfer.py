@@ -31,8 +31,9 @@ def main():
     pin = json.loads((root / 'setup-transfer.lock.json').read_text())
     folder = root / pin['path']
     tests = root / ('tests' if pin['path'].startswith('contracts/') else 'tools/tests') / 'test_setup_transfer.py'
+    shared_test = tests.parent / 'shared_contract_suites' / tests.name
     paths = [root / 'setup-transfer.lock.json', *folder.iterdir(), root / 'tools/verify_setup_transfer.py',
-             root / 'tools/check_setup_transfer.py', tests]
+             root / 'tools/check_setup_transfer.py', tests, shared_test, root / 'shared-contract-tests.lock.json']
     for family in ('device-credential', 'device-authority', 'proof-context', 'field-handshake'):
         lock = root / (family + '.lock.json'); paths.append(lock)
         dep = json.loads(lock.read_text()); paths.extend(root / dep['path'] / p for p in dep['files'])

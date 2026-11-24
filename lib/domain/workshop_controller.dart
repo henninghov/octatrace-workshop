@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import 'ports.dart';
+import 'firmware_checks.dart';
 import 'claimed_update.dart';
 import 'bench_session.dart';
 import 'provisioning.dart';
@@ -28,11 +29,19 @@ final class WorkshopController extends ChangeNotifier {
     this.provisioner,
     this.benchFactory,
     this.claimedUpdateFactory,
+    this.firmwareChecks,
+    this.firmwareRoot = '',
+    this.firmwarePython = '',
+    this.firmwareFonts = '',
     String Function()? idFactory,
     DateTime Function()? now,
   }) : _idFactory = idFactory ?? newRequestId,
        _now = now ?? DateTime.now;
   final ProvisioningRunner? provisioner;
+  final FirmwareChecks? firmwareChecks;
+  final String firmwareRoot;
+  final String firmwarePython;
+  final String firmwareFonts;
   final BenchSession Function(String account)? benchFactory;
   final ClaimedUpdateSession Function(
     String,
@@ -102,7 +111,11 @@ final class WorkshopController extends ChangeNotifier {
   Future<void> _leaveBench() async {
     final session = bench;
     bench = null;
-    await session?.stop('Operator session ended');
+    try {
+      await firmwareChecks?.cancel();
+    } finally {
+      await session?.stop('Operator session ended');
+    }
   }
 
   final WorkshopGateway gateway;

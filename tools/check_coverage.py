@@ -4,7 +4,8 @@ import hashlib,json,sys
 
 ROOT=Path(__file__).resolve().parents[1]
 # Reviewed declaration-only interfaces: the Dart VM emits no executable lines.
-DECLARATIONS={'lib/domain/ports.dart':'24fb51257ac51c1bf0f880a0c830aec522b0b1e7f0f44c647945440b8192ed0b'}
+DECLARATIONS={'lib/domain/ports.dart':'24fb51257ac51c1bf0f880a0c830aec522b0b1e7f0f44c647945440b8192ed0b',
+              'lib/domain/firmware_checks.dart':'ba19c19ac35628b2a4ac6b912b3340abc778aa328ff42900d9b3f9b251866236'}
 
 def check(reports):
     records={}

@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "source_repository": "octatrace-firmware",
+  "files": {
+    "test_credential_layout_policy.py": "077738b2f5721df2653ae24addf4ad4f53df25a3c9f8f15b4d31d9fa3661c5ae",
+    "test_credential_layout_contract.py": "6b2931234d84ba3e6e6f90b74205249eb8c7e04df00d6e1d2f1161ae8d6e0f89",
+    "test_setup_transfer.py": "5ed6144f57bc7c3d2b218ba62df9dbfd8b2511a4c3c233e946a8f2ccf1ae813c",
+    "test_credential_installation_contract.py": "7273ac0772073c607806822ac62bae21a41ee475262101d4c1090508413bf9e7",
+    "test_shared_contract_pins.py": "e3980e72d31235d347336d1446b13bdfe95ab9f2b32e1766e26c6a6ca734866a"
+  }
+}

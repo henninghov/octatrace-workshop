@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "source_repository": "octatrace-firmware",
+  "files": {
+    "inspection_suite.py": "4da7384590b3b9fc26b897ce74d24ddbf9b8136fa8d8533489924b6fa20d4384",
+    "delivery_common.py": "5d31693fb0c75e57854480c38765b9ba661fc11605fe154649f60e992ff4b9d8",
+    "pins_suite.py": "c8e9861c1f18a8b5d354b64f29fc0a02b64eeb6aa3bf539422a64e8d09092004"
+  }
+}

@@ -9,9 +9,9 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from flutter_sdk import find_flutter_sdk
 
 ROOT=Path(__file__).resolve().parents[1]
-SDK=Path(os.environ.get('FLUTTER_SDK','/Users/henninghov/Sites/sdk/flutter'))
 
 
 def inputs():
@@ -22,6 +22,7 @@ def inputs():
 
 
 def run(config):
+    sdk=find_flutter_sdk()
     frozen=inputs()
     out=ROOT/'build/factory-ui'/datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     out.mkdir(parents=True)
@@ -32,7 +33,7 @@ def run(config):
         if result.returncode:raise RuntimeError('Failed check: '+str(out/name))
     command(['bash','tools/quality_gate.sh'],'gate.log')
     coverage=json.loads((ROOT/'coverage/result.json').read_text())
-    args=[str(SDK/'bin/flutter'),'build','macos','--debug','--no-pub','--dart-define-from-file='+str(config)]
+    args=[str(sdk/'bin/flutter'),'build','macos','--debug','--no-pub','--dart-define-from-file='+str(config)]
     command(args,'native-build.log')
     app=ROOT/'build/macos/Build/Products/Debug/Octatrace Workshop.app'
     command(['/usr/bin/codesign','--verify','--deep','--strict','--verbose=2',str(app)],'signature.log')
@@ -52,7 +53,7 @@ def run(config):
             if text.count(before)!=1:raise RuntimeError('Fault anchor drift: '+name)
             source.write_text(text.replace(before,after))
             with (out/(name+'.log')).open('w') as stream:
-                result=subprocess.run([str(SDK/'bin/flutter'),'test','--no-pub','test/factory_controller_test.dart'],cwd=target,stdout=stream,stderr=subprocess.STDOUT)
+                result=subprocess.run([str(sdk/'bin/flutter'),'test','--no-pub','test/factory_controller_test.dart'],cwd=target,stdout=stream,stderr=subprocess.STDOUT)
             text=(out/(name+'.log')).read_text()
             if result.returncode==0 or 'Some tests failed' not in text or 'Expected:' not in text:
                 raise RuntimeError('Deliberate security fault not detected: '+name)

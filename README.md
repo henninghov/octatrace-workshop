@@ -98,7 +98,38 @@ Dart lines and configured macOS debug build. W01 remains in progress for metadat
 idempotency and physical provisioning. See `docs/HANDOFF.md` and `docs/evidence/w01-magic-link-results.json`.
 Customer self-provisioning is future scope; this role is internal to Octatrace.
 
-Run local checks with `bash tools/quality_gate.sh` (macOS, pinned SDK).
+Run local checks with `bash tools/quality_gate.sh` (macOS, pinned SDK). The gate
+finds Flutter on `PATH`, or uses the SDK root specified by `FLUTTER_SDK`;
+it still checks the exact Flutter and Dart versions before running Flutter tests.
+For example, use `FLUTTER_SDK=/path/to/flutter bash tools/quality_gate.sh` when
+the pinned SDK is not on `PATH`. Run `flutter pub get` in this checkout first.
+The gate also needs Python with the pinned schema-test dependencies from the
+firmware's `requirements-claim-qr.txt`, Node.js (firmware tooling was qualified
+with 20.19.1) and the macOS Swift/Xcode tools. Create a fresh environment inside
+Workshop and install the firmware's pinned requirements:
+
+```sh
+python3 -m venv build/test-venv
+build/test-venv/bin/python -m pip install -r /path/to/octatrace-firmware/requirements-claim-qr.txt
+```
+
+Put `build/test-venv/bin` on `PATH` before running the gate. This setup describes
+dependencies; it has not yet been qualified on a separate machine.
+For device tests, configure the local firmware root as above and create its
+`build/bench-venv` using the pinned `requirements-bench.txt` instructions in
+the firmware's `tools/README.md`. Each machine needs its own environment;
+do not copy a virtual environment from another machine.
+
+The new host-regression controls, per-machine Python setup, report handling and
+current limits are described in [Firmware host tests](docs/FIRMWARE_HOST_TESTS.md).
+
+The test bench also offers the existing on-device startup checks, as a full run
+or a selected individual check. It saves the choice before USB, checks identity
+and registry binding, retains measured states, and supports reopening/export.
+Use the reviewed guide and exact qualified firmware bundle; these checks do not
+flash or qualify storage durability or a radio peer. Separate-machine and
+physical-device acceptance must be recorded independently.
+
 
 Device type and selectable/copy-icon identity/status fields are documented in
 [W01_DEVICE_COPY.md](docs/W01_DEVICE_COPY.md). Native clipboard acceptance Passed by user confirmation.

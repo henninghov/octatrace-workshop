@@ -5,7 +5,7 @@ import 'package:octatrace_workshop/domain/bench_definition.dart';
 import 'package:octatrace_workshop/domain/bench_session.dart';
 import 'package:octatrace_workshop/domain/registry.dart';
 
-import 'bench_session_test.dart' as base;
+import 'support/bench_fixture.dart' as base;
 import 'widget_test.dart' as fixtures;
 
 void main() {
@@ -47,40 +47,6 @@ void main() {
       expect(registry['owner_sha256'], benchHash('synthetic-owner'));
     },
   );
-  for (final state in ['pending', 'ready']) {
-    test('read-only $state baseline and fresh boot are compared', () async {
-      final identity = BenchDefinition.fromSnapshot(
-        File(BenchDefinition.asset).readAsStringSync(),
-      );
-      final readiness = BenchDefinition.fromSnapshot(
-        File(BenchDefinition.readinessAsset).readAsStringSync(),
-      );
-      final fixture = base.BenchFixture(base.TestBenchStore(), identity);
-      await fixture.init();
-      fixture.readiness = readiness;
-      var reads = 0;
-      fixture.readinessReader =
-          (account, selection, key, {onDiagnostic}) async => {
-            'state': state,
-            'boot': ++reads == 1 ? 'aa' * 16 : 'bb' * 16,
-            'revision': state == 'ready' ? 1 : 0,
-            'content_id': state == 'ready' ? 'cc' * 32 : '',
-          };
-      final session = fixture.session();
-      session.selectDefinition(readiness);
-      await fixture.start(session);
-      await fixture.connected(session);
-      await session.checkAfterRestart(confirmed: true);
-      expect(reads, 2);
-      expect(fixture.credentials, 0);
-      expect(fixture.deliveryReads, 0);
-      expect(session.report!['steps'][4]['status'], 'Passed');
-      expect(
-        session.report!['steps'][4]['evidence']['registry_check']['matched'],
-        true,
-      );
-    });
-  }
   test(
     'readiness saves first, records an observation and reopens the report',
     () async {

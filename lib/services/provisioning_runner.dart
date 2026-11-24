@@ -178,6 +178,85 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     }
   }
 
+  Future<Json> readStartupDiagnostics(
+    String account,
+    ProvisionedIdentityRead read,
+    String publicKey,
+    String check, {
+    void Function(Json)? onDiagnostic,
+  }) async {
+    if (!BenchSession.startupChecks.contains(check)) {
+      throw const FormatException('Unknown startup diagnostic');
+    }
+    final result = await _execute(
+      account,
+      'startup-diagnostics',
+      {'selection': read.inspectionParameters(publicKey), 'check': check},
+      read.definition.runnerFiles,
+      onDiagnostic,
+    );
+    if (result['selection'] != check ||
+        !{'passed', 'failed'}.contains(result['outcome'])) {
+      throw const ProvisioningFailure('Invalid startup diagnostics result.');
+    }
+    if (result['outcome'] == 'failed') return result;
+    final before = result['before_proof'], after = result['after_proof'];
+    final frame = result['frame'];
+    if (before is! Json || after is! Json || frame is! Json) {
+      throw const ProvisioningFailure(
+        'Startup diagnostics evidence is incomplete.',
+      );
+    }
+    for (final proof in [before, after]) {
+      read.checkRegistryIdentity(proof);
+      if (proof['role'] != read.build.role ||
+          proof['build'] != read.build.source ||
+          proof['hardware'] != read.device.hardwareUid ||
+          proof['public_key'] != publicKey ||
+          proof['boot'] is! String ||
+          !hexId(proof['boot'] as String, 32) ||
+          proof['boot'] == '0' * 32 ||
+          proof['challenge'] is! String ||
+          !hexId(proof['challenge'] as String, 64) ||
+          proof['signature'] is! String ||
+          !hexId(proof['signature'] as String, 128)) {
+        throw const ProvisioningFailure(
+          'Startup diagnostics identity proof does not match.',
+        );
+      }
+    }
+    final rows = frame['results'];
+    if (before['boot'] != after['boot'] ||
+        before['challenge'] == after['challenge'] ||
+        frame['v'] != 1 ||
+        frame['ok'] != true ||
+        frame['type'] != 'tests' ||
+        frame['role'] != read.build.role ||
+        frame['build'] != read.build.source ||
+        frame['run_id'] is! int ||
+        (frame['run_id'] as int) <= 0 ||
+        frame['running'] != false ||
+        rows is! List ||
+        rows.length != BenchSession.startupChecks.length - 1) {
+      throw const ProvisioningFailure(
+        'Startup diagnostics frame does not match.',
+      );
+    }
+    for (var i = 0; i < rows.length; i++) {
+      final row = rows[i];
+      final name = BenchSession.startupChecks[i + 1];
+      if (row is! Map ||
+          row['id'] != name ||
+          row['result'] !=
+              (check == 'all' || check == name ? 'passed' : 'not_run')) {
+        throw const ProvisioningFailure(
+          'Startup diagnostics did not pass the selected checks.',
+        );
+      }
+    }
+    return result;
+  }
+
   Future<Json> readBenchReadiness(
     String account,
     ProvisionedIdentityRead read,
@@ -591,6 +670,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           'prepare-control-storage',
           'credential-inspection',
           'credential-readiness',
+          'startup-diagnostics',
           'credential-delivery',
           'credential-installation',
           'credential-preparation',
@@ -623,6 +703,8 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           ]
         : command == 'credential-delivery'
         ? ['-B', '$firmwareRoot/tools/credential_delivery.py']
+        : command == 'startup-diagnostics'
+        ? ['-B', '$firmwareRoot/tools/startup_diagnostics.py']
         : command == 'credential-readiness'
         ? ['-B', '$firmwareRoot/tools/credential_readiness.py']
         : command == 'credential-inspection'
@@ -631,7 +713,8 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         ? ['-B', '-c', program!, firmwareRoot]
         : ['-B', '$firmwareRoot/tools/provision.py', command];
     String? input;
-    if (command == 'credential-inspection' ||
+    if (command == 'startup-diagnostics' ||
+        command == 'credential-inspection' ||
         command == 'credential-readiness' ||
         command == 'credential-delivery' ||
         command == 'credential-installation' ||
@@ -869,6 +952,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         if (command == 'identity' ||
             command == 'credential-inspection' ||
             command == 'credential-readiness' ||
+            command == 'startup-diagnostics' ||
             command == 'credential-delivery' ||
             command == 'credential-installation' ||
             command == 'credential-preparation' ||

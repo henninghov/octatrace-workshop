@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../domain/bench_definition.dart';
+import '../domain/bench_session.dart';
 import '../domain/workshop_controller.dart';
+import 'firmware_checks_panel.dart';
 
 class BenchPanel extends StatefulWidget {
   const BenchPanel({super.key, required this.controller});
@@ -16,6 +18,7 @@ class _BenchPanelState extends State<BenchPanel> {
   final label = TextEditingController(), folder = TextEditingController();
   final historyKey = GlobalKey();
   String? deviceId, exported;
+  String startupCheck = 'all';
   bool unreadable = false;
   bool restartConfirmed = false;
   String? restartAttempt;
@@ -65,6 +68,8 @@ class _BenchPanelState extends State<BenchPanel> {
     final guide = viewing
         ? BenchDefinition.fromSnapshot(report['definition_snapshot']).guide
         : s.definition.guide;
+    final startupDiagnostics =
+        guide['key'] == 'cleanup-startup-diagnostics-device';
     final readiness = guide['key'] == 'c82-credential-startup-device';
     final inspection = guide['key'] == 'c82-credential-inspection-device';
     final delivery = guide['key'] == 'c822-credential-delivery-device';
@@ -94,7 +99,17 @@ class _BenchPanelState extends State<BenchPanel> {
     final successSurface = dark
         ? const Color(0xff24372d)
         : const Color(0xffedf5ef);
-    final names = installation || preparation
+    final names = startupDiagnostics
+        ? const [
+            'Select device',
+            'Save attempt',
+            'Connect USB',
+            'Run diagnostics',
+            'Review results',
+            'Reopen report',
+            'Export report',
+          ]
+        : installation || preparation
         ? const [
             'Select device',
             'Save attempt',
@@ -210,7 +225,8 @@ class _BenchPanelState extends State<BenchPanel> {
             ),
           );
     final sequenceField =
-        s.inspectionDefinition == null &&
+        s.startupDiagnosticsDefinition == null &&
+            s.inspectionDefinition == null &&
             s.readinessDefinition == null &&
             s.deliveryDefinition == null &&
             s.installationDefinition == null &&
@@ -251,6 +267,8 @@ class _BenchPanelState extends State<BenchPanel> {
               items: [
                 for (final definition in [
                   s.identityDefinition,
+                  if (s.startupDiagnosticsDefinition != null)
+                    s.startupDiagnosticsDefinition!,
                   if (s.inspectionDefinition != null) s.inspectionDefinition!,
                   if (s.readinessDefinition != null) s.readinessDefinition!,
                   if (s.deliveryDefinition != null) s.deliveryDefinition!,
@@ -419,7 +437,9 @@ class _BenchPanelState extends State<BenchPanel> {
             ),
           if (viewing && report['steps'][3]['status'] == 'Passed')
             SelectableText(
-              preparation
+              startupDiagnostics
+                  ? "Startup diagnostics · ${report['steps'][3]['evidence']['frame']['outcome']}"
+                  : preparation
                   ? "Preparation result · ${report['steps'][3]['evidence']['frame']['state']}"
                   : installation
                   ? "Installation result · ${report['steps'][3]['evidence']['frame']['state']}"
@@ -432,6 +452,21 @@ class _BenchPanelState extends State<BenchPanel> {
                   : "USB readback · ${report['steps'][3]['evidence']['frame']['serial']}",
             ),
           if (viewing) ...[
+            if (startupDiagnostics &&
+                report['steps'][3]['evidence'] is Map &&
+                report['steps'][3]['evidence']['frame'] is Map &&
+                report['steps'][3]['evidence']['frame']['frame'] is Map)
+              for (final row
+                  in (report['steps'][3]['evidence']['frame']['frame']['results']
+                      as List))
+                SelectableText('${row['id']} · ${row['result']}'),
+            if (startupDiagnostics &&
+                report['steps'][3]['evidence'] is Map &&
+                report['steps'][3]['evidence']['frame'] is Map &&
+                report['steps'][3]['evidence']['frame']['error'] is String)
+              SelectableText(
+                'Diagnostic stopped · ${report['steps'][3]['evidence']['frame']['error']}',
+              ),
             if (report['steps'][3]['evidence'] case {
               'error': final String error,
             })
@@ -470,6 +505,24 @@ class _BenchPanelState extends State<BenchPanel> {
             ),
           ],
           const SizedBox(height: 16),
+          if (!s.active && s.isStartupDiagnostics)
+            field(
+              'Startup checks',
+              DropdownButton<String>(
+                value: startupCheck,
+                isExpanded: true,
+                items: [
+                  for (final check in BenchSession.startupChecks)
+                    DropdownMenuItem(
+                      value: check,
+                      child: Text(check == 'all' ? 'All checks' : check),
+                    ),
+                ],
+                onChanged: c.busy
+                    ? null
+                    : (value) => setState(() => startupCheck = value!),
+              ),
+            ),
           if (!s.active && selected != null && article != null && build != null)
             FilledButton(
               onPressed: c.busy
@@ -482,7 +535,11 @@ class _BenchPanelState extends State<BenchPanel> {
                         deviceId = selected.id;
                       });
                       c.benchAction(
-                        (session) => session.start(selected, article),
+                        (session) => session.start(
+                          selected,
+                          article,
+                          startupCheck: startupCheck,
+                        ),
                       );
                     },
               child: Text(
@@ -508,7 +565,9 @@ class _BenchPanelState extends State<BenchPanel> {
                   ? null
                   : () => c.benchAction((s) => s.connected(selected, article)),
               child: Text(
-                preparation
+                startupDiagnostics
+                    ? 'USB connected · run diagnostics'
+                    : preparation
                     ? 'USB connected · inspect for preparation'
                     : installation
                     ? 'USB connected · verify for installation'
@@ -529,7 +588,9 @@ class _BenchPanelState extends State<BenchPanel> {
                       (session) => session.readDevice(selected, article),
                     ),
               child: Text(
-                preparation
+                startupDiagnostics
+                    ? 'Run diagnostics'
+                    : preparation
                     ? 'Inspect for preparation'
                     : installation
                     ? 'Verify for installation'
@@ -613,7 +674,17 @@ class _BenchPanelState extends State<BenchPanel> {
             ],
           ],
           if (next == 5) ...[
-            if (restartFlow) ...[
+            if (startupDiagnostics) ...[
+              const Text(
+                'Review the measured checks before saving your acknowledgement.',
+              ),
+              FilledButton(
+                onPressed: c.busy || s.pending != null
+                    ? null
+                    : () => c.benchAction((s) => s.reviewStartupResults()),
+                child: const Text('I reviewed the results'),
+              ),
+            ] else if (restartFlow) ...[
               Text(
                 'Expected state: ${report!['steps'][3]['evidence']['frame']['state']}',
               ),
@@ -881,6 +952,17 @@ class _BenchPanelState extends State<BenchPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (c.firmwareChecks != null && c.gateway.accountId != null) ...[
+          FirmwareChecksPanel(
+            key: ValueKey('firmware-checks-${c.gateway.accountId}'),
+            checks: c.firmwareChecks!,
+            account: c.gateway.accountId!,
+            initialFirmware: c.firmwareRoot,
+            initialPython: c.firmwarePython,
+            initialFonts: c.firmwareFonts,
+          ),
+          const SizedBox(height: 24),
+        ],
         LayoutBuilder(
           builder: (context, constraints) => constraints.maxWidth < 420
               ? Column(

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-workshop_sdk="${FLUTTER_SDK:-/Users/henninghov/Sites/sdk/flutter}"
+workshop_sdk="$(python3 -B tools/flutter_sdk.py)"
 mkdir -p build coverage
 python3 -B tools/verify_claim_qr.py
 python3 -B tools/verify_device_credential.py

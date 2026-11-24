@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:octatrace_workshop/domain/bench_definition.dart';
 import 'package:octatrace_workshop/domain/bench_session.dart';
 
-import 'bench_session_test.dart' as base;
+import 'support/bench_fixture.dart' as base;
 import 'widget_test.dart' as fixtures;
 
 void main() {

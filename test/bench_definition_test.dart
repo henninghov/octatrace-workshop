@@ -785,4 +785,149 @@ void main() {
     expect(commands, ['inventory', 'identity']);
     expect(launches, definition.builds.length);
   });
+  test(
+    'startup runner binds result to exact selection and signed proofs',
+    () async {
+      final guide = BenchDefinition.fromSnapshot(
+        await rootBundle.loadString(BenchDefinition.startupDiagnosticsAsset),
+      );
+      final root = await Directory.systemTemp.createTemp('startup-contract-');
+      addTearDown(() => root.delete(recursive: true));
+      for (final lock in [
+        'usb-provisioning.lock.json',
+        'control-storage.lock.json',
+      ]) {
+        await File('vendor/$lock').copy('${root.path}/$lock');
+      }
+      final pins = {
+        ...ProcessProvisioningRunner.pins,
+        ...ProcessProvisioningRunner.controlPins,
+        ...guide.runnerFiles,
+      };
+      final read = admit(guide.builds.first, guide: guide);
+      final key = '04${'11' * 64}';
+      final proof = <String, dynamic>{
+        'state': 'ready',
+        'busy': false,
+        'failed': false,
+        'device_id': read.device.id,
+        'serial': read.device.serial,
+        'article_id': read.article.articleId,
+        'article_revision_id': read.article.id,
+        'role': read.build.role,
+        'build': read.build.source,
+        'hardware': read.device.hardwareUid,
+        'boot': '22' * 16,
+        'public_key': key,
+        'challenge': '33' * 32,
+        'signature': '44' * 64,
+      };
+      final after = {...proof, 'challenge': '55' * 32};
+      final frame = <String, dynamic>{
+        'v': 1,
+        'ok': true,
+        'type': 'tests',
+        'role': read.build.role,
+        'build': read.build.source,
+        'run_id': 1,
+        'running': false,
+        'results': [
+          for (final id in BenchSession.startupChecks.skip(1))
+            {'id': id, 'result': 'passed'},
+        ],
+      };
+      final valid = <String, dynamic>{
+        'selection': 'all',
+        'outcome': 'passed',
+        'before_proof': proof,
+        'after_proof': after,
+        'frame': frame,
+        'error': null,
+      };
+      var returned = valid;
+      final runner = ProcessProvisioningRunner(
+        root.path,
+        root,
+        fileDigest: (file) async =>
+            pins[file.path.substring(root.path.length + 1)]!,
+        startProcess: (path, args) {
+          expect(args, ['-B', '${root.path}/tools/startup_diagnostics.py']);
+          return Process.start('/usr/bin/python3', [
+            '-c',
+            'import sys; sys.stdin.read(); print(sys.argv[1])',
+            jsonEncode(returned),
+          ]);
+        },
+      );
+      expect(
+        await runner.readStartupDiagnostics(fixtures.actor, read, key, 'all'),
+        valid,
+      );
+      for (final change in [
+        {'before_proof': null},
+        {'after_proof': null},
+        {'frame': null},
+        {
+          'before_proof': {...proof, 'public_key': 'bad'},
+        },
+        {
+          'after_proof': {...after, 'boot': '66' * 16},
+        },
+        {
+          'after_proof': {...after, 'challenge': proof['challenge']},
+        },
+        {
+          'frame': {...frame, 'running': true},
+        },
+        {
+          'frame': {...frame, 'run_id': 0},
+        },
+        {
+          'frame': {...frame, 'role': 'Core'},
+        },
+        {
+          'frame': {...frame, 'results': []},
+        },
+        {
+          'frame': {
+            ...frame,
+            'results': [
+              for (final id in BenchSession.startupChecks.skip(1))
+                {'id': id, 'result': 'not_run'},
+            ],
+          },
+        },
+      ]) {
+        returned = {...valid, ...change};
+        await expectLater(
+          runner.readStartupDiagnostics(fixtures.actor, read, key, 'all'),
+          throwsA(isA<ProvisioningFailure>()),
+        );
+      }
+      returned = {
+        'selection': 'all',
+        'outcome': 'failed',
+        'frame': frame,
+        'error': 'device failed',
+      };
+      expect(
+        (await runner.readStartupDiagnostics(
+          fixtures.actor,
+          read,
+          key,
+          'all',
+        ))['outcome'],
+        'failed',
+      );
+      returned = {...valid, 'selection': 'clock'};
+      await expectLater(
+        runner.readStartupDiagnostics(fixtures.actor, read, key, 'all'),
+        throwsA(isA<ProvisioningFailure>()),
+      );
+      await expectLater(
+        runner.readStartupDiagnostics(fixtures.actor, read, key, 'bad'),
+        throwsFormatException,
+      );
+    },
+  );
 }

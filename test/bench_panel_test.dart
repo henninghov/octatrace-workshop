@@ -14,7 +14,8 @@ import 'package:octatrace_workshop/domain/ports.dart';
 import 'package:octatrace_workshop/domain/workshop_controller.dart';
 import 'package:octatrace_workshop/ui/workshop_app.dart';
 
-import 'bench_session_test.dart' show BenchFixture, TestBenchStore;
+import 'support/bench_fixture.dart' show BenchFixture, TestBenchStore;
+import 'support/firmware_checks_fixture.dart';
 import 'ui_flow_test.dart' show MemoryEvidence;
 import 'widget_test.dart' as fixtures;
 
@@ -76,6 +77,37 @@ void main() {
     await t.enterText(item, text);
     await t.pump();
   }
+
+  testWidgets(
+    'firmware host controls are integrated into the signed-in bench',
+    (t) async {
+      final checks = FakeFirmwareChecks();
+      controller = WorkshopController(
+        f.gateway,
+        fixtures.Runner(),
+        MemoryEvidence(),
+        provisioner: f.usbRunner,
+        benchFactory: f.session,
+        firmwareChecks: checks,
+        firmwareRoot: '/firmware',
+        firmwarePython: '/python',
+        firmwareFonts: '/fonts',
+      );
+      await show(t);
+      await tap(t, 'Firmware host regression tests');
+      expect(find.text('Firmware checkout folder'), findsOneWidget);
+      await t.ensureVisible(find.text('Run firmware tests'));
+      await t.tap(find.text('Run firmware tests'));
+      await t.pump();
+      expect(checks.account, f.gateway.accountId);
+      checks.pending!.complete(checks.reports.first);
+      await t.pumpAndSettle();
+      expect(find.text('Status: passed'), findsOneWidget);
+      await controller.signOut();
+      await t.pumpAndSettle();
+      expect(checks.cancels, greaterThan(0));
+    },
+  );
 
   for (final mode in ['install', 'stop', 'prepare']) {
     testWidgets(
@@ -667,4 +699,39 @@ void main() {
       matchesGoldenFile('goldens/bench-identity-guide.png'),
     );
   });
+  testWidgets(
+    'startup diagnostics selection and measured states appear in the bench',
+    (t) async {
+      f.startupDiagnostics = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.startupDiagnosticsAsset).readAsStringSync(),
+      );
+      f.startupDiagnosticsReader =
+          (account, selection, key, check, {onDiagnostic}) async => {
+            'selection': check,
+            'outcome': 'passed',
+            'error': null,
+            'frame': {
+              'results': [
+                for (final name in BenchSession.startupChecks.skip(1))
+                  {
+                    'id': name,
+                    'result': check == 'all' || check == name
+                        ? 'passed'
+                        : 'not_run',
+                  },
+              ],
+            },
+          };
+      await show(t);
+      await t.tap(find.byType(DropdownButton<BenchDefinition>).first);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Run device startup diagnostics').last);
+      await t.pumpAndSettle();
+      await tap(t, 'Start guided test');
+      await tap(t, 'USB connected · run diagnostics');
+      expect(find.text('radio · passed'), findsOneWidget);
+      await tap(t, 'I reviewed the results');
+      expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
+    },
+  );
 }

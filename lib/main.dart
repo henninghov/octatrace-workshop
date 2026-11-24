@@ -16,6 +16,7 @@ import 'package:crypto/crypto.dart';
 
 import 'domain/workshop_controller.dart';
 import 'services/bench_runner.dart';
+import 'services/firmware_checks.dart';
 import 'services/provisioning_runner.dart';
 import 'services/magic_links.dart';
 import 'services/supabase_gateway.dart';
@@ -27,6 +28,8 @@ Future<void> main() async {
   const url = String.fromEnvironment('SUPABASE_URL');
   const key = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
   const firmware = String.fromEnvironment('WORKSHOP_FIRMWARE_ROOT');
+  const testPython = String.fromEnvironment('WORKSHOP_TEST_PYTHON');
+  const firmwareFonts = String.fromEnvironment('WORKSHOP_FIRMWARE_FONTS');
   final valid = Uri.tryParse(url);
   final configured =
       valid?.scheme == 'https' &&
@@ -55,6 +58,9 @@ Future<void> main() async {
   final readinessDefinition = BenchDefinition.fromSnapshot(
     await rootBundle.loadString(BenchDefinition.readinessAsset),
   );
+  final startupDiagnosticsDefinition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.startupDiagnosticsAsset),
+  );
   final deliveryDefinition = BenchDefinition.fromSnapshot(
     await rootBundle.loadString(BenchDefinition.deliveryAsset),
   );
@@ -70,6 +76,12 @@ Future<void> main() async {
   final updateGuide = await rootBundle.loadString(
     'assets/bench/claimed-firmware-update.v4.json',
   );
+  final firmwareTestAdapter = await rootBundle.loadString(
+    'tools/firmware_test_adapter.py',
+  );
+  final firmwareTestDefinition = await rootBundle.loadString(
+    'assets/bench/firmware-host-regression.v7.json',
+  );
   final gateway = configured ? SupabaseGateway(url, key) : null;
   runApp(
     WorkshopApp(
@@ -80,6 +92,21 @@ Future<void> main() async {
               ProcessBenchRunner(firmware),
               journal,
               provisioner: provisioner,
+              firmwareChecks: ProcessFirmwareChecks(
+                firmwareRoot: firmware,
+                evidenceRoot: evidenceRoot,
+                adapter: firmwareTestAdapter,
+                definition: firmwareTestDefinition,
+                newId: newRequestId,
+                workshopFingerprint: () => workshopBundleFingerprint(),
+              ),
+              firmwareRoot: firmware,
+              firmwarePython: testPython.isNotEmpty
+                  ? testPython
+                  : firmware.isEmpty
+                  ? ''
+                  : '$firmware/build/test-venv/bin/python',
+              firmwareFonts: firmwareFonts,
               claimedUpdateFactory: (account, device, article, current) =>
                   ClaimedUpdateSession(
                     account: account,
@@ -110,6 +137,8 @@ Future<void> main() async {
                 readInspection: provisioner.readBenchInspection,
                 readinessDefinition: readinessDefinition,
                 readReadiness: provisioner.readBenchReadiness,
+                startupDiagnosticsDefinition: startupDiagnosticsDefinition,
+                readStartupDiagnostics: provisioner.readStartupDiagnostics,
                 deliveryDefinition: deliveryDefinition,
                 readDelivery: provisioner.readBenchDelivery,
                 installationDefinition: installationDefinition,
