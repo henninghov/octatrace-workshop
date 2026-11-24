@@ -17,12 +17,14 @@ final class BenchDefinition {
   static const asset = 'assets/bench/provisioned-identity.v2.json';
   static const legacyAsset = 'assets/bench/provisioned-identity.v1.json';
   static const inspectionAsset = 'assets/bench/credential-inspection.v1.json';
-  static const readinessAsset = 'assets/bench/credential-readiness.v1.json';
+  static const readinessAsset = 'assets/bench/credential-readiness.v2.json';
+  static const legacyReadinessAsset =
+      'assets/bench/credential-readiness.v1.json';
   static const deliveryAsset = 'assets/bench/credential-delivery.v1.json';
   static const installationAsset =
-      'assets/bench/credential-installation.v1.json';
-  static const intentStopAsset = 'assets/bench/credential-intent-stop.v1.json';
-  static const preparationAsset = 'assets/bench/credential-preparation.v1.json';
+      'assets/bench/credential-installation.v2.json';
+  static const intentStopAsset = 'assets/bench/credential-intent-stop.v2.json';
+  static const preparationAsset = 'assets/bench/credential-preparation.v2.json';
   static const legacyDigest =
       '81bbd6890809bb4ffa8c9ee283d7003c5f3cf2404a8b21fdc56d3d2e39220356';
   static const digest =
@@ -41,6 +43,14 @@ final class BenchDefinition {
       '5d07f3e795e4858d44991db91429e69f45d4cfbc09bfed10418e669245e5b813';
   static const preparationDigest =
       '072e00b2d37e1ae0330f928a077b5069e83decea6f12ff581963096910332a76';
+  static const readinessV2Digest =
+      'abc1bc246be4dbeb57635f804eaac876f4cc3095b917c477ec43beb47ba738ca';
+  static const installationV2Digest =
+      'b7ab4f4539822f7ce1a6d357730f228a9fb47754a19ec9c75c9d026db1fd6b8e';
+  static const intentStopV2Digest =
+      'af1804d8c29914dc4a2ef5d7c14eeb9348667bfecd55bda372696842f77870a9';
+  static const preparationV2Digest =
+      'eae38c388ceded16f59ad693f9fd201ec32cc7966c09ab67eb6d342e85a467e1';
 
   BenchDefinition.fromSnapshot(this.snapshot)
     : snapshotDigest = sha256.convert(utf8.encode(snapshot)).toString() {
@@ -51,7 +61,11 @@ final class BenchDefinition {
         snapshotDigest != deliveryDigest &&
         snapshotDigest != installationDigest &&
         snapshotDigest != intentStopDigest &&
-        snapshotDigest != preparationDigest) {
+        snapshotDigest != preparationDigest &&
+        snapshotDigest != readinessV2Digest &&
+        snapshotDigest != installationV2Digest &&
+        snapshotDigest != intentStopV2Digest &&
+        snapshotDigest != preparationV2Digest) {
       throw const FormatException(
         'Unknown bench definition revision or digest',
       );

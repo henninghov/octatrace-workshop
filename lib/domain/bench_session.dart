@@ -502,6 +502,10 @@ final class BenchSession {
           );
         }
         if (_stopReason != null) return;
+        if (isReadiness) {
+          _installationRead = read;
+          _installationKey = publicKey;
+        }
         if (isDelivery || isInstallation) {
           final credential = await lookupCredential!(
             device,
@@ -628,6 +632,9 @@ final class BenchSession {
 
   Future<void> observe(String value, {bool unavailable = false}) async {
     _require(5);
+    if (isWrite || isReadiness) {
+      throw StateError('Confirm the restart and use the automatic check');
+    }
     final text = value.trim();
     if (text.isEmpty || text.length > 256) {
       throw const FormatException(
@@ -637,70 +644,136 @@ final class BenchSession {
     final expected = isCredentialTest
         ? report!['steps'][3]['evidence']['frame']['state']
         : report!['device']['serial'];
-    var status = unavailable
+    final status = unavailable
         ? 'Incomplete'
         : text == expected
         ? 'Passed'
         : 'Failed';
-    Json? restart;
-    Json? restartDiagnostic;
-    String? restartError;
-    if (isWrite && !unavailable) {
-      _reading = true;
-      try {
-        final selected = _installationRead!;
-        if (await lookupPublicKey!(selected.device, selected.article) !=
-            _installationKey) {
-          throw const ProvisioningFailure(
-            'Registry identity or ownership changed before restart verification.',
-          );
-        }
-        if (_stopReason != null) throw BenchCancelled();
-        restart = await (isPreparation ? readInspection! : readReadiness!)(
-          account,
-          _installationRead!,
-          _installationKey!,
-          onDiagnostic: (value) => restartDiagnostic = value,
+    final updated = _change(5, status, {
+      'operator': account,
+      'observation': text,
+      'unavailable': unavailable,
+    }, outcome: status == 'Passed' ? null : status);
+    await _save(updated);
+    if (status == 'Passed' && _stopReason == null) await verifyReopen();
+  }
+
+  /// Save the operator's confirmation before refreshing registry or reading USB.
+  Future<void> checkAfterRestart({required bool confirmed}) async {
+    _require(5);
+    if (!confirmed ||
+        !(isWrite || isReadiness) ||
+        definition.guide['revision'] != 2) {
+      throw StateError('Confirm that the selected device was restarted');
+    }
+    final selected = _installationRead;
+    final key = _installationKey;
+    if (selected == null || key == null || lookupPublicKey == null) {
+      throw StateError('The baseline identity is unavailable');
+    }
+    final initial = report!['steps'][3]['evidence']['frame'] as Json;
+    final proof = isReadiness
+        ? initial
+        : isPreparation
+        ? initial['preparation_result'] as Json
+        : initial['installation_proof'] as Json;
+    final expected = <String, dynamic>{
+      'state': initial['state'],
+      'boot': proof['boot'],
+      if (initial['state'] == 'ready') ...{
+        'revision': isReadiness
+            ? proof['revision']
+            : proof['credential_revision'],
+        'content_id': proof['content_id'],
+      },
+    };
+    final confirmation = {'operator': account, 'at': _time, 'confirmed': true};
+    final saved = jsonDecode(jsonEncode(report)) as Json;
+    saved['generation']++;
+    saved['steps'][4]['evidence'] = {
+      'restart_confirmation': confirmation,
+      'expected_restart': expected,
+    };
+    await _save(saved);
+    Json? restart, diagnostic, registryCheck;
+    String? error;
+    Object? accessError;
+    var status = 'Passed';
+    _reading = true;
+    try {
+      if (_stopReason != null) throw BenchCancelled();
+      if (await lookupPublicKey!(selected.device, selected.article) != key) {
+        throw const ProvisioningFailure(
+          'Registry identity or ownership changed.',
         );
-        final installed = report!['steps'][3]['evidence']['frame'];
-        final proof = isPreparation
-            ? installed['preparation_result']
-            : installed['installation_proof'];
-        if (restart['boot'] == proof['boot'] ||
-            restart['state'] != expected ||
-            (expected == 'ready' &&
-                (restart['revision'] != proof['credential_revision'] ||
-                    restart['content_id'] != proof['content_id']))) {
-          throw const ProvisioningFailure(
-            'Restart readiness did not match the verified installation.',
-          );
-        }
-      } catch (error) {
-        status = 'Failed';
-        restartError = error.toString();
-      } finally {
-        _reading = false;
       }
-      if (_stopReason != null) status = 'Incomplete';
+      registryCheck = {
+        'matched': true,
+        'claimed': selected.device.ownerId != null,
+        if (selected.device.ownerId != null)
+          'owner_sha256': benchHash(selected.device.ownerId!),
+        'checked_at': _time,
+      };
+      if (_stopReason != null) throw BenchCancelled();
+      restart = await (isPreparation ? readInspection! : readReadiness!)(
+        account,
+        selected,
+        key,
+        onDiagnostic: (value) => diagnostic = value,
+      );
+      if (_stopReason != null) throw BenchCancelled();
+      if (restart['boot'] == expected['boot']) {
+        throw const ProvisioningFailure(
+          'The device is still on the baseline boot.',
+        );
+      }
+      if (restart['state'] != expected['state']) {
+        throw const ProvisioningFailure(
+          'The measured state differs from the expected state.',
+        );
+      }
+      if (expected['state'] == 'ready' &&
+          (restart['revision'] != expected['revision'] ||
+              restart['content_id'] != expected['content_id'])) {
+        throw const ProvisioningFailure(
+          'The credential revision or content differs.',
+        );
+      }
+    } catch (failure) {
+      if (failure is SessionExpired || failure is OperatorDenied) {
+        accessError = failure;
+      }
+      status = _stopReason == null && accessError == null
+          ? 'Failed'
+          : 'Incomplete';
+      error = failure is ProvisioningFailure
+          ? failure.message
+          : failure is SessionExpired || failure is OperatorDenied
+          ? 'Operator access is no longer available.'
+          : failure.toString();
+    } finally {
+      _reading = false;
     }
     final updated = _change(
       5,
       status,
       {
-        'operator': account,
-        'observation': text,
-        'unavailable': unavailable,
+        'restart_confirmation': confirmation,
+        'expected_restart': expected,
+        'registry_check': ?registryCheck,
         'automatic_restart_check': ?restart,
-        'automatic_error': ?restartError,
+        'automatic_error': ?error,
       },
       outcome: status == 'Passed'
           ? null
           : _stopReason != null
           ? _interruptedOutcome(_stopReason!)
+          : accessError != null
+          ? 'Interrupted'
           : status,
     );
-    if (restartDiagnostic != null) {
-      final raw = jsonEncode(restartDiagnostic);
+    if (diagnostic != null) {
+      final raw = jsonEncode(diagnostic);
       updated['artifacts'].add({
         'run_id': report!['id'],
         'step': 5,
@@ -711,6 +784,7 @@ final class BenchSession {
       });
     }
     await _save(updated);
+    if (accessError != null) throw accessError;
     if (status == 'Passed' && _stopReason == null) await verifyReopen();
   }
 

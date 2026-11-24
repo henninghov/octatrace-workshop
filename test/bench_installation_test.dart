@@ -163,24 +163,14 @@ void main() {
         await operation;
         expect(f.writes, 1);
         expect(f.s.report!['steps'][3]['status'], 'Passed');
-        await f.s.observe(
-          mode == 'prepare'
-              ? 'blank'
-              : mode == 'stop'
-              ? 'pending'
-              : 'ready',
-        );
+        await f.s.checkAfterRestart(confirmed: true);
         expect(
           f.s.report!['steps'][4]['evidence']['automatic_restart_check']['boot'],
           'bb' * 16,
         );
         expect(
-          f.s.report!['steps'][4]['evidence']['observation'],
-          mode == 'prepare'
-              ? 'blank'
-              : mode == 'stop'
-              ? 'pending'
-              : 'ready',
+          f.s.report!['steps'][4]['evidence']['restart_confirmation']['confirmed'],
+          true,
         );
         await f.s.export(root.path);
         expect(f.s.report!['outcome'], 'Passed');
@@ -331,7 +321,6 @@ void main() {
     'wrong state',
     'wrong content',
     'transport error',
-    'unavailable',
   ]) {
     test('restart $mode remains explicit and cannot pass', () async {
       await f.init();
@@ -345,14 +334,8 @@ void main() {
       if (mode == 'transport error') {
         f.restartError = const FormatException('Disconnected');
       }
-      await f.s.observe(
-        mode == 'unavailable' ? 'Cannot observe' : 'ready',
-        unavailable: mode == 'unavailable',
-      );
-      expect(
-        f.s.report!['steps'][4]['status'],
-        mode == 'unavailable' ? 'Incomplete' : 'Failed',
-      );
+      await f.s.checkAfterRestart(confirmed: true);
+      expect(f.s.report!['steps'][4]['status'], 'Failed');
     });
   }
   test('recovery links the prior controlled-stop attempt', () async {
@@ -361,7 +344,7 @@ void main() {
     final operation = f.run();
     await f.approve(true);
     await operation;
-    await f.s.observe('pending');
+    await f.s.checkAfterRestart(confirmed: true);
     await f.s.export(root.path);
     final stopped = f.s.report!['id'];
     f.s.selectDefinition(f.f.installation!);
@@ -376,9 +359,109 @@ void main() {
     await f.approve(true);
     await operation;
     f.f.publicKey = '04${'ff' * 64}';
-    await f.s.observe('ready');
+    await f.s.checkAfterRestart(confirmed: true);
     expect(f.s.report!['outcome'], 'Failed');
   });
+  test('restart confirmation is required and saved before reading', () async {
+    await f.init();
+    await f.start();
+    final operation = f.run();
+    await f.approve(true);
+    await operation;
+    await expectLater(f.s.observe('ready'), throwsStateError);
+    await expectLater(
+      f.s.checkAfterRestart(confirmed: false),
+      throwsStateError,
+    );
+    expect(f.s.report!['steps'][4]['status'], 'Not run');
+    final generation = f.s.report!['generation'] as int;
+    f.f.store.failGeneration = generation + 1;
+    await expectLater(
+      f.s.checkAfterRestart(confirmed: true),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(
+      f.s.pending!['steps'][4]['evidence']['restart_confirmation']['confirmed'],
+      true,
+    );
+    expect(
+      f.s.pending!['steps'][4]['evidence']['automatic_restart_check'],
+      isNull,
+    );
+    f.f.store.failGeneration = null;
+    await f.s.retrySave();
+    expect(f.s.report!['steps'][4]['status'], 'Not run');
+  });
+  test('a missing baseline cannot start restart verification', () async {
+    await f.init();
+    await f.start();
+    f.s.report!['steps'][2]['status'] = 'Passed';
+    f.s.report!['steps'][3]['status'] = 'Passed';
+    await expectLater(f.s.checkAfterRestart(confirmed: true), throwsStateError);
+    expect(f.writes, 0);
+  });
+  test(
+    'a failed comparison retains the measured result and useful reason',
+    () async {
+      await f.init();
+      await f.start();
+      final operation = f.run();
+      await f.approve(true);
+      await operation;
+      f.restartBoot = 'aa' * 16;
+      await f.s.checkAfterRestart(confirmed: true);
+      final evidence = f.s.report!['steps'][4]['evidence'];
+      expect(evidence['automatic_restart_check']['boot'], 'aa' * 16);
+      expect(evidence['automatic_error'], contains('baseline boot'));
+      expect(evidence.containsKey('observation'), false);
+    },
+  );
+  test('expired access retains incomplete evidence and propagates denial', () async {
+    await f.init();
+    await f.start();
+    final operation = f.run();
+    await f.approve(true);
+    await operation;
+    f.f.heldKey = Completer<String>();
+    f.f.keyStarted = Completer<void>();
+    final check = f.s.checkAfterRestart(confirmed: true);
+    final denied = expectLater(check, throwsA(isA<SessionExpired>()));
+    await f.f.keyStarted!.future;
+    f.f.heldKey!.completeError(SessionExpired());
+    await denied;
+    expect(f.s.report!['outcome'], 'Interrupted');
+    expect(f.s.report!['steps'][4]['status'], 'Incomplete');
+    expect(
+      f.s.report!['steps'][4]['evidence']['restart_confirmation']['confirmed'],
+      true,
+    );
+  });
+  test(
+    'logout during confirmation save prevents registry and USB reads',
+    () async {
+      await f.init();
+      await f.start();
+      final operation = f.run();
+      await f.approve(true);
+      await operation;
+      final lookups = f.f.keyLookups;
+      f.f.store.heldSaveGeneration = (f.s.report!['generation'] as int) + 1;
+      f.f.store.heldSave = Completer<void>();
+      f.f.store.saveStarted = Completer<void>();
+      final check = f.s.perform(() => f.s.checkAfterRestart(confirmed: true));
+      await f.f.store.saveStarted!.future;
+      final stopped = f.s.stop('Operator signed out');
+      f.f.store.heldSave!.complete();
+      await check;
+      await stopped;
+      expect(f.f.keyLookups, lookups);
+      expect(f.s.report!['outcome'], 'Interrupted');
+      expect(
+        f.s.report!['steps'][4]['evidence']['automatic_restart_check'],
+        isNull,
+      );
+    },
+  );
   test('logout while rechecking registry prevents another USB read', () async {
     await f.init();
     await f.start();
@@ -386,7 +469,7 @@ void main() {
     await f.approve(true);
     await operation;
     f.f.heldKey = Completer<String>();
-    final check = f.s.perform(() => f.s.observe('ready'));
+    final check = f.s.perform(() => f.s.checkAfterRestart(confirmed: true));
     await Future<void>.delayed(Duration.zero);
     final stop = f.s.stop('Operator signed out');
     f.f.heldKey!.complete(f.f.publicKey);

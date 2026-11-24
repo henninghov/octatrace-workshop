@@ -26,10 +26,14 @@ flutter:
     - assets/bench/provisioned-identity.v2.json
     - assets/bench/credential-inspection.v1.json
     - assets/bench/credential-readiness.v1.json
+    - assets/bench/credential-readiness.v2.json
     - assets/bench/credential-delivery.v1.json
     - assets/bench/credential-installation.v1.json
+    - assets/bench/credential-installation.v2.json
     - assets/bench/credential-intent-stop.v1.json
+    - assets/bench/credential-intent-stop.v2.json
     - assets/bench/credential-preparation.v1.json
+    - assets/bench/credential-preparation.v2.json
     - assets/bench/claimed_update_proof.py
     - assets/bench/claimed-firmware-update.v1.json
     - assets/bench/claimed-firmware-update.v2.json

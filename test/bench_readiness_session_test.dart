@@ -3,11 +3,84 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:octatrace_workshop/domain/bench_definition.dart';
 import 'package:octatrace_workshop/domain/bench_session.dart';
+import 'package:octatrace_workshop/domain/registry.dart';
 
 import 'bench_session_test.dart' as base;
 import 'widget_test.dart' as fixtures;
 
 void main() {
+  test(
+    'claimed device retains an independently comparable owner reference',
+    () async {
+      final identity = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.asset).readAsStringSync(),
+      );
+      final readiness = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.readinessAsset).readAsStringSync(),
+      );
+      final fixture = base.BenchFixture(base.TestBenchStore(), identity);
+      await fixture.init();
+      fixture.readiness = readiness;
+      var reads = 0;
+      fixture.readinessReader =
+          (account, selection, key, {onDiagnostic}) async => {
+            'state': 'empty',
+            'boot': ++reads == 1 ? 'aa' * 16 : 'bb' * 16,
+          };
+      final original = fixture.registry.devices.single;
+      final claimed = DeviceRecord.fromJson({
+        'id': original.id,
+        'serial': original.serial,
+        'article_revision_id': original.revisionId,
+        'provisioning_state': original.state,
+        'hardware_uid': original.hardwareUid,
+        'owner_user_id': 'synthetic-owner',
+      });
+      final session = fixture.session();
+      session.selectDefinition(readiness);
+      await session.start(claimed, fixture.registry.articles.single);
+      await session.connected(claimed, fixture.registry.articles.single);
+      await session.checkAfterRestart(confirmed: true);
+      final registry =
+          session.report!['steps'][4]['evidence']['registry_check'];
+      expect(registry['claimed'], true);
+      expect(registry['owner_sha256'], benchHash('synthetic-owner'));
+    },
+  );
+  for (final state in ['pending', 'ready']) {
+    test('read-only $state baseline and fresh boot are compared', () async {
+      final identity = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.asset).readAsStringSync(),
+      );
+      final readiness = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.readinessAsset).readAsStringSync(),
+      );
+      final fixture = base.BenchFixture(base.TestBenchStore(), identity);
+      await fixture.init();
+      fixture.readiness = readiness;
+      var reads = 0;
+      fixture.readinessReader =
+          (account, selection, key, {onDiagnostic}) async => {
+            'state': state,
+            'boot': ++reads == 1 ? 'aa' * 16 : 'bb' * 16,
+            'revision': state == 'ready' ? 1 : 0,
+            'content_id': state == 'ready' ? 'cc' * 32 : '',
+          };
+      final session = fixture.session();
+      session.selectDefinition(readiness);
+      await fixture.start(session);
+      await fixture.connected(session);
+      await session.checkAfterRestart(confirmed: true);
+      expect(reads, 2);
+      expect(fixture.credentials, 0);
+      expect(fixture.deliveryReads, 0);
+      expect(session.report!['steps'][4]['status'], 'Passed');
+      expect(
+        session.report!['steps'][4]['evidence']['registry_check']['matched'],
+        true,
+      );
+    });
+  }
   test(
     'readiness saves first, records an observation and reopens the report',
     () async {
@@ -41,6 +114,7 @@ void main() {
           onDiagnostic?.call({'diagnostic': 'synthetic'});
           return <String, dynamic>{
             'state': 'empty',
+            'boot': reads == 1 ? 'aa' * 16 : 'bb' * 16,
             'inspection': {'state': 'blank', 'sha256': '22' * 32},
           };
         },
@@ -56,7 +130,7 @@ void main() {
         session.report!['steps'][3]['evidence']['frame']['state'],
         'empty',
       );
-      await session.observe('empty');
+      await session.checkAfterRestart(confirmed: true);
       expect(session.report!['steps'][4]['status'], 'Passed');
       expect(session.report!['steps'][5]['status'], 'Passed');
       await session.export('/synthetic');
@@ -65,12 +139,12 @@ void main() {
         fixtures.actor,
         session.report!['id'],
       );
-      expect(saved['definition_sha256'], BenchDefinition.readinessDigest);
+      expect(saved['definition_sha256'], BenchDefinition.readinessV2Digest);
       session.selectDefinition(identity);
       await session.open(saved['id']);
       expect(
         session.report!['definition_sha256'],
-        BenchDefinition.readinessDigest,
+        BenchDefinition.readinessV2Digest,
       );
     },
   );

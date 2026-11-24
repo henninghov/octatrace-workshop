@@ -227,7 +227,7 @@ void main() {
         .readAsStringSync();
     final update = session(snapshot: snapshot);
     final readiness = BenchDefinition.fromSnapshot(
-      File(BenchDefinition.readinessAsset).readAsStringSync(),
+      File(BenchDefinition.legacyReadinessAsset).readAsStringSync(),
     );
     final core = readiness.builds.singleWhere((b) => b.role == 'Core');
     expect(update.guide['revision'], 2);
@@ -245,7 +245,7 @@ void main() {
         .readAsStringSync();
     final update = session(snapshot: snapshot);
     final previous = BenchDefinition.fromSnapshot(
-      File(BenchDefinition.readinessAsset).readAsStringSync(),
+      File(BenchDefinition.legacyReadinessAsset).readAsStringSync(),
     );
     final next = BenchDefinition.fromSnapshot(
       File(BenchDefinition.deliveryAsset).readAsStringSync(),

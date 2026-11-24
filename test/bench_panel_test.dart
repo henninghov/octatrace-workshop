@@ -245,6 +245,12 @@ void main() {
     f.readiness = BenchDefinition.fromSnapshot(
       File(BenchDefinition.readinessAsset).readAsStringSync(),
     );
+    var reads = 0;
+    f.readinessReader = (account, selection, key, {onDiagnostic}) async => {
+      'state': 'empty',
+      'boot': ++reads == 1 ? 'aa' * 16 : 'bb' * 16,
+      'inspection': {'state': 'blank', 'sha256': '22' * 32},
+    };
     await show(t);
     await t.tap(find.byType(DropdownButton<BenchDefinition>));
     await t.pumpAndSettle();
@@ -256,8 +262,8 @@ void main() {
       find.textContaining('Readiness · empty · Storage blank'),
       findsOneWidget,
     );
-    await input(t, 'Observed readiness state', 'empty');
-    await tap(t, 'Save observation');
+    await tap(t, 'I restarted the device normally');
+    await tap(t, 'Check after restart');
     expect(controller.bench!.report!['steps'][4]['status'], 'Passed');
     expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
   });

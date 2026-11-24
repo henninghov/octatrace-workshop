@@ -22,6 +22,44 @@ void main() {
     definition = BenchDefinition.fromSnapshot(snapshot);
   });
 
+  test(
+    'restart revisions preserve legacy snapshots and pin qualified builds',
+    () async {
+      for (final name in [
+        'credential-readiness',
+        'credential-installation',
+        'credential-intent-stop',
+        'credential-preparation',
+      ]) {
+        final old = BenchDefinition.fromSnapshot(
+          await rootBundle.loadString('assets/bench/$name.v1.json'),
+        );
+        final current = BenchDefinition.fromSnapshot(
+          await rootBundle.loadString('assets/bench/$name.v2.json'),
+        );
+        expect(old.guide['revision'], 1);
+        expect(current.guide['revision'], 2);
+        expect(current.guide['key'], old.guide['key']);
+        expect(current.guide['steps'][4]['evaluation'], 'automatic');
+        expect(current.builds.map((b) => b.source).toSet(), {
+          '44313723afe279f590d2bd235b1c9e6a200d82a537b720e9a1ca2d296c588706',
+        });
+        expect(
+          current.builds.first.artifact,
+          'd87b0bba1341e53a3ddf99d6865f5948a2e2d2415b8a60be32b03536bf290243',
+        );
+        expect(
+          current.builds.last.artifact,
+          'dbac837b40efb1748f5268a92316f9eb717d85075af2737ba836ac499c646c4a',
+        );
+        expect(
+          () => BenchDefinition.fromSnapshot('${current.snapshot} '),
+          throwsFormatException,
+        );
+      }
+    },
+  );
+
   ProvisionedIdentityRead admit(
     BenchBuild build, {
     Json device = const {},

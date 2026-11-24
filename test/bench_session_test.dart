@@ -20,10 +20,18 @@ class TestBenchStore implements BenchStore {
   final BenchStore? real;
   final records = <String, Json>{};
   int? failGeneration;
+  int? heldSaveGeneration;
+  Completer<void>? heldSave, saveStarted;
   bool wrongRead = false, failExport = false;
   Completer<Json>? holdReopen;
   @override
   Future<void> saveBench(Json report) async {
+    if (report['generation'] == heldSaveGeneration && heldSave != null) {
+      if (saveStarted != null && !saveStarted!.isCompleted) {
+        saveStarted!.complete();
+      }
+      await heldSave!.future;
+    }
     if (report['generation'] == failGeneration) {
       throw const FileSystemException('disk full');
     }
@@ -73,6 +81,8 @@ class BenchFixture {
   PublicFactoryCredential? overrideCredential;
   String publicKey = '04${'11' * 64}';
   Completer<String>? heldKey;
+  Completer<void>? keyStarted;
+  int keyLookups = 0;
   int credentials = 0, deliveryReads = 0;
   Completer<PublicFactoryCredential>? heldCredential;
   int ids = 0, reads = 0;
@@ -158,8 +168,14 @@ class BenchFixture {
             'inspection': {'state': 'blank', 'sha256': '22' * 32},
           };
         },
-    lookupPublicKey: (device, article) async =>
-        heldKey != null ? await heldKey!.future : publicKey,
+    lookupPublicKey: (device, article) async {
+      keyLookups++;
+      if (heldKey == null) return publicKey;
+      if (keyStarted != null && !keyStarted!.isCompleted) {
+        keyStarted!.complete();
+      }
+      return await heldKey!.future;
+    },
     readInspection:
         inspectionReader ??
         (account, selection, publicKey, {onDiagnostic}) async {
@@ -190,6 +206,34 @@ void main() {
     f = BenchFixture(TestBenchStore(files), def);
     await f.init();
     s = f.session();
+  });
+  test('revision 1 credential attempts reopen and export without changing their guide', () async {
+    for (final name in [
+      'credential-readiness',
+      'credential-installation',
+      'credential-intent-stop',
+      'credential-preparation',
+    ]) {
+      final legacy = BenchDefinition.fromSnapshot(
+        File('assets/bench/$name.v1.json').readAsStringSync(),
+      );
+      final separate = BenchFixture(
+        TestBenchStore(EvidenceJournal(Directory('${root.path}/$name'))),
+        legacy,
+      );
+      await separate.init();
+      final session = separate.session();
+      await separate.start(session);
+      await session.stop('Operator cancelled');
+      final id = session.report!['id'] as String;
+      final before = jsonEncode(session.report);
+      await session.open(id);
+      await session.export(out.path);
+      expect(jsonEncode(session.report), before);
+      expect(session.report!['definition_snapshot'], legacy.snapshot);
+      expect(session.report!['definition_sha256'], legacy.snapshotDigest);
+      expect(session.report!['outcome'], 'Cancelled');
+    }
   });
   tearDown(() async => root.delete(recursive: true));
   test(

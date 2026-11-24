@@ -17,6 +17,8 @@ class _BenchPanelState extends State<BenchPanel> {
   final historyKey = GlobalKey();
   String? deviceId, exported;
   bool unreadable = false;
+  bool restartConfirmed = false;
+  String? restartAttempt;
   String logScope = 'Entire attempt', logSource = 'All';
   @override
   void dispose() {
@@ -71,6 +73,12 @@ class _BenchPanelState extends State<BenchPanel> {
       'c823-credential-intent-stop-device',
     }.contains(guide['key']);
     final preparation = guide['key'] == 'c823-credential-preparation-device';
+    final restartFlow =
+        (installation || preparation || readiness) && guide['revision'] == 2;
+    if (report?['id'] != restartAttempt) {
+      restartAttempt = report?['id'];
+      restartConfirmed = false;
+    }
     final credentialTest =
         inspection || readiness || delivery || installation || preparation;
     final steps = guide['steps'] as List;
@@ -107,12 +115,12 @@ class _BenchPanelState extends State<BenchPanel> {
             'Export report',
           ]
         : readiness
-        ? const [
+        ? [
             'Select device',
             'Save attempt',
             'Connect USB',
             'Read readiness',
-            'Record observation',
+            restartFlow ? 'Restart and check' : 'Record observation',
             'Reopen report',
             'Export report',
           ]
@@ -432,6 +440,20 @@ class _BenchPanelState extends State<BenchPanel> {
               'observation': final String observed,
             })
               SelectableText('Tester observation · $observed'),
+            if (report['steps'][4]['evidence'] case {
+              'expected_restart': final Map expected,
+            })
+              SelectableText('Expected after restart · ${expected['state']}'),
+            if (report['steps'][4]['evidence'] case {
+              'automatic_restart_check': final Map reading,
+            })
+              SelectableText(
+                '${report['steps'][4]['status'] == 'Passed' ? 'Verified post-restart' : 'Latest reading'} · ${reading['state']} · boot ${reading['boot']}',
+              ),
+            if (report['steps'][4]['evidence'] case {
+              'automatic_error': final String error,
+            })
+              SelectableText('Restart check failed · $error'),
           ],
           if (currentStep != null) ...[
             const SizedBox(height: 16),
@@ -591,53 +613,80 @@ class _BenchPanelState extends State<BenchPanel> {
             ],
           ],
           if (next == 5) ...[
-            if (installation || preparation)
+            if (restartFlow) ...[
+              Text(
+                'Expected state: ${report!['steps'][3]['evidence']['frame']['state']}',
+              ),
               const Text(
-                'Restart the selected device, reconnect USB, then enter the displayed state. Workshop checks a fresh boot and identity automatically.',
+                'Restart the selected device normally and reconnect USB. Workshop will check the latest reading and confirm a new boot.',
               ),
-            TextField(
-              controller: label,
-              maxLength: 256,
-              decoration: InputDecoration(
-                labelText: unreadable
-                    ? credentialTest
-                          ? 'Reason observation is unavailable'
-                          : 'Reason label is unavailable'
-                    : preparation
-                    ? 'Observed storage after restart'
-                    : installation
-                    ? 'Observed readiness after restart'
-                    : delivery
-                    ? 'Observed verification result'
-                    : readiness
-                    ? 'Observed readiness state'
-                    : inspection
-                    ? 'Observed storage classification'
-                    : 'Observed label serial',
-              ),
-            ),
-            Material(
-              type: MaterialType.transparency,
-              child: CheckboxListTile(
-                value: unreadable,
-                onChanged: c.busy
-                    ? null
-                    : (v) => setState(() => unreadable = v!),
-                title: Text(
-                  credentialTest
-                      ? 'Observation unavailable'
-                      : 'Label unavailable',
+              Material(
+                type: MaterialType.transparency,
+                child: CheckboxListTile(
+                  value: restartConfirmed,
+                  onChanged: c.busy
+                      ? null
+                      : (v) => setState(() => restartConfirmed = v == true),
+                  title: const Text('I restarted the device normally'),
                 ),
               ),
-            ),
-            FilledButton(
-              onPressed: c.busy || s.pending != null
-                  ? null
-                  : () => c.benchAction(
-                      (s) => s.observe(label.text, unavailable: unreadable),
-                    ),
-              child: const Text('Save observation'),
-            ),
+              FilledButton(
+                onPressed: c.busy || s.pending != null || !restartConfirmed
+                    ? null
+                    : () => c.benchAction(
+                        (s) => s.checkAfterRestart(confirmed: restartConfirmed),
+                      ),
+                child: const Text('Check after restart'),
+              ),
+            ] else ...[
+              if (installation || preparation)
+                const Text(
+                  'Restart the selected device, reconnect USB, then enter the displayed state. Workshop checks a fresh boot and identity automatically.',
+                ),
+              TextField(
+                controller: label,
+                maxLength: 256,
+                decoration: InputDecoration(
+                  labelText: unreadable
+                      ? credentialTest
+                            ? 'Reason observation is unavailable'
+                            : 'Reason label is unavailable'
+                      : preparation
+                      ? 'Observed storage after restart'
+                      : installation
+                      ? 'Observed readiness after restart'
+                      : delivery
+                      ? 'Observed verification result'
+                      : readiness
+                      ? 'Observed readiness state'
+                      : inspection
+                      ? 'Observed storage classification'
+                      : 'Observed label serial',
+                ),
+              ),
+              Material(
+                type: MaterialType.transparency,
+                child: CheckboxListTile(
+                  value: unreadable,
+                  onChanged: c.busy
+                      ? null
+                      : (v) => setState(() => unreadable = v!),
+                  title: Text(
+                    credentialTest
+                        ? 'Observation unavailable'
+                        : 'Label unavailable',
+                  ),
+                ),
+              ),
+              FilledButton(
+                onPressed: c.busy || s.pending != null
+                    ? null
+                    : () => c.benchAction(
+                        (s) => s.observe(label.text, unavailable: unreadable),
+                      ),
+                child: const Text('Save observation'),
+              ),
+            ],
           ],
           if (next == 6)
             FilledButton(
@@ -648,6 +697,9 @@ class _BenchPanelState extends State<BenchPanel> {
             ),
           if (viewing && (next == 7 || !s.active)) ...[
             const SizedBox(height: 12),
+            Text(
+              '${guide['title']} · ${report['device']['serial']} · revision ${guide['revision']} · attempt ${report['id']}',
+            ),
             TextField(
               controller: folder,
               decoration: const InputDecoration(
