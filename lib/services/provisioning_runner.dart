@@ -257,6 +257,594 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     return result;
   }
 
+  Future<Map<String, Json>> readPairedHandshake(
+    String account,
+    Map<String, ({ProvisionedIdentityRead read, String publicKey})> peers, {
+    void Function(Json)? onDiagnostic,
+  }) async {
+    final link = peers['Link'], core = peers['Core'];
+    if (peers.length != 2 ||
+        link == null ||
+        core == null ||
+        link.read.build.role != 'Link' ||
+        core.read.build.role != 'Core' ||
+        link.read.build.source != core.read.build.source ||
+        link.read.definition.snapshotDigest !=
+            core.read.definition.snapshotDigest ||
+        !link.read.definition.runnerFiles.containsKey(
+          'tools/connection_bench.py',
+        )) {
+      throw const BenchBlocked(
+        'Select the reviewed LINK and CORE pair procedure.',
+      );
+    }
+    final recovery =
+        link.read.definition.guide['key'] == BenchDefinition.recoveryKey;
+    final result = await _execute(
+      account,
+      recovery ? 'connection-recovery' : 'connection-bench',
+      {
+        for (final p in peers.entries)
+          p.key: p.value.read.inspectionParameters(p.value.publicKey),
+      },
+      link.read.definition.runnerFiles,
+      onDiagnostic,
+    );
+    final rows = result['observations'];
+    if (rows is! List || rows.isEmpty || rows.any((r) => r is! Json)) {
+      throw const ProvisioningFailure(
+        'The paired handshake record is incomplete.',
+      );
+    }
+    final start = rows.first['start'];
+    if (start is! Json ||
+        start['definition'] !=
+            (recovery
+                ? 'c83-temporary-recovery.v1'
+                : 'c83-permanent-peer-handshake.v1') ||
+        start['carrier'] != 'supervised_usb' ||
+        start['identity'] !=
+            (recovery ? 'temporary_test' : 'provisioned_permanent') ||
+        start['pair_sha256'] != link.read.definition.guide['pair_sha256'] ||
+        start['attempt'] is! String ||
+        !RegExp(
+          r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        ).hasMatch(start['attempt'] as String)) {
+      throw const ProvisioningFailure(
+        'Handshake identity or procedure binding differs.',
+      );
+    }
+    final reports = <String, Json>{};
+    final challenges = <String>{};
+    for (final p in peers.entries) {
+      final read = p.value.read;
+      final roleRows = rows
+          .whereType<Json>()
+          .where((r) => r['role'] == p.key)
+          .toList();
+      final before = roleRows.firstOrNull?['before_proof'];
+      final end = roleRows.lastOrNull;
+      if (roleRows.length < 5 ||
+          before is! Json ||
+          end == null ||
+          end['handshake'] != 'confirmed' ||
+          end['attempt'] != start['attempt'] ||
+          end['definition'] != start['definition'] ||
+          end['source'] != read.build.source ||
+          end['artifact'] != read.build.artifact ||
+          end['generation'] is! int ||
+          (end['generation'] as int) <= 0) {
+        throw const ProvisioningFailure(
+          'Missing role-specific handshake confirmation.',
+        );
+      }
+      final after = roleRows[roleRows.length - 2]['after_proof'];
+      if (after is! Json || before['boot'] != after['boot']) {
+        throw const ProvisioningFailure(
+          'Board boot changed during the handshake.',
+        );
+      }
+      for (final proof in [before, after]) {
+        read.checkRegistryIdentity(proof);
+        if (proof['role'] != p.key ||
+            proof['hardware'] != read.device.hardwareUid ||
+            proof['public_key'] != p.value.publicKey ||
+            proof['build'] != read.build.source ||
+            !hexId(proof['boot'] as String? ?? '', 32) ||
+            !hexId(proof['signature'] as String? ?? '', 128) ||
+            !hexId(proof['challenge'] as String? ?? '', 64) ||
+            !challenges.add(proof['challenge'] as String)) {
+          throw const ProvisioningFailure(
+            'USB proof differs from the registered peer.',
+          );
+        }
+      }
+      final measuredAt = roleRows.length - (recovery ? 3 : 4);
+      final measurement = roleRows[measuredAt]['resources'];
+      if (measurement is! Json ||
+          measurement['role'] != p.key ||
+          measurement['hardware'] != read.device.hardwareUid ||
+          measurement['build'] != read.build.source ||
+          measurement['boot'] != before['boot'] ||
+          measurement['generation'] != end['generation'] ||
+          measurement['type'] != 'c83_resources' ||
+          measurement['heap_fault'] != false) {
+        throw const ProvisioningFailure('Missing role-bound measurements.');
+      }
+      if (recovery) {
+        await _verifyRecovery(roleRows, measurement);
+      } else {
+        var confirmed = false;
+        final cancellation = roleRows[roleRows.length - 3];
+        if (cancellation['operation'] != 'cancel' ||
+            cancellation['status']?['state'] != 'cancelled') {
+          throw const ProvisioningFailure(
+            'Missing role-bound measurements or worker retirement.',
+          );
+        }
+        for (final row in [
+          ...roleRows.sublist(1, roleRows.length - 4),
+          cancellation,
+        ]) {
+          final sample = row['status'];
+          if (sample is! Json ||
+              sample['build'] != read.build.source ||
+              sample['hardware'] != read.device.hardwareUid ||
+              sample['role'] != p.key ||
+              sample['boot'] != before['boot'] ||
+              sample['generation'] != end['generation'] ||
+              sample['accepted'] != true ||
+              sample['busy'] != false) {
+            throw const ProvisioningFailure(
+              'Worker completion belongs to another operation.',
+            );
+          }
+          if (sample['state'] == 'confirmed' && sample['ticket'] == 0) {
+            confirmed = true;
+          }
+        }
+        if (!confirmed) {
+          throw const ProvisioningFailure(
+            'Board supplied no completed session confirmation.',
+          );
+        }
+      }
+      reports[p.key] = {
+        if (recovery)
+          'usb_minimum_free_bytes': roleRows
+              .where((row) => row['resources'] != null)
+              .map((row) => row['resources']['usb_free'] as int)
+              .reduce((a, b) => a < b ? a : b),
+        if (recovery)
+          'recovery_cases': [
+            for (final row in roleRows)
+              if (row['case'] != null) row['case'],
+          ],
+        'attempt': start['attempt'],
+        'definition': start['definition'],
+        'carrier': start['carrier'],
+        'identity': start['identity'],
+        'peer_device_id':
+            peers[p.key == 'Link' ? 'Core' : 'Link']!.read.device.id,
+        'handshake': 'confirmed',
+        'resources': measurement,
+        'role_observations': roleRows,
+        'exchange_sha256': benchHash(jsonEncode(rows)),
+      };
+    }
+    if (recovery) {
+      List<Object?> attempts(String role) => [
+        for (final row in reports[role]!['role_observations'])
+          if (row['recovered_after'] != null) row['attempt'],
+      ];
+      if (jsonEncode(attempts('Link')) != jsonEncode(attempts('Core'))) {
+        throw const ProvisioningFailure(
+          'Recovery attempts differ between the two boards.',
+        );
+      }
+    }
+    return reports;
+  }
+
+  static Future<void> _verifyRecovery(List<Json> rows, Json measurement) async {
+    Never invalid() => throw const ProvisioningFailure(
+      'Incomplete temporary-identity recovery evidence.',
+    );
+    bool bound(Json sample, Object? generation) =>
+        sample['generation'] == generation &&
+        [
+          'role',
+          'hardware',
+          'build',
+          'boot',
+        ].every((k) => sample[k] == measurement[k]);
+
+    const names = [
+      'entropy',
+      'deadline',
+      'continuity',
+      'cancel',
+      'stale',
+      'slots',
+      'signing',
+    ];
+    final cases = rows.where((r) => r.containsKey('case')).toList();
+    if (jsonEncode(cases.map((r) => r['case']).toList()) != jsonEncode(names)) {
+      invalid();
+    }
+    final retries = rows
+        .where((r) => r.containsKey('recovered_after'))
+        .toList();
+    final labels = [
+      'entropy',
+      'deadline',
+      'continuity',
+      for (final role in ['Link', 'Core']) ...[
+        '$role-cancel-stale',
+        '$role-slots',
+        '$role-signing',
+      ],
+    ];
+    if (retries.length != labels.length) invalid();
+    final attempts = <String>{};
+    final generations = <String, int>{};
+    var last = 0;
+    for (var i = 0; i < retries.length; i++) {
+      final row = retries[i];
+      final generation = row['generation'], attempt = row['attempt'];
+      final sample = row['resources'], retirement = row['retirement'];
+      final cooldown = row['radio_cooldown_refused'];
+      if (generation is! int ||
+          generation <= last ||
+          attempt is! String ||
+          !attempts.add(attempt) ||
+          row['recovered_after'] != labels[i] ||
+          jsonEncode(row['flights']) != '[1,2,3,4,5,6,7,8]' ||
+          sample is! Json ||
+          !bound(sample, generation) ||
+          retirement is! Json ||
+          !bound(retirement, generation) ||
+          retirement['state'] != 'cancelled' ||
+          retirement['temporary'] != true ||
+          retirement['cleaned'] != true ||
+          cooldown is! Json ||
+          !bound(cooldown, generation) ||
+          cooldown['accepted'] != true ||
+          cooldown['temporary'] != true ||
+          cooldown['state'] != 'active' ||
+          sample['heap_fault'] != false ||
+          sample['worker_free'] is! int ||
+          sample['worker_free'] < 2048 ||
+          sample['usb_free'] is! int ||
+          sample['usb_free'] < 2048 ||
+          sample['radio_reads'] is! int ||
+          sample['radio_reads'] <= 0 ||
+          sample['radio_reads'] != sample['flash_reads'] ||
+          !hexId(row['observations_sha256'] as String? ?? '', 64)) {
+        invalid();
+      }
+      generations[labels[i]] = generation;
+      last = generation;
+    }
+    if (jsonEncode(retries.last['resources']) != jsonEncode(measurement)) {
+      invalid();
+    }
+    for (final row in cases) {
+      final name = row['case'];
+      final sample = row['status'], generation = row['generation'];
+      if (sample is! Json ||
+          generation is! int ||
+          !bound(sample, generation) ||
+          sample['temporary'] != true ||
+          sample['busy'] != false) {
+        invalid();
+      }
+      final retry = const ['entropy', 'deadline', 'continuity'].contains(name)
+          ? name as String
+          : '${measurement['role']}-${name == 'stale' || name == 'cancel' ? 'cancel-stale' : name}';
+      if (name == 'stale') {
+        final cancellation = cases.singleWhere((c) => c['case'] == 'cancel');
+        if (generation != generations[retry] ||
+            sample['state'] != 'active' ||
+            sample['accepted'] != true ||
+            row['old_ticket'] is! int ||
+            row['old_ticket'] <= 0 ||
+            sample['ticket'] == 0 ||
+            sample['ticket'] == row['old_ticket'] ||
+            row['old_ticket'] != cancellation['borrowed_ticket'] ||
+            row['old_generation'] != cancellation['generation']) {
+          invalid();
+        }
+      } else {
+        final memory = row['resources'];
+        if (generation >= generations[retry]! ||
+            !bound(sample, generation) ||
+            sample['cleaned'] != true ||
+            sample['accepted'] != (name == 'cancel') ||
+            sample['ticket'] != 0 ||
+            sample['fault'] !=
+                const {
+                  'entropy': 1,
+                  'slots': 2,
+                  'signing': 3,
+                  'deadline': 4,
+                  'continuity': 5,
+                  'cancel': 0,
+                }[name] ||
+            sample['state'] != (name == 'cancel' ? 'cancelled' : 'failed') ||
+            memory is! Json ||
+            !bound(memory, generation) ||
+            memory['heap_fault'] != false ||
+            memory['usb_free'] is! int ||
+            memory['usb_free'] < 2048 ||
+            memory['worker_free'] is! int ||
+            memory['worker_free'] < 2048) {
+          invalid();
+        }
+      }
+    }
+    final trace = rows[rows.length - 4]['trace'];
+    if (trace is! Json ||
+        trace['encoding'] != 'zlib-base64-ndjson' ||
+        trace['bytes'] is! int ||
+        trace['bytes'] <= 0 ||
+        trace['bytes'] > 2 * 1024 * 1024 ||
+        trace['content'] is! String ||
+        !hexId(trace['sha256'] as String? ?? '', 64) ||
+        trace['sha256'] != retries.last['observations_sha256']) {
+      invalid();
+    }
+    var count = 0;
+    final raw = Stream<List<int>>.value(base64Decode(trace['content']))
+        .transform(zlib.decoder)
+        .map((chunk) {
+          count += chunk.length;
+          if (count > trace['bytes']) invalid();
+          return chunk;
+        });
+    final digest = await sha256.bind(raw).single;
+    if (count != trace['bytes'] || digest.toString() != trace['sha256']) {
+      invalid();
+    }
+  }
+
+  Future<Json> readRtc2(
+    String account,
+    ProvisionedIdentityRead read,
+    String publicKey, {
+    void Function(Json)? onDiagnostic,
+  }) async {
+    final result = await _execute(
+      account,
+      'rtc2-observe',
+      read.inspectionParameters(publicKey),
+      read.definition.runnerFiles,
+      onDiagnostic,
+    );
+    if (result['outcome'] == 'interrupted') return result;
+    final rows = result['observations'];
+    if (rows is! List || rows.length < 6 || rows.any((row) => row is! Json)) {
+      throw const ProvisioningFailure('Incomplete RTC2 observations.');
+    }
+    final before = rows[1]['before_proof'],
+        after = rows[rows.length - 2]['after_proof'];
+    final summary = rows.last['result'];
+    if (summary is! Json ||
+        summary['outcome'] != 'observed' ||
+        summary['mode'] != 'quick' ||
+        summary['definition'] != 'c83-rtc2-observation.v2' ||
+        summary['wait_path_observed'] != true ||
+        summary['role'] != read.build.role ||
+        summary['source'] != read.build.source ||
+        summary['artifact'] != read.build.artifact ||
+        before is! Json ||
+        after is! Json) {
+      throw const ProvisioningFailure(
+        'RTC2 result differs from the selected test or build.',
+      );
+    }
+    for (final proof in [before, after]) {
+      read.checkRegistryIdentity(proof);
+      if (proof['role'] != read.build.role ||
+          proof['build'] != read.build.source ||
+          proof['hardware'] != read.device.hardwareUid ||
+          proof['public_key'] != publicKey ||
+          !hexId(proof['boot'] as String? ?? '', 32) ||
+          !hexId(proof['signature'] as String? ?? '', 128) ||
+          !hexId(proof['challenge'] as String? ?? '', 64)) {
+        throw const ProvisioningFailure(
+          'RTC2 identity proof differs from the selected device.',
+        );
+      }
+    }
+    if (after['boot'] != before['boot'] ||
+        before['challenge'] == after['challenge']) {
+      throw const ProvisioningFailure(
+        'RTC2 proofs require fresh challenges on one boot.',
+      );
+    }
+    final samples = rows.sublist(2, rows.length - 2);
+    Json? first, last;
+    var idleRequested = false;
+    for (final row in samples) {
+      final frame = row['frame'];
+      if (!{'rtc2-sample', 'rtc2-idle'}.contains(row['command']) ||
+          frame is! Json ||
+          frame['type'] != 'rtc2_observation' ||
+          frame['role'] != read.build.role ||
+          frame['build'] != read.build.source ||
+          frame['boot'] != before['boot'] ||
+          frame['hardware'] != read.device.hardwareUid ||
+          !{1, 2}.contains(frame['state']) ||
+          (last != null && frame['state'] != 2)) {
+        throw const ProvisioningFailure(
+          'RTC2 sample differs from the proven device and boot.',
+        );
+      }
+      if (row['command'] == 'rtc2-idle') idleRequested = true;
+      if (frame['state'] == 2) {
+        first ??= row as Json;
+        last = row as Json;
+      }
+    }
+    final rate = summary['host_relative_rate_error_ppb'];
+    if (!idleRequested ||
+        first == null ||
+        last == null ||
+        rate is! List ||
+        rate.length != 2 ||
+        rate.any((v) => v is! int) ||
+        (rate.first as int) > (rate.last as int) ||
+        summary['full_temperature_rate_bound'] != 'unqualified' ||
+        first['ticks'] is! int ||
+        last['ticks'] is! int ||
+        last['ticks'] <= first['ticks'] ||
+        first['before_ns'] is! int ||
+        last['after_ns'] is! int ||
+        last['after_ns'] - first['before_ns'] < 5000000000 ||
+        first['frame']['waits'] is! int ||
+        last['frame']['waits'] is! int ||
+        last['frame']['waits'] <= first['frame']['waits'] ||
+        last['frame']['longest_wait_ticks'] is! int ||
+        last['frame']['longest_wait_ticks'] <= 0) {
+      throw const ProvisioningFailure(
+        'RTC2 measurement evidence is incomplete.',
+      );
+    }
+    return {
+      'outcome': 'passed',
+      'before_proof': before,
+      'after_proof': after,
+      'frame': summary,
+      ...result,
+    };
+  }
+
+  Future<Json> readCryptoProbe(
+    String account,
+    ProvisionedIdentityRead read,
+    String publicKey, {
+    void Function(Json)? onDiagnostic,
+  }) async {
+    final reentry = read.definition.guide['key'] == 'c83-crypto-reentry-device';
+    final keys = read.definition.guide['key'] == 'c83-crypto-keys-device';
+    final result = await _execute(
+      account,
+      keys
+          ? 'crypto-keys'
+          : reentry
+          ? 'crypto-reentry'
+          : 'crypto-probe',
+      read.inspectionParameters(publicKey),
+      read.definition.runnerFiles,
+      onDiagnostic,
+    );
+    if (!{'passed', 'failed', 'interrupted'}.contains(result['outcome'])) {
+      throw const ProvisioningFailure('Invalid crypto probe result.');
+    }
+    if (result['outcome'] != 'passed') return result;
+    final before = result['before_proof'], after = result['after_proof'];
+    final frame = result['frame'];
+    if (before is! Json || after is! Json || frame is! Json) {
+      throw const ProvisioningFailure('Crypto probe evidence is incomplete.');
+    }
+    for (final proof in [before, after]) {
+      read.checkRegistryIdentity(proof);
+      if (proof['role'] != read.build.role ||
+          proof['build'] != read.build.source ||
+          proof['hardware'] != read.device.hardwareUid ||
+          proof['public_key'] != publicKey ||
+          proof['boot'] is! String ||
+          !hexId(proof['boot'] as String, 32) ||
+          proof['boot'] == '0' * 32 ||
+          proof['challenge'] is! String ||
+          !hexId(proof['challenge'] as String, 64) ||
+          proof['signature'] is! String ||
+          !hexId(proof['signature'] as String, 128)) {
+        throw const ProvisioningFailure(
+          'Crypto probe identity proof does not match.',
+        );
+      }
+    }
+    if (before['boot'] != after['boot'] ||
+        before['challenge'] == after['challenge'] ||
+        frame['v'] != 1 ||
+        frame['ok'] != true ||
+        frame['type'] !=
+            (keys
+                ? 'crypto_keys'
+                : reentry
+                ? 'crypto_reentry'
+                : 'crypto_probe') ||
+        frame['role'] != read.build.role ||
+        frame['build'] != read.build.source ||
+        frame['hardware'] != read.device.hardwareUid ||
+        frame['boot'] != before['boot'] ||
+        frame['state'] != 'passed' ||
+        frame['cancel_requested'] != false ||
+        frame['id'] is! int ||
+        (frame['id'] as int) <= 0 ||
+        (frame['id'] as int) > 0xffffffff ||
+        frame['run_id'] is! int ||
+        (frame['run_id'] as int) <= 0 ||
+        (frame['run_id'] as int) > 0xffffffff ||
+        (keys &&
+            (frame.length != 17 ||
+                !frame.keys.toSet().containsAll({
+                  'v',
+                  'id',
+                  'ok',
+                  'type',
+                  'role',
+                  'build',
+                  'hardware',
+                  'boot',
+                  'run_id',
+                  'state',
+                  'cancel_requested',
+                  'identity_signature',
+                  'agreement',
+                  'exhaustion',
+                  'stale_rejected',
+                  'cleaned',
+                  'stack_free_words',
+                }))) ||
+        (keys
+            ? [
+                'identity_signature',
+                'agreement',
+                'exhaustion',
+                'stale_rejected',
+                'cleaned',
+              ].any((name) => frame[name] != true)
+            : reentry
+            ? [
+                'nested_refused',
+                'outer_failed',
+                'output_cleared',
+                'input_intact',
+                'later_hash',
+              ].any((name) => frame[name] != true)
+            : [
+                'hash',
+                'signature',
+                'agreement',
+                'random',
+              ].any((name) => frame[name] != true)) ||
+        frame['stack_free_words'] is! int ||
+        (frame['stack_free_words'] as int) < 0 ||
+        (frame['stack_free_words'] as int) > 0xffffffff ||
+        (frame['elapsed_ms'] != null &&
+            (frame['elapsed_ms'] is! int ||
+                (frame['elapsed_ms'] as int) < 0 ||
+                (frame['elapsed_ms'] as int) > 0xffffffff)) ||
+        result['host_elapsed_ms'] is! int ||
+        (result['host_elapsed_ms'] as int) < 0) {
+      throw const ProvisioningFailure('Crypto probe frame does not match.');
+    }
+    return result;
+  }
+
   Future<Json> readBenchReadiness(
     String account,
     ProvisionedIdentityRead read,
@@ -656,6 +1244,8 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     void Function(Json)? onDiagnostic,
     Future<Json> Function(Json)? confirmation,
   ]) async {
+    final pairedCommand =
+        command == 'connection-bench' || command == 'connection-recovery';
     if (_busy) throw StateError('A provisioning step is already running');
     if (!RegExp(r'^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$')
             .hasMatch(account) ||
@@ -671,6 +1261,12 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           'credential-inspection',
           'credential-readiness',
           'startup-diagnostics',
+          'rtc2-observe',
+          'connection-bench',
+          'connection-recovery',
+          'crypto-probe',
+          'crypto-reentry',
+          'crypto-keys',
           'credential-delivery',
           'credential-installation',
           'credential-preparation',
@@ -703,8 +1299,21 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           ]
         : command == 'credential-delivery'
         ? ['-B', '$firmwareRoot/tools/credential_delivery.py']
+        : pairedCommand
+        ? [
+            '-B',
+            '$firmwareRoot/tools/${command == 'connection-recovery' ? 'connection_recovery.py' : 'connection_bench.py'}',
+          ]
+        : command == 'rtc2-observe'
+        ? ['-B', '$firmwareRoot/tools/rtc2_observe.py', 'quick']
         : command == 'startup-diagnostics'
         ? ['-B', '$firmwareRoot/tools/startup_diagnostics.py']
+        : command == 'crypto-probe'
+        ? ['-B', '$firmwareRoot/tools/crypto_probe.py']
+        : command == 'crypto-keys'
+        ? ['-B', '$firmwareRoot/tools/crypto_probe.py', '--keys']
+        : command == 'crypto-reentry'
+        ? ['-B', '$firmwareRoot/tools/crypto_probe.py', '--reentry']
         : command == 'credential-readiness'
         ? ['-B', '$firmwareRoot/tools/credential_readiness.py']
         : command == 'credential-inspection'
@@ -713,7 +1322,12 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         ? ['-B', '-c', program!, firmwareRoot]
         : ['-B', '$firmwareRoot/tools/provision.py', command];
     String? input;
-    if (command == 'startup-diagnostics' ||
+    if (pairedCommand ||
+        command == 'rtc2-observe' ||
+        command == 'startup-diagnostics' ||
+        command == 'crypto-probe' ||
+        command == 'crypto-reentry' ||
+        command == 'crypto-keys' ||
         command == 'credential-inspection' ||
         command == 'credential-readiness' ||
         command == 'credential-delivery' ||
@@ -793,6 +1407,14 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     if (command == 'install' || command == 'provision' || storage) {
       args.addAll(['--evidence-root', '${evidenceRoot.path}/$account/usb']);
     }
+    if (pairedCommand &&
+        (!runnerPins.containsKey('tools/connection_bench.py') ||
+            (command == 'connection-recovery' &&
+                !runnerPins.containsKey('tools/connection_recovery.py')))) {
+      throw const BenchBlocked(
+        'A pinned peer handshake procedure is required.',
+      );
+    }
     _busy = true;
     _cancelled = false;
     var acceptingConfirmation = true;
@@ -828,7 +1450,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
       Future<List<int>> capture(Stream<List<int>> stream) async {
         final bytes = <int>[];
         await for (final chunk in stream) {
-          if (bytes.length + chunk.length > 65536) {
+          if (bytes.length + chunk.length > (pairedCommand ? 262144 : 65536)) {
             process.kill();
             throw const FormatException('Runner output exceeds limit');
           }
@@ -919,7 +1541,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
       }
       var timedOut = false;
       final output = await outputs.timeout(
-        timeout,
+        pairedCommand ? const Duration(minutes: 5, seconds: 10) : timeout,
         onTimeout: () async {
           timedOut = true;
           acceptingConfirmation = false;
@@ -952,7 +1574,11 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         if (command == 'identity' ||
             command == 'credential-inspection' ||
             command == 'credential-readiness' ||
+            command == 'rtc2-observe' ||
             command == 'startup-diagnostics' ||
+            command == 'crypto-probe' ||
+            command == 'crypto-reentry' ||
+            command == 'crypto-keys' ||
             command == 'credential-delivery' ||
             command == 'credential-installation' ||
             command == 'credential-preparation' ||
@@ -972,6 +1598,23 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
               'Connected target or firmware differs from selection',
             );
           }
+          if (command == 'rtc2-observe') {
+            final lines = const LineSplitter().convert(
+              utf8.decode(output[0] as List<int>, allowMalformed: true),
+            );
+            final last = lines.isEmpty ? null : jsonDecode(lines.last);
+            if (last case {
+              'result': {
+                'outcome': 'interrupted',
+                'error': final String reason,
+              },
+            }) {
+              return {'outcome': 'interrupted', 'error': reason};
+            }
+            throw const ProvisioningFailure(
+              'RTC2 observation stopped before a result was available. Check the saved diagnostic.',
+            );
+          }
           throw ProvisioningFailure(
             interactive
                 ? 'Installation stopped. Retain the diagnostic and inspect the selected device before any separately confirmed recovery.'
@@ -988,6 +1631,14 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         );
       }
       final decoded = utf8.decode(output[0] as List<int>);
+      if (command == 'rtc2-observe' || pairedCommand) {
+        return {
+          'observations': [
+            for (final line in const LineSplitter().convert(decoded))
+              jsonDecode(line),
+          ],
+        };
+      }
       final events = interactive
           ? const LineSplitter().convert(decoded)
           : <String>[];

@@ -33,8 +33,10 @@ final class ProcessFirmwareChecks implements FirmwareChecks {
   final Future<bool> Function(String) protect;
   final Duration timeout, cancelTimeout;
   static const adapterDigest =
-      'd9110cc0c61cc8c776e37adb998a2b39cd23cd470bf91d9339bd6f61b40cd489';
+      '9fe55512f8762069c049957ec0c4297b54519c074c86f9d11af3542dd6c39a5d';
   static const definitionDigest =
+      'ed0188af403b5f5232ea19b692c008b8b5c56c1d9726b599367aeb8c8126dfd5';
+  static const seventhDefinitionDigest =
       '1a13e143fd5639247726a4197625cc241f316e2eb4c00655b427c223777713b8';
   static const sixthDefinitionDigest =
       'dccff7e6b0ff50cef98efde688ac6d28e79e8680e187b5c70491f49371f54d78';
@@ -51,6 +53,7 @@ final class ProcessFirmwareChecks implements FirmwareChecks {
   // Keep reviewed older adapters here when publishing a new revision.
   static const reviewedAdapterDigests = {
     adapterDigest,
+    'd9110cc0c61cc8c776e37adb998a2b39cd23cd470bf91d9339bd6f61b40cd489',
     '2310e92161f4fb7655256f679616633954406f59ff6169e22aa401ff64951006',
     'cc94a7adebaa16ccbd2813b317a23106e065cdaea45dc5243e09fb2af98d8713',
     '621f85778e14546927697dbbe5756d8f2058cff880b61e1c5323cf37963fcc02',
@@ -199,6 +202,7 @@ final class ProcessFirmwareChecks implements FirmwareChecks {
         !RegExp(r'^[0-9a-f]{64}$').hasMatch(source) ||
         !{
           definitionDigest,
+          seventhDefinitionDigest,
           sixthDefinitionDigest,
           fifthDefinitionDigest,
           fourthDefinitionDigest,
@@ -304,6 +308,7 @@ final class ProcessFirmwareChecks implements FirmwareChecks {
         final coverage = report['coverage'];
         if (!{
               definitionDigest,
+              seventhDefinitionDigest,
               sixthDefinitionDigest,
               fifthDefinitionDigest,
               fourthDefinitionDigest,
@@ -403,6 +408,7 @@ final class ProcessFirmwareChecks implements FirmwareChecks {
           final resource = report['resource_probe'];
           if (!{
                 definitionDigest,
+                seventhDefinitionDigest,
                 sixthDefinitionDigest,
               }.contains(selectedDefinition) ||
               report['source_id'] != source ||
@@ -445,6 +451,7 @@ final class ProcessFirmwareChecks implements FirmwareChecks {
           final coverage = report['coverage'];
           if (!{
                 definitionDigest,
+                seventhDefinitionDigest,
                 sixthDefinitionDigest,
                 fifthDefinitionDigest,
               }.contains(selectedDefinition) ||

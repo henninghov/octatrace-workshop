@@ -70,6 +70,8 @@ class BenchFixture {
   BenchDefinition? readiness;
   BenchDefinition? startupDiagnostics;
   StartupDiagnosticsReader? startupDiagnosticsReader;
+  BenchDefinition? cryptoProbe, paired;
+  InspectionReader? cryptoProbeReader;
   BenchDefinition? delivery;
   BenchDefinition? installation, intentStop, preparation;
   InstallationReader? installReader;
@@ -125,6 +127,9 @@ class BenchFixture {
     readinessDefinition: readiness,
     startupDiagnosticsDefinition: startupDiagnostics,
     readStartupDiagnostics: startupDiagnosticsReader,
+    pairedDefinition: paired,
+    cryptoProbeDefinition: cryptoProbe,
+    readCryptoProbe: cryptoProbeReader,
     deliveryDefinition: delivery,
     installationDefinition: installation,
     intentStopDefinition: intentStop,

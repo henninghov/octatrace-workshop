@@ -93,6 +93,337 @@ void main() {
     );
   }
 
+  for (final recovery in [false, true]) {
+    test('paired runner binds proofs, resources and retirement, recovery=$recovery', () async {
+      final guide = BenchDefinition.fromSnapshot(
+        await rootBundle.loadString(
+          recovery
+              ? BenchDefinition.recoveryAsset
+              : BenchDefinition.pairedAsset,
+        ),
+      );
+      final root = await Directory.systemTemp.createTemp('pair-contract-');
+      addTearDown(() => root.delete(recursive: true));
+      for (final name in [
+        'usb-provisioning.lock.json',
+        'control-storage.lock.json',
+      ]) {
+        await File('vendor/$name').copy('${root.path}/$name');
+      }
+      final pins = {
+        ...ProcessProvisioningRunner.pins,
+        ...ProcessProvisioningRunner.controlPins,
+        ...guide.runnerFiles,
+      };
+      final peers = {
+        for (final build in guide.builds)
+          build.role: (
+            read: admit(
+              build,
+              guide: guide,
+              device: {
+                'hardware_uid': build.role == 'Link'
+                    ? usb.hardware
+                    : '1234567800000002',
+              },
+              target: {
+                'hardware': build.role == 'Link'
+                    ? usb.hardware
+                    : '1234567800000002',
+              },
+            ),
+            publicKey: '04${'11' * 64}',
+          ),
+      };
+      const attempt = 'a4000000-0000-4000-8456-000000000001';
+      final procedure = recovery
+          ? 'c83-temporary-recovery.v1'
+          : 'c83-permanent-peer-handshake.v1';
+      List<Json> records() {
+        final list = <Json>[
+          {
+            'start': {
+              'attempt': attempt,
+              'definition': procedure,
+              'carrier': 'supervised_usb',
+              'identity': recovery ? 'temporary_test' : 'provisioned_permanent',
+              'pair_sha256': guide.guide['pair_sha256'],
+            },
+          },
+        ];
+        var order = 0;
+        for (final entry in peers.entries) {
+          final role = entry.key, read = entry.value.read;
+          final ident = {
+            'role': role,
+            'hardware': read.device.hardwareUid,
+            'boot': '22' * 16,
+            'build': read.build.source,
+          };
+          final proof = {
+            ...ident,
+            'state': 'ready',
+            'busy': false,
+            'failed': false,
+            'device_id': read.device.id,
+            'serial': read.device.serial,
+            'article_id': read.article.articleId,
+            'article_revision_id': read.article.id,
+            'public_key': entry.value.publicKey,
+            'signature': '44' * 64,
+          };
+          final sample = {
+            ...ident,
+            'generation': 1,
+            'accepted': true,
+            'busy': false,
+            'ticket': 0,
+          };
+          final begin = list.length;
+          list.addAll([
+            {
+              'role': role,
+              'before_proof': {
+                ...proof,
+                'challenge': (++order).toString() * 64,
+              },
+            },
+            {
+              'role': role,
+              'operation': 'done',
+              'status': {...sample, 'state': 'confirmed'},
+            },
+            {
+              'role': role,
+              'resources': {
+                ...ident,
+                'type': 'c83_resources',
+                'generation': 1,
+                'heap_fault': false,
+              },
+            },
+            {
+              'role': role,
+              'operation': 'cancel',
+              'status': {...sample, 'state': 'cancelled'},
+            },
+            {
+              'role': role,
+              'after_proof': {...proof, 'challenge': (++order).toString() * 64},
+            },
+            {
+              'role': role,
+              'handshake': 'confirmed',
+              'attempt': attempt,
+              'definition': procedure,
+              'generation': 1,
+              'source': read.build.source,
+              'artifact': read.build.artifact,
+            },
+          ]);
+          if (recovery) {
+            final digest = benchHash('synthetic public events');
+            final encoded = base64Encode(
+              zlib.encode(utf8.encode('synthetic public events')),
+            );
+            final finalProofs = list.sublist(begin + 4);
+            list.removeRange(begin + 1, list.length);
+            final labels = [
+              'entropy',
+              'deadline',
+              'continuity',
+              for (final r in ['Link', 'Core']) ...[
+                '$r-cancel-stale',
+                '$r-slots',
+                '$r-signing',
+              ],
+            ];
+            Json memory(int gen) => {
+              ...ident,
+              'type': 'c83_resources',
+              'generation': gen,
+              'heap_fault': false,
+              'usb_free': 2200,
+              'worker_free': 4096,
+              'radio_reads': 4,
+              'flash_reads': 4,
+            };
+            Json status(int gen) => {
+              ...ident,
+              'generation': gen,
+              'state': 'cancelled',
+              'ticket': 0,
+              'fault': 0,
+              'accepted': true,
+              'busy': false,
+              'cleaned': true,
+              'temporary': true,
+            };
+            var gen = 1;
+            for (final label in labels) {
+              final own = label.startsWith('$role-');
+              final shared = [
+                'entropy',
+                'deadline',
+                'continuity',
+              ].contains(label);
+              final name = shared
+                  ? label
+                  : label.substring(label.indexOf('-') + 1);
+              if (own || shared) {
+                final cancel = name == 'cancel-stale';
+                final sample = {
+                  ...status(gen),
+                  'state': cancel ? 'cancelled' : 'failed',
+                  'accepted': cancel,
+                  'fault': cancel
+                      ? 0
+                      : ({
+                          'entropy': 1,
+                          'slots': 2,
+                          'signing': 3,
+                          'deadline': 4,
+                          'continuity': 5,
+                        }[name]),
+                };
+                list.add({
+                  'role': role,
+                  'case': cancel ? 'cancel' : name,
+                  'generation': gen,
+                  'status': sample,
+                  'resources': memory(gen),
+                  if (cancel) 'borrowed_ticket': 7,
+                });
+                if (cancel) {
+                  list.add({
+                    'role': role,
+                    'case': 'stale',
+                    'generation': gen + 1,
+                    'old_generation': gen,
+                    'old_ticket': 7,
+                    'status': {
+                      ...status(gen + 1),
+                      'state': 'active',
+                      'ticket': 8,
+                    },
+                  });
+                }
+              }
+              gen++;
+              list.add({
+                'role': role,
+                'recovered_after': label,
+                'attempt':
+                    'a4000000-0000-4000-8456-${gen.toString().padLeft(12, '0')}',
+                'generation': gen,
+                'flights': [1, 2, 3, 4, 5, 6, 7, 8],
+                'retirement': status(gen),
+                'radio_cooldown_refused': {...status(gen), 'state': 'active'},
+                'resources': memory(gen),
+                'observations_sha256': digest,
+              });
+              gen++;
+            }
+            list.add({
+              'role': role,
+              'trace': {
+                'encoding': 'zlib-base64-ndjson',
+                'bytes': 23,
+                'content': encoded,
+                'sha256': digest,
+              },
+            });
+            list.add({'role': role, 'resources': memory(gen - 1)});
+            finalProofs.last['generation'] = gen - 1;
+            list.addAll(finalProofs);
+          }
+        }
+        return list;
+      }
+
+      var rows = records();
+      final runner = ProcessProvisioningRunner(
+        root.path,
+        root,
+        fileDigest: (f) async => pins[f.path.substring(root.path.length + 1)]!,
+        startProcess: (p, args) {
+          expect(args, [
+            '-B',
+            '${root.path}/tools/${recovery ? 'connection_recovery.py' : 'connection_bench.py'}',
+          ]);
+          return Process.start('/usr/bin/python3', [
+            '-c',
+            'import sys; sys.stdin.read(); print(sys.argv[1])',
+            rows.map(jsonEncode).join('\n'),
+          ]);
+        },
+      );
+      final passed = await runner.readPairedHandshake(fixtures.actor, peers);
+      expect(passed.keys, containsAll(['Link', 'Core']));
+      expect(
+        passed['Link']!['exchange_sha256'],
+        passed['Core']!['exchange_sha256'],
+      );
+      for (final change in <void Function(List<Json>)>[
+        (r) => r.clear(),
+        (r) => r[0]['start']['carrier'] = 'other',
+        (r) => r.last['attempt'] = 'other',
+        if (!recovery) ...[
+          (r) => r[5]['after_proof']['boot'] = '33' * 16,
+          (r) => r[5]['after_proof']['challenge'] =
+              r[1]['before_proof']['challenge'],
+          (r) => r[3]['resources']['role'] = 'Core',
+          (r) => r[2]['status']['generation'] = 2,
+          (r) => r[2]['status']['state'] = 'active',
+        ] else ...[
+          (r) => r.firstWhere((v) => v['case'] == 'entropy')['case'] = 'other',
+          (r) =>
+              r.firstWhere((v) => v['case'] == 'deadline')['status']['busy'] =
+                  true,
+          (r) => r.firstWhere(
+            (v) => v['case'] == 'continuity',
+          )['status']['accepted'] = true,
+          (r) => r.firstWhere((v) => v['case'] == 'stale')['status']['state'] =
+              'cancelled',
+          (r) => r.firstWhere(
+            (v) => v.length == 2 && v.containsKey('resources'),
+          )['resources']['worker_free'] = 4095,
+          (r) => r.firstWhere((v) => v['trace'] != null)['trace']['bytes'] = 24,
+          (r) =>
+              r.firstWhere((v) => v['case'] == 'slots')['status']['fault'] = 1,
+          (r) => r.firstWhere((v) => v['case'] == 'stale')['old_ticket'] = 8,
+          (r) =>
+              r.firstWhere((v) => v['case'] == 'signing')['status']['cleaned'] =
+                  false,
+          (r) => r.firstWhere(
+            (v) => v['recovered_after'] == 'entropy',
+          )['resources']['usb_free'] = 2047,
+          (r) => r.firstWhere((v) => v['trace'] != null)['trace']['bytes'] = 1,
+          (r) => r.firstWhere((v) => v['trace'] != null)['trace']['sha256'] =
+              '0' * 64,
+          (r) => r.firstWhere(
+            (v) => v['role'] == 'Core' && v['recovered_after'] == 'Core-slots',
+          )['attempt'] = 'different',
+        ],
+      ]) {
+        rows = records();
+        change(rows);
+        await expectLater(
+          runner.readPairedHandshake(fixtures.actor, peers),
+          throwsA(anything),
+        );
+      }
+      await expectLater(
+        runner.readPairedHandshake(fixtures.actor, {'Link': peers['Link']!}),
+        throwsA(anything),
+      );
+      await expectLater(
+        runner.execute(account: fixtures.actor, command: 'connection-bench'),
+        throwsA(anything),
+      );
+    });
+  }
+
   test('firmware-update proof uses the pinned adapter and rejects changed bindings', () async {
     final inspection = BenchDefinition.fromSnapshot(
       await rootBundle.loadString(BenchDefinition.inspectionAsset),
@@ -785,6 +1116,531 @@ void main() {
     expect(commands, ['inventory', 'identity']);
     expect(launches, definition.builds.length);
   });
+  test(
+    'crypto probe runner binds identity, boot, build and successful checks',
+    () async {
+      final guide = BenchDefinition.fromSnapshot(
+        await rootBundle.loadString(BenchDefinition.cryptoProbeAsset),
+      );
+      final root = await Directory.systemTemp.createTemp('crypto-contract-');
+      addTearDown(() => root.delete(recursive: true));
+      for (final lock in [
+        'usb-provisioning.lock.json',
+        'control-storage.lock.json',
+      ]) {
+        await File('vendor/$lock').copy('${root.path}/$lock');
+      }
+      final pins = {
+        ...ProcessProvisioningRunner.pins,
+        ...ProcessProvisioningRunner.controlPins,
+        ...guide.runnerFiles,
+      };
+      final read = admit(guide.builds.first, guide: guide);
+      final key = '04${'11' * 64}';
+      final proof = <String, dynamic>{
+        'state': 'ready',
+        'busy': false,
+        'failed': false,
+        'device_id': read.device.id,
+        'serial': read.device.serial,
+        'article_id': read.article.articleId,
+        'article_revision_id': read.article.id,
+        'role': read.build.role,
+        'build': read.build.source,
+        'hardware': read.device.hardwareUid,
+        'boot': '22' * 16,
+        'public_key': key,
+        'challenge': '33' * 32,
+        'signature': '44' * 64,
+      };
+      final after = {...proof, 'challenge': '55' * 32};
+      final frame = <String, dynamic>{
+        'v': 1,
+        'id': 8,
+        'ok': true,
+        'type': 'crypto_probe',
+        'role': read.build.role,
+        'build': read.build.source,
+        'hardware': read.device.hardwareUid,
+        'boot': proof['boot'],
+        'run_id': 1,
+        'state': 'passed',
+        'cancel_requested': false,
+        'hash': true,
+        'signature': true,
+        'agreement': true,
+        'random': true,
+        'stack_free_words': 777,
+        'elapsed_ms': null,
+      };
+      final valid = <String, dynamic>{
+        'outcome': 'passed',
+        'before_proof': proof,
+        'after_proof': after,
+        'frame': frame,
+        'host_elapsed_ms': 42,
+      };
+      var returned = valid;
+      final runner = ProcessProvisioningRunner(
+        root.path,
+        root,
+        fileDigest: (file) async =>
+            pins[file.path.substring(root.path.length + 1)]!,
+        startProcess: (path, args) {
+          expect(args, ['-B', '${root.path}/tools/crypto_probe.py']);
+          return Process.start('/usr/bin/python3', [
+            '-c',
+            'import sys; sys.stdin.read(); print(sys.argv[1])',
+            jsonEncode(returned),
+          ]);
+        },
+      );
+      expect(await runner.readCryptoProbe(fixtures.actor, read, key), valid);
+      returned = {
+        ...valid,
+        'frame': {...frame, 'elapsed_ms': 5},
+      };
+      expect(
+        (await runner.readCryptoProbe(fixtures.actor, read, key))['outcome'],
+        'passed',
+      );
+      for (final change in [
+        {'before_proof': null},
+        {
+          'after_proof': {...after, 'boot': '66' * 16},
+        },
+        {
+          'after_proof': {...after, 'challenge': proof['challenge']},
+        },
+        {
+          'frame': {...frame, 'run_id': 0},
+        },
+        {
+          'frame': {...frame, 'boot': '66' * 16},
+        },
+        {
+          'frame': {...frame, 'hash': false},
+        },
+        {
+          'frame': {...frame, 'stack_free_words': null},
+        },
+        {
+          'frame': {...frame, 'cancel_requested': true},
+        },
+        {
+          'frame': {...frame, 'elapsed_ms': -1},
+        },
+        {
+          'frame': {...frame, 'elapsed_ms': 0x100000000},
+        },
+        {'host_elapsed_ms': null},
+      ]) {
+        returned = {...valid, ...change};
+        await expectLater(
+          runner.readCryptoProbe(fixtures.actor, read, key),
+          throwsA(isA<ProvisioningFailure>()),
+        );
+      }
+      returned = {
+        'outcome': 'interrupted',
+        'frame': frame,
+        'error': 'lost response',
+      };
+      expect(
+        (await runner.readCryptoProbe(fixtures.actor, read, key))['outcome'],
+        'interrupted',
+      );
+    },
+  );
+  test('reentry runner requires every independent safety result', () async {
+    final guide = BenchDefinition.fromSnapshot(
+      await rootBundle.loadString(BenchDefinition.cryptoReentryAsset),
+    );
+    final root = await Directory.systemTemp.createTemp('reentry-contract-');
+    addTearDown(() => root.delete(recursive: true));
+    for (final lock in [
+      'usb-provisioning.lock.json',
+      'control-storage.lock.json',
+    ]) {
+      await File('vendor/$lock').copy('${root.path}/$lock');
+    }
+    final pins = {
+      ...ProcessProvisioningRunner.pins,
+      ...ProcessProvisioningRunner.controlPins,
+      ...guide.runnerFiles,
+    };
+    final read = admit(guide.builds.first, guide: guide);
+    final key = '04${'11' * 64}';
+    final proof = <String, dynamic>{
+      'state': 'ready',
+      'busy': false,
+      'failed': false,
+      'device_id': read.device.id,
+      'serial': read.device.serial,
+      'article_id': read.article.articleId,
+      'article_revision_id': read.article.id,
+      'role': read.build.role,
+      'build': read.build.source,
+      'hardware': read.device.hardwareUid,
+      'boot': '22' * 16,
+      'public_key': key,
+      'challenge': '33' * 32,
+      'signature': '44' * 64,
+    };
+    final frame = <String, dynamic>{
+      'v': 1,
+      'id': 8,
+      'ok': true,
+      'type': 'crypto_reentry',
+      'role': read.build.role,
+      'build': read.build.source,
+      'hardware': read.device.hardwareUid,
+      'boot': proof['boot'],
+      'run_id': 1,
+      'state': 'passed',
+      'cancel_requested': false,
+      'nested_refused': true,
+      'outer_failed': true,
+      'output_cleared': true,
+      'input_intact': true,
+      'later_hash': true,
+      'stack_free_words': 777,
+    };
+    final valid = <String, dynamic>{
+      'outcome': 'passed',
+      'before_proof': proof,
+      'after_proof': {...proof, 'challenge': '55' * 32},
+      'frame': frame,
+      'host_elapsed_ms': 42,
+    };
+    var returned = valid;
+    final runner = ProcessProvisioningRunner(
+      root.path,
+      root,
+      fileDigest: (file) async =>
+          pins[file.path.substring(root.path.length + 1)]!,
+      startProcess: (path, args) {
+        expect(args, ['-B', '${root.path}/tools/crypto_probe.py', '--reentry']);
+        return Process.start('/usr/bin/python3', [
+          '-c',
+          'import sys; sys.stdin.read(); print(sys.argv[1])',
+          jsonEncode(returned),
+        ]);
+      },
+    );
+    expect(await runner.readCryptoProbe(fixtures.actor, read, key), valid);
+    for (final name in [
+      'nested_refused',
+      'outer_failed',
+      'output_cleared',
+      'input_intact',
+      'later_hash',
+    ]) {
+      returned = {
+        ...valid,
+        'frame': {...frame, name: false},
+      };
+      await expectLater(
+        runner.readCryptoProbe(fixtures.actor, read, key),
+        throwsA(isA<ProvisioningFailure>()),
+      );
+    }
+    returned = {
+      ...valid,
+      'frame': {...frame, 'type': 'crypto_probe'},
+    };
+    await expectLater(
+      runner.readCryptoProbe(fixtures.actor, read, key),
+      throwsA(isA<ProvisioningFailure>()),
+    );
+  });
+  test(
+    'RTC2 runner validates boot, build, signed identity and timed waits',
+    () async {
+      final guide = BenchDefinition.fromSnapshot(
+        await rootBundle.loadString(BenchDefinition.rtc2Asset),
+      );
+      final root = await Directory.systemTemp.createTemp('rtc2-contract-');
+      addTearDown(() => root.delete(recursive: true));
+      for (final lock in [
+        'usb-provisioning.lock.json',
+        'control-storage.lock.json',
+      ]) {
+        await File('vendor/$lock').copy('${root.path}/$lock');
+      }
+      final pins = {
+        ...ProcessProvisioningRunner.pins,
+        ...ProcessProvisioningRunner.controlPins,
+        ...guide.runnerFiles,
+      };
+      final read = admit(guide.builds.first, guide: guide);
+      final key = '04${'11' * 64}';
+      final proof = <String, dynamic>{
+        'state': 'ready',
+        'busy': false,
+        'failed': false,
+        'device_id': read.device.id,
+        'serial': read.device.serial,
+        'article_id': read.article.articleId,
+        'article_revision_id': read.article.id,
+        'role': read.build.role,
+        'build': read.build.source,
+        'hardware': read.device.hardwareUid,
+        'boot': '22' * 16,
+        'public_key': key,
+        'challenge': '33' * 32,
+        'signature': '44' * 64,
+      };
+      final frame = <String, dynamic>{
+        'type': 'rtc2_observation',
+        'role': read.build.role,
+        'build': read.build.source,
+        'hardware': read.device.hardwareUid,
+        'boot': proof['boot'],
+        'state': 2,
+        'waits': 1,
+        'longest_wait_ticks': 3,
+      };
+      final summary = <String, dynamic>{
+        'definition': 'c83-rtc2-observation.v2',
+        'mode': 'quick',
+        'outcome': 'observed',
+        'role': read.build.role,
+        'source': read.build.source,
+        'artifact': read.build.artifact,
+        'wait_path_observed': true,
+        'host_relative_rate_error_ppb': [-100, 200],
+        'full_temperature_rate_bound': 'unqualified',
+      };
+      final endProof = {...proof, 'challenge': '55' * 32};
+      final start = {
+        'command': 'rtc2-sample',
+        'frame': frame,
+        'before_ns': 20,
+        'ticks': 10,
+      };
+      final end = {
+        'command': 'rtc2-idle',
+        'frame': {...frame, 'waits': 6},
+        'after_ns': 6000000020,
+        'ticks': 6154,
+      };
+      final valid = <Json>[
+        {'start': {}},
+        {'before_proof': proof},
+        {
+          'command': 'rtc2-sample',
+          'frame': {...frame, 'state': 1},
+        },
+        start,
+        end,
+        {'after_proof': endProof},
+        {'result': summary},
+      ];
+      List<dynamic> rows = valid;
+      int exitCode = 0;
+      final runner = ProcessProvisioningRunner(
+        root.path,
+        root,
+        fileDigest: (file) async =>
+            pins[file.path.substring(root.path.length + 1)]!,
+        startProcess: (path, args) {
+          expect(args, ['-B', '${root.path}/tools/rtc2_observe.py', 'quick']);
+          return Process.start('/usr/bin/python3', [
+            '-c',
+            'import sys; sys.stdin.read(); print(sys.argv[1]); sys.exit(int(sys.argv[2]))',
+            rows.map(jsonEncode).join('\n'),
+            exitCode.toString(),
+          ]);
+        },
+      );
+      expect(
+        (await runner.readRtc2(fixtures.actor, read, key))['outcome'],
+        'passed',
+      );
+      for (final bad in <List<dynamic>>[
+        [
+          {'start': {}},
+        ],
+        [...valid.take(4), 1, ...valid.skip(5)],
+        [
+          ...valid.take(6),
+          {
+            'result': {...summary, 'source': '0' * 64},
+          },
+        ],
+        [
+          ...valid.take(5),
+          {
+            'after_proof': {...endProof, 'hardware': 'ff' * 8},
+          },
+          valid.last,
+        ],
+        [
+          ...valid.take(5),
+          {'after_proof': proof},
+          valid.last,
+        ],
+        [
+          ...valid.take(4),
+          {
+            'frame': {...frame, 'state': 4},
+          },
+          ...valid.skip(5),
+        ],
+        [
+          ...valid.take(4),
+          {...end, 'frame': frame},
+          ...valid.skip(5),
+        ],
+        [
+          ...valid.take(6),
+          {
+            'result': {
+              ...summary,
+              'host_relative_rate_error_ppb': [10, 1],
+            },
+          },
+        ],
+      ]) {
+        rows = bad;
+        await expectLater(
+          runner.readRtc2(fixtures.actor, read, key),
+          throwsA(isA<ProvisioningFailure>()),
+        );
+      }
+      exitCode = 1;
+      const reason = 'No positive System ON idle wait was observed';
+      rows = [
+        {
+          'result': {'outcome': 'interrupted', 'error': reason},
+        },
+      ];
+      final interrupted = await runner.readRtc2(fixtures.actor, read, key);
+      expect(interrupted['outcome'], 'interrupted');
+      expect(interrupted['error'], reason);
+      rows = [
+        {'start': {}},
+      ];
+      await expectLater(
+        runner.readRtc2(fixtures.actor, read, key),
+        throwsA(isA<ProvisioningFailure>()),
+      );
+    },
+  );
+  test(
+    'key runner requires every lifecycle result and rejects signature data',
+    () async {
+      final guide = BenchDefinition.fromSnapshot(
+        await rootBundle.loadString(BenchDefinition.cryptoKeysAsset),
+      );
+      final root = await Directory.systemTemp.createTemp('keys-contract-');
+      addTearDown(() => root.delete(recursive: true));
+      for (final lock in [
+        'usb-provisioning.lock.json',
+        'control-storage.lock.json',
+      ]) {
+        await File('vendor/$lock').copy('${root.path}/$lock');
+      }
+      final pins = {
+        ...ProcessProvisioningRunner.pins,
+        ...ProcessProvisioningRunner.controlPins,
+        ...guide.runnerFiles,
+      };
+      final read = admit(guide.builds.first, guide: guide);
+      final key = '04${'11' * 64}';
+      final proof = <String, dynamic>{
+        'state': 'ready',
+        'busy': false,
+        'failed': false,
+        'device_id': read.device.id,
+        'serial': read.device.serial,
+        'article_id': read.article.articleId,
+        'article_revision_id': read.article.id,
+        'role': read.build.role,
+        'build': read.build.source,
+        'hardware': read.device.hardwareUid,
+        'boot': '22' * 16,
+        'public_key': key,
+        'challenge': '33' * 32,
+        'signature': '44' * 64,
+      };
+      final frame = <String, dynamic>{
+        'v': 1,
+        'id': 8,
+        'ok': true,
+        'type': 'crypto_keys',
+        'role': read.build.role,
+        'build': read.build.source,
+        'hardware': read.device.hardwareUid,
+        'boot': proof['boot'],
+        'run_id': 1,
+        'state': 'passed',
+        'cancel_requested': false,
+        'identity_signature': true,
+        'agreement': true,
+        'exhaustion': true,
+        'stale_rejected': true,
+        'cleaned': true,
+        'stack_free_words': 777,
+      };
+      final valid = <String, dynamic>{
+        'outcome': 'passed',
+        'before_proof': proof,
+        'after_proof': {...proof, 'challenge': '55' * 32},
+        'frame': frame,
+        'host_elapsed_ms': 42,
+      };
+      var returned = valid;
+      final runner = ProcessProvisioningRunner(
+        root.path,
+        root,
+        fileDigest: (file) async =>
+            pins[file.path.substring(root.path.length + 1)]!,
+        startProcess: (path, args) {
+          expect(args, ['-B', '${root.path}/tools/crypto_probe.py', '--keys']);
+          return Process.start('/usr/bin/python3', [
+            '-c',
+            'import sys; sys.stdin.read(); print(sys.argv[1])',
+            jsonEncode(returned),
+          ]);
+        },
+      );
+      expect(await runner.readCryptoProbe(fixtures.actor, read, key), valid);
+      for (final name in [
+        'identity_signature',
+        'agreement',
+        'exhaustion',
+        'stale_rejected',
+        'cleaned',
+      ]) {
+        returned = {
+          ...valid,
+          'frame': {...frame, name: false},
+        };
+        await expectLater(
+          runner.readCryptoProbe(fixtures.actor, read, key),
+          throwsA(isA<ProvisioningFailure>()),
+        );
+      }
+      returned = {
+        ...valid,
+        'frame': {...frame, 'signature': 'must not escape'},
+      };
+      await expectLater(
+        runner.readCryptoProbe(fixtures.actor, read, key),
+        throwsA(isA<ProvisioningFailure>()),
+      );
+      returned = {
+        ...valid,
+        'frame': {...frame, 'type': 'crypto_probe'},
+      };
+      await expectLater(
+        runner.readCryptoProbe(fixtures.actor, read, key),
+        throwsA(isA<ProvisioningFailure>()),
+      );
+    },
+  );
   test(
     'startup runner binds result to exact selection and signed proofs',
     () async {

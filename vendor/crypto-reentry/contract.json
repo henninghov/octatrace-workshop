@@ -1,0 +1,36 @@
+{
+  "profile": "octatrace-crypto-reentry",
+  "version": 1,
+  "scope": "on-demand synthetic non-reentrancy diagnostic on the existing serialized worker",
+  "roles": [
+    "Link",
+    "Core"
+  ],
+  "commands": [
+    "P1 <id> crypto-reentry-start <hardware16hex> <boot32hex>",
+    "P1 <id> crypto-reentry-status"
+  ],
+  "states": [
+    "idle",
+    "queued",
+    "running",
+    "passed",
+    "failed",
+    "interrupted"
+  ],
+  "checks": [
+    "nested_refused",
+    "outer_failed",
+    "output_cleared",
+    "input_intact",
+    "later_hash"
+  ],
+  "binding": "The runner verifies fresh signed device identity before and after the run and checks role, source, hardware and unchanged boot. Request ID identifies the run.",
+  "cancellation": "Disconnect requests cancellation without reusing worker memory until synchronous work returns. Partial results never pass.",
+  "security": "Synthetic public message and callback only; no key is used by the diagnostic. Separate identity proofs use the established permanent identity signing interface.",
+  "limits": {
+    "request_id_max": 4294967295,
+    "reply_bytes": 1280
+  },
+  "qualification": "This is not full pairing, concurrent execution, radio contention, entropy, or C9 lifecycle acceptance."
+}

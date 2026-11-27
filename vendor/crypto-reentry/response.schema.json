@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "id",
+    "ok",
+    "type",
+    "role",
+    "build",
+    "hardware",
+    "boot",
+    "run_id",
+    "state",
+    "cancel_requested",
+    "stack_free_words",
+    "nested_refused",
+    "outer_failed",
+    "output_cleared",
+    "input_intact",
+    "later_hash"
+  ],
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "ok": {
+      "const": true
+    },
+    "type": {
+      "const": "crypto_reentry"
+    },
+    "role": {
+      "enum": [
+        "Link",
+        "Core"
+      ]
+    },
+    "build": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "hardware": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "boot": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "run_id": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "state": {
+      "enum": [
+        "idle",
+        "queued",
+        "running",
+        "passed",
+        "failed",
+        "interrupted"
+      ]
+    },
+    "cancel_requested": {
+      "type": "boolean"
+    },
+    "stack_free_words": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "nested_refused": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "outer_failed": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "output_cleared": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "input_intact": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "later_hash": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    }
+  }
+}

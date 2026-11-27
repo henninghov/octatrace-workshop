@@ -165,6 +165,7 @@ void main() {
   var serial = 0;
   var current = true;
   var sameBoot = false;
+  var bootBeforeSource = oldSource;
   var proofFails = false;
   var postProofFails = false;
   final calls = <String>[];
@@ -182,7 +183,7 @@ void main() {
       'public_key': key,
       'challenge': 'c' * 64,
       'signature': 'd' * 128,
-      'boot': selection['source'] == oldSource || sameBoot
+      'boot': selection['source'] == bootBeforeSource || sameBoot
           ? 'a' * 32
           : 'b' * 32,
     };
@@ -216,6 +217,7 @@ void main() {
     );
     current = true;
     sameBoot = false;
+    bootBeforeSource = oldSource;
     proofFails = false;
     postProofFails = false;
     calls.clear();
@@ -279,6 +281,182 @@ void main() {
     expect(update.guide['after_source'], next.source);
     expect(update.guide['after_artifact'], next.artifact);
   });
+
+  test('Recovery update starts on the permanent-pair image and selects the recovery CORE build', () {
+    final update = session(
+      snapshot: File('assets/bench/claimed-firmware-update.v11.json')
+          .readAsStringSync(),
+    );
+    final previous = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.pairedAsset).readAsStringSync(),
+    );
+    final next = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.recoveryAsset).readAsStringSync(),
+    );
+    final expected = next.builds.singleWhere((b) => b.role == 'Core');
+    expect(
+      update.guide['before_source'],
+      previous.builds.singleWhere((b) => b.role == 'Core').source,
+    );
+    expect(update.guide['after_source'], expected.source);
+    expect(update.guide['after_artifact'], expected.artifact);
+    expect(next.runnerFiles, contains('tools/connection_recovery.py'));
+  });
+
+  test('Supervised permanent-pair CORE update starts at the RTC2 image', () {
+    final snapshot = File('assets/bench/claimed-firmware-update.v10.json')
+        .readAsStringSync();
+    final update = session(snapshot: snapshot);
+    final previous = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.rtc2Asset).readAsStringSync(),
+    ).builds.singleWhere((b) => b.role == 'Core');
+    final next = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.pairedAsset).readAsStringSync(),
+    ).builds.singleWhere((b) => b.role == 'Core');
+    expect(update.guide['revision'], 10);
+    expect(update.guide['before_source'], previous.source);
+    expect(update.guide['after_source'], next.source);
+    expect(update.guide['after_artifact'], next.artifact);
+    expect(
+      () => session(snapshot: snapshot.replaceFirst(next.artifact, '0' * 64)),
+      throwsFormatException,
+    );
+  });
+  test(
+    'Controlled RTC2 idle CORE update binds the prior source and exact image',
+    () {
+      final snapshot = File('assets/bench/claimed-firmware-update.v9.json')
+          .readAsStringSync();
+      final update = session(snapshot: snapshot);
+      final previous = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.legacyRtc2Asset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      final next = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.rtc2Asset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      expect(update.guide['revision'], 9);
+      expect(update.guide['before_source'], previous.source);
+      expect(update.guide['after_source'], next.source);
+      expect(update.guide['after_artifact'], next.artifact);
+      expect(
+        () => session(snapshot: snapshot.replaceFirst(next.artifact, '0' * 64)),
+        throwsFormatException,
+      );
+    },
+  );
+  test(
+    'RTC2 observation CORE update binds the prior source and exact image',
+    () {
+      final snapshot = File('assets/bench/claimed-firmware-update.v8.json')
+          .readAsStringSync();
+      final update = session(snapshot: snapshot);
+      final previous = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.cryptoKeysAsset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      final next = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.legacyRtc2Asset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      expect(update.guide['revision'], 8);
+      expect(update.guide['before_source'], previous.source);
+      expect(update.guide['after_source'], next.source);
+      expect(update.guide['after_artifact'], next.artifact);
+      expect(
+        () => session(snapshot: snapshot.replaceFirst(next.artifact, '0' * 64)),
+        throwsFormatException,
+      );
+    },
+  );
+  test('key lifecycle CORE update binds the prior source and exact image', () {
+    final snapshot = File('assets/bench/claimed-firmware-update.v7.json')
+        .readAsStringSync();
+    final update = session(snapshot: snapshot);
+    final previous = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.cryptoReentryAsset).readAsStringSync(),
+    ).builds.singleWhere((b) => b.role == 'Core');
+    final next = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.cryptoKeysAsset).readAsStringSync(),
+    ).builds.singleWhere((b) => b.role == 'Core');
+    expect(update.guide['revision'], 7);
+    expect(update.guide['before_source'], previous.source);
+    expect(update.guide['after_source'], next.source);
+    expect(update.guide['after_artifact'], next.artifact);
+    expect(
+      () => session(snapshot: snapshot.replaceFirst(next.artifact, '0' * 64)),
+      throwsFormatException,
+    );
+  });
+  test(
+    'reentry CORE update binds the prior verified source and exact new image',
+    () {
+      final snapshot = File('assets/bench/claimed-firmware-update.v6.json')
+          .readAsStringSync();
+      final update = session(snapshot: snapshot);
+      final previous = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.cryptoProbeAsset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      final next = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.cryptoReentryAsset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      expect(update.guide['revision'], 6);
+      expect(update.guide['before_source'], previous.source);
+      expect(update.guide['after_source'], next.source);
+      expect(update.guide['after_artifact'], next.artifact);
+      expect(
+        () => session(snapshot: snapshot.replaceFirst(next.artifact, '0' * 64)),
+        throwsFormatException,
+      );
+    },
+  );
+  test(
+    'C8.3 CORE update binds the previously tested source and exact probe image',
+    () {
+      final snapshot = File('assets/bench/claimed-firmware-update.v5.json')
+          .readAsStringSync();
+      final update = session(snapshot: snapshot);
+      final previous = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.startupDiagnosticsAsset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      final next = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.cryptoProbeAsset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      expect(update.guide['revision'], 5);
+      expect(update.guide['before_source'], previous.source);
+      expect(update.guide['after_source'], next.source);
+      expect(update.guide['after_artifact'], next.artifact);
+      expect(
+        () => session(snapshot: snapshot.replaceFirst(next.artifact, '0' * 64)),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
+    'C8.3 CORE update requires confirmation and verifies both builds',
+    () async {
+      final previous = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.startupDiagnosticsAsset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      final next = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.cryptoProbeAsset).readAsStringSync(),
+      ).builds.singleWhere((b) => b.role == 'Core');
+      bootBeforeSource = previous.source;
+      runner.buildSource = next.source;
+      runner.buildArtifact = next.artifact;
+      final s = session(
+        snapshot: File('assets/bench/claimed-firmware-update.v5.json')
+            .readAsStringSync(),
+      );
+      await s.preflight(operatorReady: true);
+      expect(s.phase, 'awaiting_bootloader');
+      runner.mode = 'bootloader';
+      await expectLater(s.install(confirmed: false), throwsStateError);
+      expect(runner.commands.where((command) => command == 'install'), isEmpty);
+      await s.install(confirmed: true);
+      expect(s.phase, 'verified');
+      expect(calls, [previous.source, next.source]);
+      expect(runner.commands, ['inventory', 'inventory', 'install']);
+    },
+  );
 
   test('claimed CORE update retains intent and verifies both identities without provisioning', () async {
     final s = session();

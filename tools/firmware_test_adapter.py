@@ -193,7 +193,7 @@ def execute(root, python, fonts, suite, definition, definition_hash, attempt, op
     if not re.fullmatch(r'[0-9a-f]{64}', workshop_fingerprint):
         raise ValueError('Workshop bundle fingerprint required')
     if (definition.get('key') != 'firmware-host-regression' or
-            definition.get('revision') not in {1, 2, 3, 4, 5, 6, 7} or
+            definition.get('revision') not in {1, 2, 3, 4, 5, 6, 7, 8} or
             (suite in CHECKS and definition.get('revision') < 2) or
             (suite == 'sessionControl' and definition.get('revision') < 3) or
             (suite in {'authorityResources', 'fieldResources'} and definition.get('revision') < 4) or

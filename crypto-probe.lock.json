@@ -1,0 +1,18 @@
+{
+  "profile": "octatrace-crypto-probe",
+  "version": 1,
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/crypto-probe",
+  "requires_usb_provisioning_files_sha256": {
+    "contract.json": "62414d301a437608c09f7693d06ad3167a6ae7f60d0c9e638153a0f98d0947c4",
+    "proof.mjs": "e2738b810a1433190701788ed1940d7cb784702ef6af7f6c737ad6cc1fe292ab",
+    "response.schema.json": "9e3af63f9b05ed41bb50011b134b7f7fa6d3d202b2df5203e568333a00c955e1",
+    "vectors.json": "f4d7fd19a33e60883d60886c4ec10a46b1d37a2fde78a632038d902dabbc9361"
+  },
+  "files": {
+    "contract.json": "558f1993d18c54f75e53ccfd62bf92e9318569a89efd0cb6320aef0d9eb3fa72",
+    "policy.py": "d902cf5c4b7e84428d771097486deb9d16175548e343d517cd0d442cf09d142f",
+    "response.schema.json": "14f78c5ca3ba410514d66bd24a360079fe585cd06d4fbddc1e7091e1d1bc07d6",
+    "vectors.json": "a86a4c646c299f16010c78846e3123cee8befd16332b0fc32a9cf97a4e3d1618"
+  }
+}

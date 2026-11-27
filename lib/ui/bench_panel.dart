@@ -30,6 +30,8 @@ class _BenchPanelState extends State<BenchPanel> {
     super.dispose();
   }
 
+  String? peerId;
+
   @override
   Widget build(BuildContext context) {
     final c = widget.controller, s = c.bench;
@@ -70,6 +72,30 @@ class _BenchPanelState extends State<BenchPanel> {
         : s.definition.guide;
     final startupDiagnostics =
         guide['key'] == 'cleanup-startup-diagnostics-device';
+    final reentry = guide['key'] == 'c83-crypto-reentry-device';
+    final rtc2 = guide['key'] == 'c83-rtc2-observation-device';
+    final recovery = guide['key'] == BenchDefinition.recoveryKey;
+    final paired = BenchDefinition.isPairedKey(guide['key']);
+    final peerCandidates = devices
+        .where(
+          (d) =>
+              d.id != selectedId &&
+              registry.articles.any(
+                (a) => a.id == d.revisionId && a.role != article?.role,
+              ),
+        )
+        .toList();
+    final peer =
+        peerCandidates.where((d) => d.id == peerId).singleOrNull ??
+        (peerCandidates.length == 1 ? peerCandidates.single : null);
+    final peerArticle = registry.articles
+        .where((a) => a.id == peer?.revisionId)
+        .singleOrNull;
+    final keys = guide['key'] == 'c83-crypto-keys-device';
+    final cryptoProbe =
+        guide['key'] == 'c83-crypto-probe-device' || reentry || keys;
+    final measuredDiagnostic =
+        startupDiagnostics || cryptoProbe || rtc2 || paired;
     final readiness = guide['key'] == 'c82-credential-startup-device';
     final inspection = guide['key'] == 'c82-credential-inspection-device';
     final delivery = guide['key'] == 'c822-credential-delivery-device';
@@ -99,7 +125,7 @@ class _BenchPanelState extends State<BenchPanel> {
     final successSurface = dark
         ? const Color(0xff24372d)
         : const Color(0xffedf5ef);
-    final names = startupDiagnostics
+    final names = measuredDiagnostic
         ? const [
             'Select device',
             'Save attempt',
@@ -226,6 +252,12 @@ class _BenchPanelState extends State<BenchPanel> {
           );
     final sequenceField =
         s.startupDiagnosticsDefinition == null &&
+            s.cryptoProbeDefinition == null &&
+            s.cryptoReentryDefinition == null &&
+            s.cryptoKeysDefinition == null &&
+            s.pairedDefinition == null &&
+            s.recoveryDefinition == null &&
+            s.rtc2Definition == null &&
             s.inspectionDefinition == null &&
             s.readinessDefinition == null &&
             s.deliveryDefinition == null &&
@@ -269,6 +301,13 @@ class _BenchPanelState extends State<BenchPanel> {
                   s.identityDefinition,
                   if (s.startupDiagnosticsDefinition != null)
                     s.startupDiagnosticsDefinition!,
+                  if (s.cryptoProbeDefinition != null) s.cryptoProbeDefinition!,
+                  if (s.cryptoReentryDefinition != null)
+                    s.cryptoReentryDefinition!,
+                  if (s.cryptoKeysDefinition != null) s.cryptoKeysDefinition!,
+                  if (s.rtc2Definition != null) s.rtc2Definition!,
+                  if (s.pairedDefinition != null) s.pairedDefinition!,
+                  if (s.recoveryDefinition != null) s.recoveryDefinition!,
                   if (s.inspectionDefinition != null) s.inspectionDefinition!,
                   if (s.readinessDefinition != null) s.readinessDefinition!,
                   if (s.deliveryDefinition != null) s.deliveryDefinition!,
@@ -435,10 +474,24 @@ class _BenchPanelState extends State<BenchPanel> {
               'This device has no matching article, role or compatible build. Choose a supported device to begin.',
               style: TextStyle(color: muted, height: 1.6),
             ),
+          if (viewing && recovery && report['steps'][3]['status'] == 'Passed')
+            SelectableText(
+              "Minimum free USB stack · LINK ${report['steps'][3]['evidence']['usb_minimum_by_role']['Link']} bytes · CORE ${report['steps'][3]['evidence']['usb_minimum_by_role']['Core']} bytes · required 2,048 bytes",
+            ),
           if (viewing && report['steps'][3]['status'] == 'Passed')
             SelectableText(
-              startupDiagnostics
-                  ? "Startup diagnostics · ${report['steps'][3]['evidence']['frame']['outcome']}"
+              paired
+                  ? "Confirmed with peer ${report['steps'][3]['evidence']['peer_device_id']} · attempt ${report['steps'][3]['evidence']['attempt']}"
+                  : measuredDiagnostic
+                  ? "${rtc2
+                        ? 'RTC2 observation'
+                        : keys
+                        ? 'Key lifecycle check'
+                        : reentry
+                        ? 'Reentrancy check'
+                        : cryptoProbe
+                        ? 'Crypto probe'
+                        : 'Startup diagnostics'} · ${report['steps'][3]['evidence']['frame']['outcome']}"
                   : preparation
                   ? "Preparation result · ${report['steps'][3]['evidence']['frame']['state']}"
                   : installation
@@ -452,6 +505,43 @@ class _BenchPanelState extends State<BenchPanel> {
                   : "USB readback · ${report['steps'][3]['evidence']['frame']['serial']}",
             ),
           if (viewing) ...[
+            if (report['steps'][3]['evidence'] case {
+              'frame': {
+                'frame': {'host_relative_rate_error_ppb': final List rate},
+              },
+            })
+              SelectableText(
+                'Host-relative rate error · ${rate.join(' to ')} ppb. Full-temperature accuracy is unqualified.',
+              ),
+            if (cryptoProbe &&
+                report['steps'][3]['evidence'] is Map &&
+                report['steps'][3]['evidence']['frame'] is Map &&
+                report['steps'][3]['evidence']['frame']['frame'] is Map) ...[
+              for (final check
+                  in keys
+                      ? [
+                          'identity_signature',
+                          'agreement',
+                          'exhaustion',
+                          'stale_rejected',
+                          'cleaned',
+                        ]
+                      : reentry
+                      ? [
+                          'nested_refused',
+                          'outer_failed',
+                          'output_cleared',
+                          'input_intact',
+                          'later_hash',
+                        ]
+                      : ['hash', 'signature', 'agreement', 'random'])
+                SelectableText(
+                  "${const {'identity_signature': 'Identity signature', 'agreement': 'Temporary key agreement', 'exhaustion': 'Key-slot limit', 'stale_rejected': 'Stale key rejected', 'cleaned': 'Keys and scratch cleared'}[check] ?? check} · ${report['steps'][3]['evidence']['frame']['frame'][check] ?? 'unavailable'}",
+                ),
+              SelectableText(
+                "Worker stack minimum remaining · ${report['steps'][3]['evidence']['frame']['frame']['stack_free_words'] ?? 'unavailable'} words; host request-to-status · ${report['steps'][3]['evidence']['frame']['host_elapsed_ms'] ?? 'unavailable'} ms",
+              ),
+            ],
             if (startupDiagnostics &&
                 report['steps'][3]['evidence'] is Map &&
                 report['steps'][3]['evidence']['frame'] is Map &&
@@ -460,7 +550,7 @@ class _BenchPanelState extends State<BenchPanel> {
                   in (report['steps'][3]['evidence']['frame']['frame']['results']
                       as List))
                 SelectableText('${row['id']} · ${row['result']}'),
-            if (startupDiagnostics &&
+            if (measuredDiagnostic &&
                 report['steps'][3]['evidence'] is Map &&
                 report['steps'][3]['evidence']['frame'] is Map &&
                 report['steps'][3]['evidence']['frame']['error'] is String)
@@ -561,11 +651,27 @@ class _BenchPanelState extends State<BenchPanel> {
             ),
           if (next == 3 && selected != null && article != null)
             FilledButton(
-              onPressed: c.busy || s.pending != null
+              onPressed:
+                  c.busy ||
+                      s.pending != null ||
+                      (paired && (peer == null || peerArticle == null))
                   ? null
-                  : () => c.benchAction((s) => s.connected(selected, article)),
+                  : () => c.benchAction(
+                      (s) => paired
+                          ? s.connectPair(
+                              selected,
+                              article,
+                              peer!,
+                              peerArticle!,
+                            )
+                          : s.connected(selected, article),
+                    ),
               child: Text(
-                startupDiagnostics
+                recovery
+                    ? 'Both boards connected · test recovery'
+                    : paired
+                    ? 'Both boards connected · run handshake'
+                    : measuredDiagnostic
                     ? 'USB connected · run diagnostics'
                     : preparation
                     ? 'USB connected · inspect for preparation'
@@ -588,7 +694,7 @@ class _BenchPanelState extends State<BenchPanel> {
                       (session) => session.readDevice(selected, article),
                     ),
               child: Text(
-                startupDiagnostics
+                measuredDiagnostic
                     ? 'Run diagnostics'
                     : preparation
                     ? 'Inspect for preparation'
@@ -674,7 +780,7 @@ class _BenchPanelState extends State<BenchPanel> {
             ],
           ],
           if (next == 5) ...[
-            if (startupDiagnostics) ...[
+            if (measuredDiagnostic) ...[
               const Text(
                 'Review the measured checks before saving your acknowledgement.',
               ),
@@ -1002,6 +1108,20 @@ class _BenchPanelState extends State<BenchPanel> {
                   ],
                 ),
         ),
+        if (paired && viewing && next == 3)
+          field(
+            'Bench peer',
+            DropdownButton<String>(
+              value: peer?.id,
+              hint: const Text('Select the other board'),
+              isExpanded: true,
+              items: [
+                for (final d in peerCandidates)
+                  DropdownMenuItem(value: d.id, child: Text(d.serial)),
+              ],
+              onChanged: c.busy ? null : (id) => setState(() => peerId = id),
+            ),
+          ),
         if (selected != null) ...[
           const SizedBox(height: 10),
           SelectableText(

@@ -13,6 +13,9 @@ python3 -B tools/verify_authority_layout.py
 python3 -B tools/verify_credential_layout.py
 python3 -B tools/verify_credential_inspection.py
 python3 -B tools/verify_credential_readiness.py
+python3 -B tools/verify_crypto_probe.py
+python3 -B tools/verify_crypto_reentry.py
+python3 -B tools/verify_crypto_keys.py
 python3 -B tools/verify_credential_delivery.py
 python3 -B tools/verify_credential_installation.py
 python3 -B tools/verify_field_handshake.py

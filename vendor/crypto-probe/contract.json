@@ -1,0 +1,18 @@
+{
+  "profile": "octatrace-crypto-probe",
+  "version": 1,
+  "scope": "on-demand synthetic known-answer and fresh-key sanity checks on the existing serialized worker",
+  "roles": ["Link", "Core"],
+  "commands": [
+    "P1 <id> crypto-probe-start <hardware16hex> <boot32hex>",
+    "P1 <id> crypto-probe-status"
+  ],
+  "states": ["idle", "queued", "running", "passed", "failed", "interrupted"],
+  "checks": ["hash", "signature", "agreement", "random"],
+  "binding": "The runner verifies fresh signed device identity before and after the run and checks role, source, hardware and unchanged boot. The accepted request ID is the run ID; later IDs on one boot must increase.",
+  "measurements": "stack_free_words is the minimum remaining worker stack in FreeRTOS words since task creation, not an operation-only peak or interrupt-stack measurement. elapsed_ms is null until a target elapsed-time method is qualified. No heap measurement is currently provided.",
+  "cancellation": "Disconnect requests cancellation without reusing worker memory until the synchronous operation returns. Queued and running cancellation become interrupted; partial results do not become a pass. A stuck SDK call is not interrupted by USB cancellation.",
+  "limits": {"request_id_max": 4294967295, "reply_bytes": 1280},
+  "security": "The crypto check uses public known-answer vectors and fresh temporary key pairs; it exposes no generated private bytes or traffic keys and accepts no caller-supplied message to sign. The separate identity proofs use the established permanent identity signing interface.",
+  "qualification": "A passed random sanity check is not proof of entropy. A passed probe is not pairing, radio contention, whole-board memory qualification or C9 lifecycle acceptance."
+}

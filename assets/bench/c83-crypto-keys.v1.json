@@ -1,0 +1,176 @@
+{
+  "format": 1,
+  "key": "c83-crypto-keys-device",
+  "revision": 1,
+  "title": "Check device key lifecycle",
+  "purpose": "Exercise the device identity signing path and temporary key-slot lifecycle on its serialized worker.",
+  "checkpoint": "C8.3 key lifecycle diagnostic",
+  "runner": {
+    "id": "p1.crypto-keys",
+    "owner": "octatrace-firmware",
+    "source_sha256": "252b49a69d2cdcb95d74520c4149a4ba3126f81589b0bf2054eada0c02a29c77",
+    "transport_sha256": "7ca5b24e2b894a73b892602e7a48009606d766bc049f57dd6c58aaeea915662c",
+    "discovery_sha256": "cf35aff5aaa91a3ab331e97bd70b29eb721b3929e75753e5a933c55829fe230e",
+    "usb_lock_sha256": "49a1cc1f1666c84bbc36914ebde2798b2aabf981e633836baf43cc22d5ea8fd1",
+    "control_lock_sha256": "75c05d84b6a52177271902cc916f1a5e594f950218d88d66bd62f825f5b1642c",
+    "additional_files": {
+      "tools/validate_image.py": "46dff930a192f8ee828b206578a238d03f27cf529561cdadd8dd9706251e8a0c",
+      "tools/client_storage_manifest.py": "4349bcb283b8f9ec7b4f25ddca1b0da82c9e373c51517b2aa31cf5007b89defe",
+      "tools/control_storage_manifest.py": "ee8064907cfc42bb13f334abe1a7360d63d06b08be81a6e56334f1dab0eb3fe2",
+      "tools/authority_layout_manifest.py": "4019185cea563cc092f8aa5f9e831aacbb69b8f21f8a2932ad6f7a326d018eab",
+      "tools/credential_layout_manifest.py": "f0e7026373e9b8da62a16885bec99f27a95334109331c0d4c7da41e513f01afc",
+      "contracts/authority-layout/policy.py": "71961b9936da6b67da7c6a650feeea7a90dbd3b7c66f4e9d9d9340178767d8f1",
+      "contracts/credential-layout/policy.py": "c85a2546098c1d487f0b91f2f5ed3bb5f446a78dc3ca680059159551e4947635",
+      "client-storage.lock.json": "b57a8999c8dbfa99e7239a8bd59a1eaefbaa4aa28bfd0355726c121f43b1564b",
+      "authority-layout.lock.json": "324a7d12dc2650154d34aea85372a96a0017d137e2b9a2b68c7bb86e6b549b5e",
+      "authority-storage.lock.json": "50491889bc972202950aae52bcc05860770f780093be7ba51c70b9e1fc7403ff",
+      "credential-layout.lock.json": "20d90cd13aa61a10b2c9f49dc5fa0d009814a98a44c5d68d087a35f38bc4c7d3",
+      "tools/linker/credential_reservation.ld": "632eae7afadb681dd5e6536e66c290791837a2eaad2cd5d9c2cee94e07853201",
+      "tools/credential_inspection.py": "e760705d2659541cf348f788b8ba5578bb38731d2a0ff45c9027f7e532fe29e0",
+      "tools/verify_credential_inspection.py": "565622170a5168a0fa44c68ec2193be88e3969058fd3a320629257148a5f1b4a",
+      "credential-inspection.lock.json": "b843d64dcd323b144d481ec15909eecdd4a556e01531e343e8da5079f5dfd79c",
+      "contracts/credential-inspection/contract.json": "0d05102bf687a659eb65b4cfdb9a364678603fc7eb6921583af06b7710ffe3bf",
+      "contracts/credential-inspection/response.schema.json": "4944740227662b1e86a2d0b0ce2788ecdfefb8c9dcb24ec484a619509a5c7cf3",
+      "contracts/credential-inspection/policy.py": "8ca1f3ca603d418263aa548207ca152d65860a39b2d4f6373c81b835d0860950",
+      "contracts/credential-inspection/vectors.json": "40a3a1f14351c7e86fa1aff62e4480b49b15aa4ed4b4f3e7a034cba8e7078c90",
+      "tools/verify_credential_layout.py": "6fc237c30fda57b4461935b6e580da8e344d7d6e509666bf1172dc9b4145712f",
+      "tools/verify_authority_layout.py": "6158b04d6278b5785d289f6a2e6eddf3054a58528a818a106d52444a0db42bdb",
+      "tools/verify_authority_storage.py": "8d5347e5cc6daf59f21e5b002b44fbf7c5d5c5570b103fa94d5f30f060c776ef",
+      "tools/verify_device_credential.py": "c49836c88bd60e8b96c6d090db361b22bf9a8df8b4d75c2e2ef6ef7cdf1e4136",
+      "tools/verify_device_authority.py": "6ae6200f45c6e8ca9668ab0fe32bf905890f7f264bfd6fce98bd6426a4ee1810",
+      "tools/credential_readiness.py": "31cd841e1e2a2b22a37b66a8e7177632a1bdbc543fcca0e7d37a3e1b186f396a",
+      "tools/verify_credential_readiness.py": "f3d21f7e12dd9569c98a21b50c313aaf01f2bfc84bb6410cb4a8f59c68e6cdab",
+      "credential-readiness.lock.json": "a0e002a5e3d90af704dd055cf85b6df0592321ee8b733807baf12a9c64a28074",
+      "contracts/credential-readiness/contract.json": "861fa572377335e9eba102656493e0c333ead748589f9bc794cc46f4734f5398",
+      "contracts/credential-readiness/response.schema.json": "696a265bd28508c661922808c703fcd653a9944164ec210d7c42ab33af214756",
+      "contracts/credential-readiness/policy.py": "0f0f5abc1d08a27c2a7a98150ccaeae11160dcdfd4b01629883c66b83b9dd01a",
+      "contracts/credential-readiness/vectors.json": "a4e342c15c1052015615f7006b931d873f3bf98bd212a3006403bf9101c45d29",
+      "tools/startup_diagnostics.py": "93c3bbdf3564de7866cece952345c124aa9d6f11902429220a13ff922f0e3962",
+      "usb-bench.lock.json": "dbc70680b66b5934da4068d57a8b6f18d5ee30b05e27ad2bd3d98f8fd6e195e6",
+      "contracts/usb-bench/contract.json": "acb95dd3608ff11d55bd67c5b307d9fd55f06e32f1f04abad525ab8507d84dc1",
+      "contracts/usb-bench/response.schema.json": "88790c0b752faa9921dc05b120502dff3c750976bca906d07954e17ed6620ddc",
+      "contracts/usb-bench/vectors.json": "ad4c49a23500c9bd4bf4ed3687b6522dd7be6cc1c91149a214692776dd53dc8a",
+      "tools/crypto_probe.py": "6e7ff5ae0117455a94523288accf200de1d4ea3ab405ed7e1aa8baa3ae33a3fe",
+      "tools/verify_crypto_probe.py": "b5f664a49ab8c4e1b0395608479162cba66c5efd5d2077055b20bf62644aabf6",
+      "crypto-probe.lock.json": "f7c8949f9e1c22d893f627db9903298c74ff87ade7270d7db2eec61ddcb1b867",
+      "contracts/crypto-probe/contract.json": "558f1993d18c54f75e53ccfd62bf92e9318569a89efd0cb6320aef0d9eb3fa72",
+      "contracts/crypto-probe/policy.py": "d902cf5c4b7e84428d771097486deb9d16175548e343d517cd0d442cf09d142f",
+      "contracts/crypto-probe/response.schema.json": "14f78c5ca3ba410514d66bd24a360079fe585cd06d4fbddc1e7091e1d1bc07d6",
+      "contracts/crypto-probe/vectors.json": "a86a4c646c299f16010c78846e3123cee8befd16332b0fc32a9cf97a4e3d1618",
+      "tools/verify_crypto_reentry.py": "fea5bac1307e2cf7635ad88733772241cb19b03aaf2f22479314bdd9e03f3fde",
+      "crypto-reentry.lock.json": "db1acd8e2b969375a22c274114732e007b3e801f21a2f0be3130b8e814f75222",
+      "contracts/crypto-reentry/policy.py": "4174b57f6a5b3c19a709475974b78dc41f9f9c0a13a086d9bd0263fd6401d146",
+      "contracts/crypto-reentry/vectors.json": "234fecbbae2fb2a85a8be679317210481c29ae34ae3c34468c524d6868801110",
+      "contracts/crypto-reentry/response.schema.json": "de2618205eca3007a1810e8fcceb6d41e394648067aa302aa52b2df0666f9b7a",
+      "contracts/crypto-reentry/contract.json": "655a7cfa7b59dbb2c1ffcb5cda40855bb1095e781532afa105fc1235c6e4439f",
+      "tools/verify_crypto_keys.py": "414ea9a6af3b19ffbb42ca579a2ec84395071a5fdf86d2daf54827f71f46c37c",
+      "crypto-keys.lock.json": "b933403bf9702cc55eb2f3d8a3b25d71d87b410a6bbcd0e723649081965e5f37",
+      "contracts/crypto-keys/contract.json": "ae05eff9f8b468e467b10e1729fa19e6087ed9db0917bad1175029d71abc954f",
+      "contracts/crypto-keys/policy.py": "006c71296c8662921b34ccd97f1bae9e9b92391b5f6411b2055a9a74f9fbf7fd",
+      "contracts/crypto-keys/response.schema.json": "d26607ab2b48295b884686acfd3aed680a7fad55a80fbdd2cc002a136143919d",
+      "contracts/crypto-keys/vectors.json": "5997d4cecf40bd8955e7131b6c36a43835e06774e60ec9891df4c4e728a9a196"
+    }
+  },
+  "capabilities": [
+    "usb.p1.identity-proof",
+    "usb.p1.crypto-keys"
+  ],
+  "builds": [
+    {
+      "role": "Link",
+      "version": "0.4.0",
+      "source": "ae38ad336cbd0f81b94f88d87f8250b15a282706fb2132af6640f6e2d00e7b2d",
+      "artifact": "120e8aeabfd584b16acc631c88422e621bf0faaf1459b791f46d11331d64afad"
+    },
+    {
+      "role": "Core",
+      "version": "0.4.0",
+      "source": "ae38ad336cbd0f81b94f88d87f8250b15a282706fb2132af6640f6e2d00e7b2d",
+      "artifact": "0559c38f41f1b87c07aa6be20b0ae675d61d3d5a3b89e0f59a523314d2a5bffd"
+    }
+  ],
+  "prerequisites": [
+    "Select a provisioned device with its verified public key and current registry ownership.",
+    "Use the exact reviewed instrumented image for the selected role in application mode and a writable private evidence store.",
+    "The device image must be installed only with separately authorized instructions; repeat this procedure separately for LINK and CORE."
+  ],
+  "steps": [
+    {
+      "number": 1,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Select the device and exact compatible firmware build.",
+      "expected": "Record its registry identity, role, source and artifact.",
+      "evidence": [
+        "Record its registry identity, role, source and artifact."
+      ]
+    },
+    {
+      "number": 2,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Save the started attempt locally.",
+      "expected": "The selected guide, runner, Workshop and firmware bindings are durable before USB.",
+      "evidence": [
+        "The selected guide, runner, Workshop and firmware bindings are durable before USB."
+      ]
+    },
+    {
+      "number": 3,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Connect the selected device in application mode.",
+      "expected": "Record the connection acknowledgement or cancellation.",
+      "evidence": [
+        "Record the connection acknowledgement or cancellation."
+      ]
+    },
+    {
+      "number": 4,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Verify a fresh identity proof, run the key lifecycle diagnostic, and verify a second proof from the same device and boot.",
+      "expected": "The fixed diagnostic signature verifies locally; temporary keys agree, slot exhaustion and stale handles are rejected, and temporary key material and scratch are cleared.",
+      "evidence": [
+        "The five independent checks and worker stack reading are recorded without the diagnostic signature or key material."
+      ]
+    },
+    {
+      "number": 5,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Review the recorded measurements and outcomes.",
+      "expected": "Record the acknowledgement separately from automatic results.",
+      "evidence": [
+        "Record the acknowledgement separately from automatic results."
+      ]
+    },
+    {
+      "number": 6,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Save and reopen the report.",
+      "expected": "The exact attempt and evidence survive reopening.",
+      "evidence": [
+        "The exact attempt and evidence survive reopening."
+      ]
+    },
+    {
+      "number": 7,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Export the reopened report.",
+      "expected": "Record the export outcome and retain the private local attempt.",
+      "evidence": [
+        "Record the export outcome and retain the private local attempt."
+      ]
+    }
+  ],
+  "rules": {
+    "pass": "Both identity proofs and registry binding match, the same boot and run ID persist, all five key lifecycle checks pass, the worker stack watermark is available, and the attempt is reviewed, reopened and exported.",
+    "fail": "A failed check, changed identity, ownership or boot, invalid frame, or unavailable required stack measurement does not pass.",
+    "blocked": "Missing verified identity evidence, exact build or unambiguous USB target blocks the attempt.",
+    "incomplete": "Timeout, lost response, cancellation, logout or interruption remains explicit; retain partial evidence and link any retry.",
+    "limits": "The identity store signs a fixed domain-labelled message; the signature is verified locally and is not returned. Separate identity proofs contain signatures. The stack value is minimum free worker stack words since task creation; host time includes queueing, USB and polling. This is not a peer handshake, traffic key adoption, clock or contention qualification, or C9 lifecycle acceptance."
+  }
+}

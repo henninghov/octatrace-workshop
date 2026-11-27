@@ -61,6 +61,24 @@ Future<void> main() async {
   final startupDiagnosticsDefinition = BenchDefinition.fromSnapshot(
     await rootBundle.loadString(BenchDefinition.startupDiagnosticsAsset),
   );
+  final cryptoProbeDefinition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.cryptoProbeAsset),
+  );
+  final cryptoReentryDefinition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.cryptoReentryAsset),
+  );
+  final recoveryDefinition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.recoveryAsset),
+  );
+  final pairedDefinition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.pairedAsset),
+  );
+  final rtc2Definition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.rtc2Asset),
+  );
+  final cryptoKeysDefinition = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.cryptoKeysAsset),
+  );
   final deliveryDefinition = BenchDefinition.fromSnapshot(
     await rootBundle.loadString(BenchDefinition.deliveryAsset),
   );
@@ -74,13 +92,13 @@ Future<void> main() async {
     await rootBundle.loadString(BenchDefinition.preparationAsset),
   );
   final updateGuide = await rootBundle.loadString(
-    'assets/bench/claimed-firmware-update.v4.json',
+    'assets/bench/claimed-firmware-update.v11.json',
   );
   final firmwareTestAdapter = await rootBundle.loadString(
     'tools/firmware_test_adapter.py',
   );
   final firmwareTestDefinition = await rootBundle.loadString(
-    'assets/bench/firmware-host-regression.v7.json',
+    'assets/bench/firmware-host-regression.v8.json',
   );
   final gateway = configured ? SupabaseGateway(url, key) : null;
   runApp(
@@ -139,6 +157,15 @@ Future<void> main() async {
                 readReadiness: provisioner.readBenchReadiness,
                 startupDiagnosticsDefinition: startupDiagnosticsDefinition,
                 readStartupDiagnostics: provisioner.readStartupDiagnostics,
+                cryptoProbeDefinition: cryptoProbeDefinition,
+                cryptoReentryDefinition: cryptoReentryDefinition,
+                pairedDefinition: pairedDefinition,
+                recoveryDefinition: recoveryDefinition,
+                readPair: provisioner.readPairedHandshake,
+                rtc2Definition: rtc2Definition,
+                readRtc2: provisioner.readRtc2,
+                cryptoKeysDefinition: cryptoKeysDefinition,
+                readCryptoProbe: provisioner.readCryptoProbe,
                 deliveryDefinition: deliveryDefinition,
                 readDelivery: provisioner.readBenchDelivery,
                 installationDefinition: installationDefinition,

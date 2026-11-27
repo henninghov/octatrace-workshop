@@ -29,6 +29,7 @@ flutter:
     - assets/bench/firmware-host-regression.v5.json
     - assets/bench/firmware-host-regression.v6.json
     - assets/bench/firmware-host-regression.v7.json
+    - assets/bench/firmware-host-regression.v8.json
     - assets/branding/
     - assets/bench/provisioned-identity.v1.json
     - assets/bench/provisioned-identity.v2.json
@@ -36,6 +37,13 @@ flutter:
     - assets/bench/credential-readiness.v1.json
     - assets/bench/credential-readiness.v2.json
     - assets/bench/startup-diagnostics.v1.json
+    - assets/bench/c83-crypto-probe.v1.json
+    - assets/bench/c83-crypto-reentry.v1.json
+    - assets/bench/c83-crypto-keys.v1.json
+    - assets/bench/c83-rtc2-observation.v1.json
+    - assets/bench/c83-rtc2-observation.v2.json
+    - assets/bench/c83-permanent-peer-handshake.v1.json
+    - assets/bench/c83-temporary-recovery.v1.json
     - assets/bench/credential-delivery.v1.json
     - assets/bench/credential-installation.v1.json
     - assets/bench/credential-installation.v2.json
@@ -48,6 +56,13 @@ flutter:
     - assets/bench/claimed-firmware-update.v2.json
     - assets/bench/claimed-firmware-update.v3.json
     - assets/bench/claimed-firmware-update.v4.json
+    - assets/bench/claimed-firmware-update.v5.json
+    - assets/bench/claimed-firmware-update.v6.json
+    - assets/bench/claimed-firmware-update.v7.json
+    - assets/bench/claimed-firmware-update.v8.json
+    - assets/bench/claimed-firmware-update.v9.json
+    - assets/bench/claimed-firmware-update.v10.json
+    - assets/bench/claimed-firmware-update.v11.json
   fonts:
     - family: Excon
       fonts:

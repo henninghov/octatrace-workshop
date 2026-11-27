@@ -1,0 +1,18 @@
+{
+  "profile": "octatrace-crypto-keys",
+  "version": 1,
+  "source_repository": "octatrace-firmware",
+  "path": "vendor/crypto-keys",
+  "requires_usb_provisioning_files_sha256": {
+    "contract.json": "62414d301a437608c09f7693d06ad3167a6ae7f60d0c9e638153a0f98d0947c4",
+    "proof.mjs": "e2738b810a1433190701788ed1940d7cb784702ef6af7f6c737ad6cc1fe292ab",
+    "response.schema.json": "9e3af63f9b05ed41bb50011b134b7f7fa6d3d202b2df5203e568333a00c955e1",
+    "vectors.json": "f4d7fd19a33e60883d60886c4ec10a46b1d37a2fde78a632038d902dabbc9361"
+  },
+  "files": {
+    "contract.json": "ae05eff9f8b468e467b10e1729fa19e6087ed9db0917bad1175029d71abc954f",
+    "policy.py": "006c71296c8662921b34ccd97f1bae9e9b92391b5f6411b2055a9a74f9fbf7fd",
+    "response.schema.json": "d26607ab2b48295b884686acfd3aed680a7fad55a80fbdd2cc002a136143919d",
+    "vectors.json": "5997d4cecf40bd8955e7131b6c36a43835e06774e60ec9891df4c4e728a9a196"
+  }
+}

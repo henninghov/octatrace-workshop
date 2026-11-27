@@ -20,6 +20,31 @@ final class BenchDefinition {
       'assets/bench/startup-diagnostics.v1.json';
   static const startupDiagnosticsDigest =
       '42e13ec4125c88308b276ecf98419b6629c7e19bcb216c57910adc5e53dade93';
+  static const cryptoProbeAsset = 'assets/bench/c83-crypto-probe.v1.json';
+  static const cryptoProbeDigest =
+      '8b6556365aab49f9deb65f9ee87cf59029919a41ab9dc2bbf1584c457fdf3dec';
+  static const pairedAsset =
+      'assets/bench/c83-permanent-peer-handshake.v1.json';
+  static const recoveryAsset = 'assets/bench/c83-temporary-recovery.v1.json';
+  static const recoveryKey = 'c83-temporary-recovery-device';
+  static const recoveryDigest =
+      '2683c92c808858fdb722c55ab0df10b5712143f85dea10e4736b9e6809f7b8ff';
+  static bool isPairedKey(Object? key) =>
+      key == 'c83-permanent-peer-handshake-device' || key == recoveryKey;
+  static const pairedDigest =
+      '0292bff31887e676c12bb978f404c1a41fb52fdec98d2992c07f45289b9e2459';
+  static const rtc2Asset = 'assets/bench/c83-rtc2-observation.v2.json';
+  static const legacyRtc2Asset = 'assets/bench/c83-rtc2-observation.v1.json';
+  static const legacyRtc2Digest =
+      '2c2699434f6701f892cb0ff1c3c787f959fdca5596d97c4c53593eafab903e9a';
+  static const rtc2Digest =
+      '9e5e3ad9bcd63c01bf36b16be0a0f434f52d4f535579a18ae9b4e2e6e1461c73';
+  static const cryptoKeysAsset = 'assets/bench/c83-crypto-keys.v1.json';
+  static const cryptoKeysDigest =
+      '72ccaaaad4c892905bf0a55d36d6f0584a5b20659392ff632c832f306571e37c';
+  static const cryptoReentryAsset = 'assets/bench/c83-crypto-reentry.v1.json';
+  static const cryptoReentryDigest =
+      'e14d4d3aaa7310d5ac9da100e76f91a1a61309a531b3043f81d4c7d625b2f889';
   static const inspectionAsset = 'assets/bench/credential-inspection.v1.json';
   static const readinessAsset = 'assets/bench/credential-readiness.v2.json';
   static const legacyReadinessAsset =
@@ -59,6 +84,13 @@ final class BenchDefinition {
   BenchDefinition.fromSnapshot(this.snapshot)
     : snapshotDigest = sha256.convert(utf8.encode(snapshot)).toString() {
     if (snapshotDigest != startupDiagnosticsDigest &&
+        snapshotDigest != cryptoProbeDigest &&
+        snapshotDigest != cryptoReentryDigest &&
+        snapshotDigest != pairedDigest &&
+        snapshotDigest != recoveryDigest &&
+        snapshotDigest != rtc2Digest &&
+        snapshotDigest != legacyRtc2Digest &&
+        snapshotDigest != cryptoKeysDigest &&
         snapshotDigest != digest &&
         snapshotDigest != legacyDigest &&
         snapshotDigest != inspectionDigest &&

@@ -138,7 +138,7 @@ void main() {
     temp = await Directory('build').createTemp('firmware-checks-');
     temp = temp.absolute;
     adapter = await File('tools/firmware_test_adapter.py').readAsString();
-    definition = await File('assets/bench/firmware-host-regression.v7.json')
+    definition = await File('assets/bench/firmware-host-regression.v8.json')
         .readAsString();
     python = '${temp.path}/python';
     await File(python).writeAsString(fakePython);
@@ -481,11 +481,20 @@ void main() {
   });
 
   test('a nonresponsive adapter is terminated after the deadline', () async {
-    final checks = runner(
-      root: 'ignore',
-      timeout: const Duration(milliseconds: 300),
+    final checks = runner(root: 'ignore', timeout: const Duration(seconds: 3));
+    final expected = expectLater(run(checks), throwsA(isA<TimeoutException>()));
+    final marker = File(
+      '${temp.path}/evidence/$account/firmware-host/00000000-0000-4000-8000-000000000001/ready',
     );
-    await expectLater(run(checks), throwsA(isA<TimeoutException>()));
+    for (var i = 0; i < 200 && !await marker.exists(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(
+      await marker.exists(),
+      isTrue,
+      reason: 'The child must ignore SIGTERM before the deadline',
+    );
+    await expected;
   }, timeout: const Timeout(Duration(seconds: 15)));
 
   test('concurrent requests are blocked and cancellation retains a result', () async {

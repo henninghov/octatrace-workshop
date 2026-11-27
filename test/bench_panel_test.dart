@@ -109,6 +109,52 @@ void main() {
     },
   );
 
+  testWidgets(
+    'permanent handshake presents the other registered board before USB runs',
+    (t) async {
+      f.paired = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.pairedAsset).readAsStringSync(),
+      );
+      f.gateway.loadOverride = () => Registry.fromJson({
+        'runs': <Json>[],
+        'articles': [
+          for (final r in ['Link', 'Core'])
+            {
+              'id': 'revision-$r',
+              'article_id': 'article-$r',
+              'code': r,
+              'name': r,
+              'role': r,
+              'revision': 1,
+              'case_version': 'A',
+              'parts': <Json>[],
+            },
+        ],
+        'devices': [
+          for (final (i, r) in ['Link', 'Core'].indexed)
+            {
+              'id': 'device-$r',
+              'serial': 'D00000000000${i + 1}',
+              'article_revision_id': 'revision-$r',
+              'provisioning_state': 'provisioned',
+              'hardware_uid': '123456780000000${i + 1}',
+            },
+        ],
+      });
+      await show(t);
+      await t.tap(find.byType(DropdownButton<BenchDefinition>));
+      await t.pumpAndSettle();
+      await tap(t, f.paired!.guide['title']);
+      await tap(t, 'Start guided test');
+      expect(find.text('Bench peer'), findsOneWidget);
+      expect(find.text('D000000000002'), findsWidgets);
+      expect(
+        find.text('Both boards connected · run handshake'),
+        findsOneWidget,
+      );
+      expect(f.seenDiscovery, isFalse);
+    },
+  );
   for (final mode in ['install', 'stop', 'prepare']) {
     testWidgets(
       '$mode shows a separate enabled confirmation during the running action',
@@ -734,4 +780,33 @@ void main() {
       expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
     },
   );
+  testWidgets('crypto probe selection displays measurements and review', (
+    t,
+  ) async {
+    f.cryptoProbe = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.cryptoProbeAsset).readAsStringSync(),
+    );
+    f.cryptoProbeReader = (account, selection, key, {onDiagnostic}) async => {
+      'outcome': 'passed',
+      'frame': {
+        'hash': true,
+        'signature': true,
+        'agreement': true,
+        'random': true,
+        'stack_free_words': 777,
+      },
+      'host_elapsed_ms': 42,
+    };
+    await show(t);
+    await t.tap(find.byType(DropdownButton<BenchDefinition>).first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Run live crypto worker probe').last);
+    await t.pumpAndSettle();
+    await tap(t, 'Start guided test');
+    await tap(t, 'USB connected · run diagnostics');
+    expect(find.text('hash · true'), findsOneWidget);
+    expect(find.textContaining('777 words'), findsOneWidget);
+    await tap(t, 'I reviewed the results');
+    expect(controller.bench!.report!['steps'][5]['status'], 'Passed');
+  });
 }

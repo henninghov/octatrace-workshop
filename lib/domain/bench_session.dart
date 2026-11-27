@@ -34,6 +34,13 @@ typedef InspectionReader = Future<Json> Function(
   void Function(Json diagnostic)? onDiagnostic,
 });
 
+typedef SelectedBenchPeer = ({ProvisionedIdentityRead read, String publicKey});
+typedef PairedHandshakeReader = Future<Map<String, Json>> Function(
+  String account,
+  Map<String, SelectedBenchPeer> participants, {
+  void Function(Json)? onDiagnostic,
+});
+
 typedef StartupDiagnosticsReader = Future<Json> Function(
   String account,
   ProvisionedIdentityRead selection,
@@ -90,6 +97,15 @@ final class BenchSession {
     this.readReadiness,
     this.startupDiagnosticsDefinition,
     this.readStartupDiagnostics,
+    this.cryptoProbeDefinition,
+    this.cryptoReentryDefinition,
+    this.cryptoKeysDefinition,
+    this.rtc2Definition,
+    this.pairedDefinition,
+    this.recoveryDefinition,
+    this.readPair,
+    this.readRtc2,
+    this.readCryptoProbe,
     this.lookupPublicKey,
     this.deliveryDefinition,
     this.readDelivery,
@@ -110,6 +126,17 @@ final class BenchSession {
   final InspectionReader? readReadiness;
   final BenchDefinition? startupDiagnosticsDefinition;
   final StartupDiagnosticsReader? readStartupDiagnostics;
+  final BenchDefinition? cryptoProbeDefinition;
+  final BenchDefinition? cryptoReentryDefinition;
+  final BenchDefinition? cryptoKeysDefinition;
+  final BenchDefinition? rtc2Definition;
+  final BenchDefinition? pairedDefinition;
+  final BenchDefinition? recoveryDefinition;
+  final PairedHandshakeReader? readPair;
+  BenchSession? _paired;
+  bool get isPaired => BenchDefinition.isPairedKey(definition.guide['key']);
+  final InspectionReader? readRtc2;
+  final InspectionReader? readCryptoProbe;
   static const startupChecks = [
     'all',
     'configuration',
@@ -143,6 +170,13 @@ final class BenchSession {
   lookupCredential;
   bool get isStartupDiagnostics =>
       definition.guide['key'] == 'cleanup-startup-diagnostics-device';
+  bool get isCryptoProbe =>
+      definition.guide['key'] == 'c83-crypto-probe-device' ||
+      definition.guide['key'] == 'c83-crypto-reentry-device' ||
+      definition.guide['key'] == 'c83-crypto-keys-device';
+  bool get isRtc2 => definition.guide['key'] == 'c83-rtc2-observation-device';
+  bool get isMeasuredDiagnostic =>
+      isStartupDiagnostics || isCryptoProbe || isRtc2 || isPaired;
   bool get isInspection =>
       definition.guide['key'] == 'c82-credential-inspection-device';
 
@@ -167,6 +201,12 @@ final class BenchSession {
     }
     if (value != identityDefinition &&
         value != startupDiagnosticsDefinition &&
+        value != cryptoProbeDefinition &&
+        value != cryptoReentryDefinition &&
+        value != cryptoKeysDefinition &&
+        value != rtc2Definition &&
+        value != pairedDefinition &&
+        value != recoveryDefinition &&
         value != inspectionDefinition &&
         value != readinessDefinition &&
         value != deliveryDefinition &&
@@ -318,6 +358,7 @@ final class BenchSession {
 
   Future<void> open(String id) async {
     if (active) throw StateError('Finish the current attempt first');
+    _paired = null;
     report = await store.reopenBench(account, id);
   }
 
@@ -415,6 +456,7 @@ final class BenchSession {
       'exports': <Json>[],
     };
     active = true;
+    _paired = null;
     report = null;
     await _save(initial);
   }
@@ -451,8 +493,169 @@ final class BenchSession {
     }
   }
 
+  Future<void> connectPair(
+    DeviceRecord device,
+    ArticleRevision article,
+    DeviceRecord other,
+    ArticleRevision otherArticle,
+  ) async {
+    _require(3);
+    if (!isPaired ||
+        readPair == null ||
+        lookupPublicKey == null ||
+        report!['device']['id'] != device.id ||
+        article.role == otherArticle.role ||
+        device.id == other.id ||
+        device.hardwareUid == other.hardwareUid) {
+      throw const BenchBlocked('Select both registered bench peers.');
+    }
+    final peer = _paired ??= BenchSession(
+      account,
+      definition,
+      store,
+      discover,
+      cancelRunner,
+      readIdentity,
+      buildFingerprint,
+      newId,
+      now,
+    );
+    if (peer.pending != null) await peer.retrySave();
+    if (peer.report == null) await peer.start(other, otherArticle);
+    if (peer.report!['device']['id'] != other.id) {
+      throw const BenchBlocked('This attempt already has a different peer.');
+    }
+    final sessions = {article.role: this, otherArticle.role: peer};
+    if (peer.next == 3) {
+      await peer._save(
+        peer._change(3, 'Passed', {'supervised_peer_report': report!['id']}),
+      );
+    }
+    await _save(
+      _change(3, 'Passed', {'supervised_peer_report': peer.report!['id']}),
+    );
+    Json? diagnostic;
+    try {
+      _reading = true;
+      final inventory = UsbInventory.fromJson(
+        await discover(account, definition),
+      );
+      final participants = <String, SelectedBenchPeer>{};
+      for (final (d, a) in [(device, article), (other, otherArticle)]) {
+        final target = inventory.targets
+            .where((t) => t.mode == 'app' && t.hardware == d.hardwareUid)
+            .singleOrNull;
+        if (target == null) {
+          throw const BenchBlocked(
+            'Both selected application-mode boards must be connected.',
+          );
+        }
+        final read = definition.admit(
+          device: d,
+          article: a,
+          target: target,
+          build: definition.builds.singleWhere((b) => b.role == a.role),
+        );
+        participants[a.role] = (
+          read: read,
+          publicKey: await lookupPublicKey!(d, a),
+        );
+      }
+      if (_stopReason != null) throw BenchCancelled();
+      final results = await readPair!(
+        account,
+        participants,
+        onDiagnostic: (value) => diagnostic = value,
+      );
+      for (final p in participants.values) {
+        if (_stopReason != null) throw BenchCancelled();
+        if (p.publicKey !=
+            await lookupPublicKey!(p.read.device, p.read.article)) {
+          throw const BenchBlocked(
+            'Registry binding changed during the exchange.',
+          );
+        }
+      }
+      for (final role in sessions.keys) {
+        final record = results[role];
+        final otherRole = role == 'Link' ? 'Core' : 'Link';
+        if (record == null ||
+            record['handshake'] != 'confirmed' ||
+            record['resources'] is! Json ||
+            record['resources']['role'] != role ||
+            record['peer_device_id'] !=
+                participants[otherRole]!.read.device.id ||
+            record['attempt'] is! String ||
+            record['attempt'] != results[otherRole]?['attempt'] ||
+            !hexId(record['exchange_sha256'] as String? ?? '', 64) ||
+            record['exchange_sha256'] !=
+                results[otherRole]?['exchange_sha256']) {
+          throw const ProvisioningFailure('Missing peer confirmation.');
+        }
+      }
+      for (final entry in sessions.entries) {
+        final result = results[entry.key]!;
+        final current = entry.value;
+        final updated = current._change(4, 'Passed', {
+          'attempt': result['attempt'],
+          'peer_device_id': result['peer_device_id'],
+          'exchange_sha256': result['exchange_sha256'],
+          'resources': result['resources'],
+          if (result['recovery_cases'] != null) ...{
+            'recovery_cases': result['recovery_cases'],
+            'usb_minimum_by_role': {
+              for (final e in results.entries)
+                e.key: e.value['usb_minimum_free_bytes'],
+            },
+          },
+          'handshake': 'confirmed',
+        });
+        final raw = jsonEncode(result);
+        updated['artifacts'].add({
+          'run_id': updated['id'],
+          'step': 4,
+          'type': 'application/json',
+          'bytes': utf8.encode(raw).length,
+          'sha256': benchHash(raw),
+          'content': raw,
+        });
+        await current._save(updated);
+      }
+    } catch (error) {
+      final outcome = _stopReason != null
+          ? _interruptedOutcome(_stopReason!)
+          : error is BenchBlocked
+          ? 'Blocked'
+          : 'Incomplete';
+      for (final current in [peer, this]) {
+        if (current.pending != null || current.next != 4) continue;
+        final failed = current._change(4, outcome, {
+          'reason': error.toString(),
+        }, outcome: outcome);
+        if (diagnostic != null) {
+          final raw = jsonEncode(diagnostic);
+          failed['artifacts'].add({
+            'run_id': failed['id'],
+            'step': 4,
+            'type': 'application/json',
+            'bytes': utf8.encode(raw).length,
+            'sha256': benchHash(raw),
+            'content': raw,
+          });
+        }
+        await current._save(failed);
+      }
+      rethrow;
+    } finally {
+      _reading = false;
+    }
+  }
+
   Future<void> connected(DeviceRecord device, ArticleRevision article) async {
     _require(3);
+    if (isPaired) {
+      throw const BenchBlocked('Connect both boards for this procedure.');
+    }
     await _save(
       _change(3, 'Passed', 'Operator acknowledged the USB cable connection.'),
     );
@@ -461,6 +664,9 @@ final class BenchSession {
 
   Future<void> readDevice(DeviceRecord device, ArticleRevision article) async {
     _require(4);
+    if (isPaired) {
+      throw const BenchBlocked('A paired exchange requires both boards.');
+    }
     Json? diagnostic, measuredStartup;
     Object? accessError;
     Json result;
@@ -494,8 +700,12 @@ final class BenchSession {
         build: build,
       );
       late final Json frame;
-      if (isStartupDiagnostics) {
-        if (readStartupDiagnostics == null || lookupPublicKey == null) {
+      if (isMeasuredDiagnostic) {
+        final reader = isRtc2 ? readRtc2 : readCryptoProbe;
+        if ((isStartupDiagnostics
+                ? readStartupDiagnostics == null
+                : reader == null) ||
+            lookupPublicKey == null) {
           throw const BenchBlocked(
             'Startup diagnostics runner or verified identity key unavailable',
           );
@@ -509,13 +719,20 @@ final class BenchSession {
           );
         }
         if (_stopReason != null) return;
-        frame = await readStartupDiagnostics!(
-          account,
-          read,
-          key,
-          report!['startup_check'] as String,
-          onDiagnostic: (data) => diagnostic = data,
-        );
+        frame = isStartupDiagnostics
+            ? await readStartupDiagnostics!(
+                account,
+                read,
+                key,
+                report!['startup_check'] as String,
+                onDiagnostic: (data) => diagnostic = data,
+              )
+            : await reader!(
+                account,
+                read,
+                key,
+                onDiagnostic: (data) => diagnostic = data,
+              );
         measuredStartup = frame;
         if (_stopReason != null) throw BenchCancelled();
         final freshKey = await lookupPublicKey!(device, article);
@@ -624,7 +841,7 @@ final class BenchSession {
       }
       result = {
         'frame': frame,
-        if (isStartupDiagnostics)
+        if (isMeasuredDiagnostic)
           'registry_check': {
             'matched': true,
             'claimed': device.ownerId != null,
@@ -633,11 +850,11 @@ final class BenchSession {
             'checked_at': _time,
           },
       };
-      status = isStartupDiagnostics && frame['outcome'] != 'passed'
-          ? 'Failed'
+      status = isMeasuredDiagnostic && frame['outcome'] != 'passed'
+          ? (frame['outcome'] == 'interrupted' ? 'Incomplete' : 'Failed')
           : 'Passed';
     } catch (error) {
-      if (isStartupDiagnostics &&
+      if (isMeasuredDiagnostic &&
           (error is SessionExpired || error is OperatorDenied)) {
         accessError = error;
       }
@@ -690,7 +907,7 @@ final class BenchSession {
       status = 'Incomplete';
       result = {
         'interruption': interruption,
-        if (isWrite || isStartupDiagnostics) 'late_result': result,
+        if (isWrite || isMeasuredDiagnostic) 'late_result': result,
       };
     }
     final updated = _change(
@@ -720,14 +937,65 @@ final class BenchSession {
 
   Future<void> reviewStartupResults() async {
     _require(5);
-    if (!isStartupDiagnostics) throw StateError('Not a startup diagnostic');
+    if (!isMeasuredDiagnostic) throw StateError('Not a measured diagnostic');
+    if (isPaired) {
+      final peer = await _verifiedPeer();
+      if (peer.next == 5) await peer._reviewOne();
+      if (peer.next != 7 || peer.report?['outcome'] != 'Awaiting export') {
+        throw const BenchBlocked(
+          'Both peer records must be reviewed together.',
+        );
+      }
+    }
+    await _reviewOne();
+  }
+
+  Future<BenchSession> _verifiedPeer() async {
+    final savedId = report!['steps'][2]['evidence']['supervised_peer_report'];
+    if (savedId is! String || savedId == report!['id']) {
+      throw const BenchBlocked('Missing the companion report.');
+    }
+    final peer = _paired ??= BenchSession(
+      account,
+      definition,
+      store,
+      discover,
+      cancelRunner,
+      readIdentity,
+      buildFingerprint,
+      newId,
+      now,
+    );
+    if (peer.pending != null) await peer.retrySave();
+    final saved = await store.reopenBench(account, savedId);
+    final local = report!['steps'][3]['evidence'];
+    final remote = saved['steps'][3]['evidence'];
+    if ((peer.report != null && jsonEncode(peer.report) != jsonEncode(saved)) ||
+        saved['steps'][2]['evidence']['supervised_peer_report'] !=
+            report!['id'] ||
+        saved['steps'][3]['status'] != 'Passed' ||
+        saved['device']['id'] != local['peer_device_id'] ||
+        remote['peer_device_id'] != report!['device']['id'] ||
+        remote['attempt'] != local['attempt'] ||
+        remote['exchange_sha256'] != local['exchange_sha256'] ||
+        saved['definition_sha256'] != report!['definition_sha256']) {
+      throw const BenchBlocked(
+        'The two saved board records do not describe the same exchange.',
+      );
+    }
+    peer.report = saved;
+    return peer;
+  }
+
+  Future<void> _reviewOne() async {
+    _require(5);
     await _save(_change(5, 'Passed', {'operator': account, 'reviewed': true}));
     if (_stopReason == null) await verifyReopen();
   }
 
   Future<void> observe(String value, {bool unavailable = false}) async {
     _require(5);
-    if (isWrite || isReadiness || isStartupDiagnostics) {
+    if (isWrite || isReadiness || isMeasuredDiagnostic) {
       throw StateError('Confirm the restart and use the automatic check');
     }
     final text = value.trim();
@@ -900,6 +1168,19 @@ final class BenchSession {
   }
 
   Future<String> export(String folder) async {
+    if (isPaired && report?['outcome'] == 'Awaiting export') {
+      final peer = await _verifiedPeer();
+      if (peer.report?['outcome'] == 'Awaiting export') {
+        await peer._exportOne(folder);
+      }
+      if (peer.report?['outcome'] != 'Passed') {
+        throw const BenchBlocked('The companion export must finish first.');
+      }
+    }
+    return _exportOne(folder);
+  }
+
+  Future<String> _exportOne(String folder) async {
     final current = await store.reopenBench(account, report!['id']);
     if (pending != null || jsonEncode(current) != jsonEncode(report)) {
       throw StateError('Reopen the saved attempt before export');
@@ -966,6 +1247,8 @@ final class BenchSession {
       } catch (_) {
         /* Keep the last durable step. */
       }
+      final peer = _paired;
+      if (peer != null && peer.active) await peer.stop(reason);
       if (active) {
         if (pending != null) await retrySave();
         if (report?['outcome'] == 'Awaiting export' &&

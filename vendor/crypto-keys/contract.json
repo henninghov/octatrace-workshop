@@ -1,0 +1,36 @@
+{
+  "profile": "octatrace-crypto-keys",
+  "version": 1,
+  "scope": "on-demand device-owned key provider and identity signing diagnostic on the existing serialized worker",
+  "roles": [
+    "Link",
+    "Core"
+  ],
+  "commands": [
+    "P1 <id> crypto-keys-start <hardware16hex> <boot32hex>",
+    "P1 <id> crypto-keys-status"
+  ],
+  "states": [
+    "idle",
+    "queued",
+    "running",
+    "passed",
+    "failed",
+    "interrupted"
+  ],
+  "checks": [
+    "identity_signature",
+    "agreement",
+    "exhaustion",
+    "stale_rejected",
+    "cleaned"
+  ],
+  "binding": "The runner verifies fresh signed device identity before and after the run and checks role, source, hardware and unchanged boot. Request ID identifies the run.",
+  "cancellation": "Disconnect requests cancellation without reusing worker memory until synchronous work returns. Partial results never pass.",
+  "security": "The existing identity store signs one fixed domain-labelled diagnostic message; the signature is verified locally and never returned. Temporary keys and derived bytes are wiped. Separate identity proofs use the established permanent identity signing interface.",
+  "limits": {
+    "request_id_max": 4294967295,
+    "reply_bytes": 1280
+  },
+  "qualification": "This diagnostic does not perform a peer handshake, adopt traffic keys, qualify clock behavior, radio contention, entropy, or C9 lifecycle acceptance."
+}
