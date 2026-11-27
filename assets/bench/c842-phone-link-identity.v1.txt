@@ -1,0 +1,14 @@
+C8.4.2 · Verify scanned LINK identity · Revision 1
+
+1. Start a private attempt record. Record this guide revision and SHA-256, the normal Octatrace iPhone build and its signed bundle digest, and the LINK firmware source ID and image SHA-256 from its installation receipt. Use the development account and a provisioned LINK with its matching factory QR. Keep the QR, Bluetooth passkey and all credential bytes out of the record.
+
+2. In the main Octatrace app open Devices → Add device. Scan the physical LINK’s factory QR. With a saved Bluetooth bond, keep the LINK pairing window closed. For a new bond, open its USER pairing window and follow the iOS passkey prompt. Select Pair LINK if the app requests a connection. A successful run displays “Identity verified” after the installed factory credential matches the scanned LINK.
+
+3. Leave the verification screen open and keep LINK powered. Disconnect Bluetooth on the iPhone in Settings and return to the app. Confirm “Identity verified” disappears. Restore Bluetooth and reconnect to the same LINK. Select Connect LINK, Pair LINK or Verify identity as prompted. Wait for “Identity verified” again. Confirm the phone diagnostic contains “verification invalidated” followed by “verified again; sameBoot=true freshNonce=true”.
+
+4. For a mismatch test, use a different provisioned test LINK’s QR while only the original bench LINK is reachable. For an interrupted transfer, interrupt the Bluetooth connection during the credential read. Each run must finish unverified and offer recovery. A missing-credential test requires a designated spare fixture. Record unavailable cases as unrun and identify any software-only results separately. Preserve the bench LINK’s installed credential.
+
+5. Stop at local verification. Record the observed screen on each connection, sanitized event names, build identifiers and pass, fail or incomplete for each case. Save failed attempts as well as retries. Confirm the software checks for this build recorded zero claim requests or signatures from the fresh scan. A pass covers the local identity read only.
+
+Compatible builds
+Workshop 0.1.0+36. Octatrace 0.1.0+2 (com.octatrace.app) signed build CDHash 8712dae0380b1a8041632bfbb63e970d177496b0. LINK 0.4.0 source 973b32535ffe523dd4d6196f69adbc49a4c9312a91c10f6c364edaa024c1b67d, UF2 SHA-256 1ab5a93724a586dbef5fdb847695c20edce82eb9f94785f4f37791dae8d87d36.

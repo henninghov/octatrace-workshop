@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show SynchronousFuture;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -18,6 +19,23 @@ import 'support/bench_fixture.dart' show BenchFixture, TestBenchStore;
 import 'support/firmware_checks_fixture.dart';
 import 'ui_flow_test.dart' show MemoryEvidence;
 import 'widget_test.dart' as fixtures;
+
+class BenchGuideAssets extends CachingAssetBundle {
+  final Map<String, Future<String>> guides = {
+    for (final file in [
+      'assets/bench/c841-phone-link-discovery.v1.txt',
+      'assets/bench/c842-phone-link-identity.v1.txt',
+    ])
+      file: SynchronousFuture(File(file).readAsStringSync()),
+  };
+
+  @override
+  Future<ByteData> load(String key) => rootBundle.load(key);
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) =>
+      guides[key] ?? rootBundle.loadString(key, cache: cache);
+}
 
 void main() {
   setUpAll(() async {
@@ -56,7 +74,10 @@ void main() {
     await t.pumpWidget(
       RepaintBoundary(
         key: const ValueKey('bench-screen'),
-        child: WorkshopApp(controller: controller),
+        child: DefaultAssetBundle(
+          bundle: BenchGuideAssets(),
+          child: WorkshopApp(controller: controller),
+        ),
       ),
     );
     await t.pumpAndSettle();
@@ -87,6 +108,20 @@ void main() {
     expect(find.textContaining('setup record subscribed'), findsOneWidget);
     expect(controller.bench!.report, isNull);
   });
+
+  testWidgets(
+    'local LINK identity guide includes the scan and reconnect evidence',
+    (t) async {
+      await show(t);
+      await tap(t, 'Verify scanned LINK identity · revision 1');
+      expect(find.textContaining('Identity verified'), findsOneWidget);
+      expect(
+        find.textContaining('sameBoot=true freshNonce=true'),
+        findsOneWidget,
+      );
+      expect(controller.bench!.report, isNull);
+    },
+  );
 
   testWidgets(
     'firmware host controls are integrated into the signed-in bench',

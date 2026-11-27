@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../domain/bench_definition.dart';
 import '../domain/bench_session.dart';
@@ -18,9 +17,12 @@ class BenchPanel extends StatefulWidget {
 class _BenchPanelState extends State<BenchPanel> {
   final label = TextEditingController(), folder = TextEditingController();
   final historyKey = GlobalKey();
-  late final setupGuide = rootBundle.loadString(
-    'assets/bench/c841-phone-link-discovery.v1.txt',
-  );
+  static const phoneGuides = {
+    'Phone to LINK discovery guide · revision 1':
+        'assets/bench/c841-phone-link-discovery.v1.txt',
+    'Verify scanned LINK identity · revision 1':
+        'assets/bench/c842-phone-link-identity.v1.txt',
+  };
   String? deviceId, exported;
   String startupCheck = 'all';
   bool unreadable = false;
@@ -1289,20 +1291,22 @@ class _BenchPanelState extends State<BenchPanel> {
             },
           ),
         if (article?.role == 'Link' && !s.active && !viewing)
-          ExpansionTile(
-            title: const Text('Phone to LINK discovery guide · revision 1'),
-            children: [
-              FutureBuilder<String>(
-                future: setupGuide,
-                builder: (context, snapshot) => SelectableText(
-                  snapshot.data ??
-                      (snapshot.hasError
-                          ? 'The discovery guide could not be loaded.'
-                          : 'Loading guide…'),
+          for (final guide in phoneGuides.entries)
+            ExpansionTile(
+              title: Text(guide.key),
+              children: [
+                FutureBuilder<String>(
+                  future: DefaultAssetBundle.of(context)
+                      .loadString(guide.value),
+                  builder: (context, snapshot) => SelectableText(
+                    snapshot.data ??
+                        (snapshot.hasError
+                            ? 'The guide could not be loaded.'
+                            : 'Loading guide…'),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
       ],
     );
   }
