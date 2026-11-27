@@ -78,6 +78,16 @@ void main() {
     await t.pump();
   }
 
+  testWidgets('phone discovery guide identifies both device confirmations', (
+    t,
+  ) async {
+    await show(t);
+    await tap(t, 'Phone to LINK discovery guide · revision 1');
+    expect(find.textContaining('setup control subscribed'), findsOneWidget);
+    expect(find.textContaining('setup record subscribed'), findsOneWidget);
+    expect(controller.bench!.report, isNull);
+  });
+
   testWidgets(
     'firmware host controls are integrated into the signed-in bench',
     (t) async {

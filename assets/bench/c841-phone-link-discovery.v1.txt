@@ -1,0 +1,15 @@
+C8.4.1 • Phone to LINK discovery • Revision 1
+
+1. Connect the supervised iPhone 13 Pro and the intended development LINK. Keep one LINK advertising. Save a new private attempt log before scanning. Keep the same phone and board for the comparison.
+
+2. On the older LINK build 01ee9622, run the phone discovery test with OCTATRACE_SETUP_DISCOVERY=absent. Expect the legacy service to be found and the phone to report C841_DISCOVERY_V1 result=absent. The development connection log labels this “LINK firmware lacks the setup service.” An unreachable device is an incomplete run. A compatibility fixture can cover the older build if the physical baseline is unavailable.
+
+3. Use the qualified LINK application image from source 11f5102b, UF2 SHA-256 aece73c5c273602a2a6523a0718e9247565f2d897a9d4da60f9f532902d130b5. Check the selected board and post-update source against the install receipt. Keep the existing Bluetooth bond.
+
+4. Run the same phone test with OCTATRACE_SETUP_DISCOVERY=subscribed. For a new bond, hold LINK USER for three seconds and enter its displayed code in the iPhone Bluetooth prompt. For a saved bond, let the phone reconnect. Record whether the tester saw a passkey prompt. Keep the code private.
+
+5. Review the native phone log. The same connection must report “setup control subscribed” and then “setup record subscribed”, followed by “C841_DISCOVERY_V1 result=subscribed” and a passing test. A disconnect, service change or missing confirmation requires a fresh attempt. The procedure ends when the two subscriptions are confirmed.
+
+6. Export the private attempt logs, guide revision and digest, installed phone build and LINK image hashes, update receipt, and tester observation. Retain failed or interrupted attempts alongside the successful one. The tester guide alone records no device result.
+
+The phone runner is integration_test/setup_discovery_test.dart in octatrace-app. Run it on the selected physical phone with Flutter test, --no-pub, --no-uninstall and the matching --dart-define. Runner SHA-256 9763ef2ef831f088c86c64a5b7b62a1d748fa548dbac7c6c7693e14351cadcde. Native Bluetooth adapter SHA-256 3364ca49a34fdca5c1abcbfa60c093276a239c73c76ee1914c3e4c6e1b30d9bd.

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../domain/bench_definition.dart';
 import '../domain/bench_session.dart';
@@ -17,6 +18,9 @@ class BenchPanel extends StatefulWidget {
 class _BenchPanelState extends State<BenchPanel> {
   final label = TextEditingController(), folder = TextEditingController();
   final historyKey = GlobalKey();
+  late final setupGuide = rootBundle.loadString(
+    'assets/bench/c841-phone-link-discovery.v1.txt',
+  );
   String? deviceId, exported;
   String startupCheck = 'all';
   bool unreadable = false;
@@ -1283,6 +1287,21 @@ class _BenchPanelState extends State<BenchPanel> {
               setState(() => exported = null);
               c.benchAction((s) => s.open(r['id']));
             },
+          ),
+        if (article?.role == 'Link' && !s.active && !viewing)
+          ExpansionTile(
+            title: const Text('Phone to LINK discovery guide · revision 1'),
+            children: [
+              FutureBuilder<String>(
+                future: setupGuide,
+                builder: (context, snapshot) => SelectableText(
+                  snapshot.data ??
+                      (snapshot.hasError
+                          ? 'The discovery guide could not be loaded.'
+                          : 'Loading guide…'),
+                ),
+              ),
+            ],
           ),
       ],
     );

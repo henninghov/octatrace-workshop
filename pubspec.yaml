@@ -43,6 +43,7 @@ flutter:
     - assets/bench/c83-rtc2-observation.v1.json
     - assets/bench/c83-rtc2-observation.v2.json
     - assets/bench/c83-permanent-peer-handshake.v1.json
+    - assets/bench/c841-phone-link-discovery.v1.txt
     - assets/bench/c83-temporary-recovery.v1.json
     - assets/bench/credential-delivery.v1.json
     - assets/bench/credential-installation.v1.json
