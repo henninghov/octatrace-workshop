@@ -1,0 +1,15 @@
+C8.4.3 · Verify the iPhone and LINK signing keys over supervised USB · Revision 2
+
+Use the main Octatrace iPhone app in proof-only mode (Frames build 0.1.0+5). Keep the selected LINK powered by USB and connected to the iPhone over Bluetooth. This procedure uses LINK’s existing RTC2, a continuous timer on the Mac, and the phone’s independent elapsed-time check. X1 accuracy over operating temperature remains open.
+
+1. Start a private attempt record. Record the procedure revision and digest, Workshop build, the installed iPhone build and signing digest, the LINK source ID and installed UF2 digest from the qualified bench manifest. In Workshop → Devices, refresh the registry. Record the selected serial, Unclaimed status and observation time. Stop if the refresh fails or the device has an owner.
+
+2. With the supervisor closed, resume the saved LINK setup on the iPhone. Expect the signing-deadline refusal and saved setup. Record this as a separate refusal attempt. Return to Devices and verify the Bluetooth connection using View Bluetooth status. Use the existing bond and the same saved QR setup.
+
+3. The operator starts the firmware runner rtc2_observe.py in claim-window mode with this LINK’s validated selection and the matching private workstation key. Save the runner’s output to a new private attempt file. Wait for its armed event. On the same LINK card tap Continue setup once. If starting from a fresh QR, first verify its factory identity, then select Verify both signing keys once after the supervisor is armed.
+
+4. Keep USB and Bluetooth connected. The operator records delivery_observed and the Mac’s elapsed upper bound. On the iPhone, require Both signatures verified and the service readback reporting LINK unclaimed. Retain the app’s independent elapsed_ms event for that attempt. Each elapsed time must be under 300,000 ms. The phone verifies a distinct LINK and phone statement against one service-signed development challenge. USB delivery alone records only the transport result.
+
+5. Exercise interruption in a separate attempt with a fresh supervisor session. Disable Bluetooth in iPhone Settings during verification. A late reply must leave setup incomplete. Record the phone message, the supervisor outcome and whether a proof was delivered. Turn Bluetooth back on. Keep each attempt, including inconclusive timing or a completed exchange that finished before disconnection. Record wrong-key, wrong-context and exact-boundary software checks separately.
+
+6. Refresh Workshop → Devices again and record the selected LINK’s status and time. The physical signing pass needs both verified signatures, the phone and Mac timing evidence, and a fresh Unclaimed readback. End before claim completion. Keep QR secrets, private keys, passkeys and reusable signed records out of the report.

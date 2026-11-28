@@ -45,6 +45,8 @@ flutter:
     - assets/bench/c83-permanent-peer-handshake.v1.json
     - assets/bench/c841-phone-link-discovery.v1.txt
     - assets/bench/c842-phone-link-identity.v1.txt
+    - assets/bench/c843-phone-link-proof.v1.txt
+    - assets/bench/c843-phone-link-proof.v2.txt
     - assets/bench/c83-temporary-recovery.v1.json
     - assets/bench/credential-delivery.v1.json
     - assets/bench/credential-installation.v1.json

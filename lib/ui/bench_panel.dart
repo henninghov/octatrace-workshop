@@ -22,6 +22,10 @@ class _BenchPanelState extends State<BenchPanel> {
         'assets/bench/c841-phone-link-discovery.v1.txt',
     'Verify scanned LINK identity · revision 1':
         'assets/bench/c842-phone-link-identity.v1.txt',
+    'Verify both signing keys over supervised USB · revision 2':
+        'assets/bench/c843-phone-link-proof.v2.txt',
+    'Verify the iPhone and LINK signing keys · revision 1':
+        'assets/bench/c843-phone-link-proof.v1.txt',
   };
   String? deviceId, exported;
   String startupCheck = 'all';

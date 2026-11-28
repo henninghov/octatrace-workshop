@@ -1,0 +1,19 @@
+C8.4.3 · Verify the iPhone and LINK signing keys · Revision 1
+
+1. Open a private test record for this manual Workshop procedure on the intended unclaimed development LINK. Enter each observation in that record. Record the guide revision and digest, Workshop build, main Octatrace iPhone build and signed bundle digest, LINK firmware source and installed image digest. Check the registered ownership status before starting. Keep the QR secret, passkey, account identifiers and signed record bytes out of the report.
+
+2. Check the qualification record for this LINK’s clock. A positive run requires a supported worst-case oscillator bound for the tested build. An unknown bound permits a refusal test. Record a refusal as blocked for physical signing and keep the original attempt when a later build is tested.
+
+3. In the main iPhone app, open Devices → Add device, scan this LINK’s factory QR and connect. Use the saved Bluetooth bond if available. Confirm the app displays “Identity verified.” Select “Verify both signing keys” once. Keep LINK powered and the phone connected.
+
+4. For a qualified clock, expect “Both signatures verified” and a service readback showing LINK was unclaimed. Record the observed screen and the separate results of verifying the phone and LINK signatures against one development challenge. If the readback fails or the state is already owned, record that outcome and stop.
+
+5. For an interruption run, disconnect Bluetooth during the exchange and wait for the pending reply. Check that a late result cannot produce a successful verification. Record the failed attempt separately. Refer to the software results for wrong keys, wrong purpose or binding, and the exact deadline boundary. Record which cases ran on the actual phone and LINK.
+
+6. Read LINK’s ownership state again through the registered development inventory. Record the state, UTC observation time and the available sanitized attempt reference. Retain the private report with the versions and observations from steps 1–5. End the procedure here, before claim completion.
+
+Software candidate · 28 November 2026
+Workshop 0.1.0+37, guide revision 1.
+Main iPhone app com.octatrace.app 0.1.0+3, Frames Holding AS, CDHash a7265ea097af06f0ab11d697c0320e6d960fc400.
+LINK 0.4.0, source 60d1ccb760a6830473129c0420b0929f61aa45482b6a6914b1a43f48c79702ce, UF2 SHA-256 c43611160d3993884e72e22ee2fe221aad684b7b727b0ceb4898eab3b92956fe.
+This LINK build supports the unknown-clock refusal check. For a positive physical run, record the qualified X1 bound and the resulting compatible build identifiers before step 1.

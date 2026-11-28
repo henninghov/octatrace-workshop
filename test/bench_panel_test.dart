@@ -25,6 +25,8 @@ class BenchGuideAssets extends CachingAssetBundle {
     for (final file in [
       'assets/bench/c841-phone-link-discovery.v1.txt',
       'assets/bench/c842-phone-link-identity.v1.txt',
+      'assets/bench/c843-phone-link-proof.v1.txt',
+      'assets/bench/c843-phone-link-proof.v2.txt',
     ])
       file: SynchronousFuture(File(file).readAsStringSync()),
   };
@@ -98,6 +100,36 @@ void main() {
     await t.enterText(item, text);
     await t.pump();
   }
+
+  testWidgets(
+    'supervised proof guide requires both phone signatures and registry readback',
+    (t) async {
+      await show(t);
+      await tap(t, 'Verify both signing keys over supervised USB · revision 2');
+      expect(find.textContaining('Both signatures verified'), findsOneWidget);
+      expect(find.textContaining('fresh Unclaimed readback'), findsOneWidget);
+      expect(
+        find.textContaining('End before claim completion'),
+        findsOneWidget,
+      );
+      expect(controller.bench!.report, isNull);
+    },
+  );
+
+  testWidgets(
+    'first-claim guide distinguishes clock refusal and signed proof',
+    (t) async {
+      await show(t);
+      await tap(t, 'Verify the iPhone and LINK signing keys · revision 1');
+      expect(
+        find.textContaining('An unknown bound permits a refusal test'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Both signatures verified'), findsOneWidget);
+      expect(find.textContaining('before claim completion'), findsOneWidget);
+      expect(controller.bench!.report, isNull);
+    },
+  );
 
   testWidgets('phone discovery guide identifies both device confirmations', (
     t,
