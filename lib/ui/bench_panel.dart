@@ -18,6 +18,8 @@ class _BenchPanelState extends State<BenchPanel> {
   final label = TextEditingController(), folder = TextEditingController();
   final historyKey = GlobalKey();
   static const phoneGuides = {
+    'Claim one physical LINK from the iPhone · revision 1':
+        'assets/bench/c845-physical-link-claim.v1.txt',
     'Phone to LINK discovery guide · revision 1':
         'assets/bench/c841-phone-link-discovery.v1.txt',
     'Verify scanned LINK identity · revision 1':

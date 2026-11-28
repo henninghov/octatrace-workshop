@@ -47,6 +47,7 @@ flutter:
     - assets/bench/c842-phone-link-identity.v1.txt
     - assets/bench/c843-phone-link-proof.v1.txt
     - assets/bench/c843-phone-link-proof.v2.txt
+    - assets/bench/c845-physical-link-claim.v1.txt
     - assets/bench/c83-temporary-recovery.v1.json
     - assets/bench/credential-delivery.v1.json
     - assets/bench/credential-installation.v1.json

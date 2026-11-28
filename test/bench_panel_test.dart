@@ -27,6 +27,7 @@ class BenchGuideAssets extends CachingAssetBundle {
       'assets/bench/c842-phone-link-identity.v1.txt',
       'assets/bench/c843-phone-link-proof.v1.txt',
       'assets/bench/c843-phone-link-proof.v2.txt',
+      'assets/bench/c845-physical-link-claim.v1.txt',
     ])
       file: SynchronousFuture(File(file).readAsStringSync()),
   };
@@ -127,6 +128,18 @@ void main() {
       );
       expect(find.textContaining('Both signatures verified'), findsOneWidget);
       expect(find.textContaining('before claim completion'), findsOneWidget);
+      expect(controller.bench!.report, isNull);
+    },
+  );
+
+  testWidgets(
+    'physical LINK claim guide covers restart and the ownership assignment',
+    (t) async {
+      await show(t);
+      await tap(t, 'Claim one physical LINK from the iPhone · revision 1');
+      expect(find.textContaining('Tap Claim LINK once'), findsOneWidget);
+      expect(find.textContaining('Fully close and reopen'), findsOneWidget);
+      expect(find.textContaining('one ownership assignment'), findsOneWidget);
       expect(controller.bench!.report, isNull);
     },
   );

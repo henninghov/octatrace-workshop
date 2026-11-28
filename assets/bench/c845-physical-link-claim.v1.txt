@@ -1,0 +1,13 @@
+C8.4.5 · Claim one physical LINK from the iPhone · Revision 1
+
+1. Before starting, save a new private attempt record with the guide digest, time, Workshop version, signed main iPhone app build and installed LINK firmware. Refresh Devices in Workshop. Confirm the selected serial is provisioned and Unclaimed. Have the tester confirm the signed-in development account on the iPhone is the intended owner.
+
+2. Use the main Octatrace development app, build 6, on the iPhone 13 Pro. Keep the intended LINK on supervised USB firmware 9b9f8fc3, powered by the Mac and connected over Bluetooth. In Devices open the saved setup and locate Claim LINK. The tester can use View Bluetooth status to reconnect. Opening the setup and reconnecting leave ownership available.
+
+3. Start the existing firmware claim-window runner with the validated selection and its matching workstation key. Wait for the armed event. Tap Claim LINK once. Keep USB and Bluetooth connected. The phone verifies both signatures on one fresh service challenge before submitting. Record the phone proof time, the Mac delivery_observed result, and the phone's reported ownership. Both timing observations must be under 300,000 ms.
+
+4. Expect LINK owned and Owned — activation pending. If the response is lost, reopen the saved setup and read its current status before any retry. Preserve the original attempt and its logs. A missing result or a timeout requires investigation.
+
+5. Fully close and reopen Octatrace, refresh Devices, open the LINK details and tap Refresh device information. Require a fresh successful read, Account ownership: Owned, and the intended serial. The app compares its saved owner and canonical claim operation with the service. Record the tester's observation and read time.
+
+6. Refresh the same device in Workshop. Record the post-claim ownership status. An independent read-only development service check must find one ownership assignment and one first claim for that LINK, bound to the original operation and the confirmed owner. Save the sanitized results and hashes. Store private evidence separately and keep account emails, private QR material, keys, tokens and proof bytes out of the report.
