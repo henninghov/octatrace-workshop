@@ -20,6 +20,8 @@ class _BenchPanelState extends State<BenchPanel> {
   static const phoneGuides = {
     'Claim one physical LINK from the iPhone · revision 1':
         'assets/bench/c845-physical-link-claim.v1.txt',
+    'Verify a replacement phone proof · revision 1':
+        'assets/bench/c846-replacement-phone-proof.v1.txt',
     'Phone to LINK discovery guide · revision 1':
         'assets/bench/c841-phone-link-discovery.v1.txt',
     'Verify scanned LINK identity · revision 1':

@@ -1,0 +1,11 @@
+C8.4.6 · Verify a replacement phone proof for an owned LINK · Revision 1
+
+1. Record the procedure revision, app and firmware source/build identifiers and whether the run uses a software fixture or physical equipment. Use an owned development LINK fixture with its verified, current ownership receipt and a readable local controller revision. The supplied fixture starts with owner receipt dev-link-owner, controller policy dev-phone1 at revision 1, and a distinct proposed phone2 key.
+
+2. Use a distinct proposed phone key and the existing protected phone-to-LINK Bluetooth setup adapter. From the phone-app checkout run flutter test --no-pub test/phone_replacement_test.dart --name 'owned LINK fixture'. This runner selects the proof-only outcome. Verify both signatures for the same replacement challenge. Expect the signed owner receipt hash, ownership epoch, device-reported controller revision and proposed phone key to match. End the exchange before controller replacement is submitted.
+
+3. On disposable fixtures exercise a first-claim challenge in the replacement session, the wrong owner, a stale installed revision and missing local authority. Expect no usable replacement proof in each case. Verify the existing owner and controller after the attempts. From the firmware checkout run python3 -B tools/check_credential_wire.py and python3 -B tools/check_sdk_security.py. From the phone-app checkout run flutter test --no-pub test/link_identity_read_test.dart test/phone_replacement_recovery_test.dart. Record each result separately.
+
+4. For physical acceptance, require verified device-local authority readback and a valid replacement signing deadline. The C8.4.5 iPhone build 6 and LINK build 9b9f8fc3 established account ownership. These builds do not provide this replacement readback. Record physical acceptance as pending until compatible builds and local authority are available. A cloud claim or USB first-claim grant cannot supply these prerequisites.
+
+5. Save the run results, source/build identifiers, exact checks and observed refusals. Keep fixture results separate from phone and board observations. Record missing prerequisites. Retain only sanitized evidence for sharing.

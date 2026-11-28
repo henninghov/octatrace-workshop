@@ -28,6 +28,7 @@ class BenchGuideAssets extends CachingAssetBundle {
       'assets/bench/c843-phone-link-proof.v1.txt',
       'assets/bench/c843-phone-link-proof.v2.txt',
       'assets/bench/c845-physical-link-claim.v1.txt',
+      'assets/bench/c846-replacement-phone-proof.v1.txt',
     ])
       file: SynchronousFuture(File(file).readAsStringSync()),
   };
@@ -144,6 +145,23 @@ void main() {
     },
   );
 
+  testWidgets('replacement proof guide stops before changing the controller', (
+    t,
+  ) async {
+    await show(t);
+    await tap(t, 'Verify a replacement phone proof · revision 1');
+    expect(
+      find.textContaining(
+        'End the exchange before controller replacement is submitted',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('physical acceptance as pending'),
+      findsOneWidget,
+    );
+    expect(controller.bench!.report, isNull);
+  });
   testWidgets('phone discovery guide identifies both device confirmations', (
     t,
   ) async {
