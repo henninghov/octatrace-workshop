@@ -68,6 +68,8 @@ class SetupRunner implements ProvisioningRunner {
   Completer<Json>? held;
   Completer<Json>? heldInventory, heldInstall;
   Object? failure;
+  String authorityState = 'blank', authorityBoot = '2' * 32;
+  Json? authoritySelection;
   bool cancelFails = false, absent = false;
   int cancels = 0;
   @override
@@ -92,6 +94,10 @@ class SetupRunner implements ProvisioningRunner {
       'prepare-control-storage',
     }.contains(command)) {
       return preparationJson(parameters);
+    }
+    if (command == 'factory-authority-inspection') {
+      authoritySelection = parameters;
+      return {'classification': authorityState, 'boot': authorityBoot};
     }
     if (command == 'install') {
       return heldInstall == null ? {'installed': true} : heldInstall!.future;
@@ -246,6 +252,7 @@ void main() {
         'inventory',
         'inspect-storage',
         'provision',
+        'factory-authority-inspection',
         'inspect-control-storage',
       ]);
       expect(gateway.completes, 1);
@@ -277,6 +284,7 @@ void main() {
         'install',
         'inspect-storage',
         'provision',
+        'factory-authority-inspection',
         'inspect-control-storage',
       ]);
       expect(c.readbackSaved, isTrue);
@@ -298,6 +306,7 @@ void main() {
     expect(runner.commands, [
       'inspect-storage',
       'provision',
+      'factory-authority-inspection',
       'inspect-control-storage',
     ]);
     expect(await reopened.pending(f.actor), isEmpty);
@@ -321,6 +330,7 @@ void main() {
     expect(runner.commands, [
       'inspect-storage',
       'provision',
+      'factory-authority-inspection',
       'inspect-control-storage',
     ]);
     expect(c.readbackSaved, isTrue);
@@ -345,6 +355,36 @@ void main() {
       expect(c.pendingEvidence, 0);
     },
   );
+  test('factory handoff requires a blank scan on the verified boot', () async {
+    for (final state in [
+      'existing',
+      'interrupted',
+      'unknown',
+      'review',
+      'busy',
+    ]) {
+      runner.authorityState = state;
+      await run();
+      expect(gateway.completes, 0);
+      expect(c.message, contains('Authority storage needs review'));
+      expect(runner.commands, isNot(contains('prepare-authority')));
+      expect(
+        runner.authoritySelection!['public_key'],
+        proof()['after']['public_key'],
+      );
+      expect(runner.authoritySelection!['hardware'], hardware);
+      await c.syncEvidence();
+      expect(gateway.completes, 0);
+    }
+    runner.authorityState = 'blank';
+    runner.authorityBoot = '';
+    await run();
+    expect(gateway.completes, 0);
+    // A resumed board may have rebooted since its original identity proof.
+    runner.authorityBoot = '3' * 32;
+    await run();
+    expect(gateway.completes, 1);
+  });
   test('server refusal prevents any physical write', () async {
     gateway.deny = true;
     await run(UsbTarget.fromJson(targetJson('bootloader')));
@@ -644,6 +684,7 @@ void main() {
     expect(runner.commands, [
       'inspect-storage',
       'provision',
+      'factory-authority-inspection',
       'inspect-control-storage',
     ]);
     gateway.mismatch = 'role';
@@ -652,6 +693,7 @@ void main() {
     expect(runner.commands, [
       'inspect-storage',
       'provision',
+      'factory-authority-inspection',
       'inspect-control-storage',
     ]);
   });

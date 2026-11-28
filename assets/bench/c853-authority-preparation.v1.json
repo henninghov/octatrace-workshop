@@ -1,0 +1,198 @@
+{
+  "format": 1,
+  "key": "c853-authority-preparation-device",
+  "revision": 1,
+  "title": "Prepare authority storage",
+  "purpose": "Inspect the six authority pages. Eligible disposable lab images require fresh operator consent before erasure.",
+  "checkpoint": "C8.5.3",
+  "runner": {
+    "id": "p1.authority-preparation",
+    "owner": "octatrace-firmware",
+    "source_sha256": "252b49a69d2cdcb95d74520c4149a4ba3126f81589b0bf2054eada0c02a29c77",
+    "transport_sha256": "7ca5b24e2b894a73b892602e7a48009606d766bc049f57dd6c58aaeea915662c",
+    "discovery_sha256": "a1a333045a78a8a71263453dfdfe64e4f630f1944c85c3428b649914668083c1",
+    "usb_lock_sha256": "49a1cc1f1666c84bbc36914ebde2798b2aabf981e633836baf43cc22d5ea8fd1",
+    "control_lock_sha256": "75c05d84b6a52177271902cc916f1a5e594f950218d88d66bd62f825f5b1642c",
+    "additional_files": {
+      "authority-layout.lock.json": "324a7d12dc2650154d34aea85372a96a0017d137e2b9a2b68c7bb86e6b549b5e",
+      "authority-storage.lock.json": "50491889bc972202950aae52bcc05860770f780093be7ba51c70b9e1fc7403ff",
+      "client-storage.lock.json": "b57a8999c8dbfa99e7239a8bd59a1eaefbaa4aa28bfd0355726c121f43b1564b",
+      "contracts/authority-inspection/preparation-v1.json": "946c3b9723f604476b5c54ce0b4db0030aafc042308dee93c7c4f3c07fb5153d",
+      "contracts/authority-inspection/v1.json": "357f38ba7a2e5189a392e05397a3df282ce999a0b24d5cb6daeafacb3ec4282a",
+      "contracts/authority-layout/policy.py": "71961b9936da6b67da7c6a650feeea7a90dbd3b7c66f4e9d9d9340178767d8f1",
+      "contracts/credential-delivery/contract.json": "82a67a801087863d3d766c82b5b3833206881e1b2ef0cb736d608e7ee143c323",
+      "contracts/credential-delivery/policy.py": "2b9b2be204227c0083ec1b847035d2f7c41dd54a2516e7f7dd50ac0d74fabfc6",
+      "contracts/credential-delivery/proof.mjs": "5815537887d9a98dd4aa543a942ff975a81ab4b074158dadba2af2e0370face2",
+      "contracts/credential-delivery/response.schema.json": "6ee7587d1bb18da144ff158da62790dab1b27b9282800355a152d84c549aaa8f",
+      "contracts/credential-delivery/status.schema.json": "89013a49aef16f51de79ceb8f5f180b326cb748d20473300fdd4a91b3b5acaf7",
+      "contracts/credential-delivery/vectors.json": "2965f9ad1c0d6cd0d669b1e92939dd42865ac3dbc7d72efabb10b71b62d88680",
+      "contracts/credential-inspection/contract.json": "0d05102bf687a659eb65b4cfdb9a364678603fc7eb6921583af06b7710ffe3bf",
+      "contracts/credential-inspection/policy.py": "8ca1f3ca603d418263aa548207ca152d65860a39b2d4f6373c81b835d0860950",
+      "contracts/credential-inspection/response.schema.json": "4944740227662b1e86a2d0b0ce2788ecdfefb8c9dcb24ec484a619509a5c7cf3",
+      "contracts/credential-inspection/vectors.json": "40a3a1f14351c7e86fa1aff62e4480b49b15aa4ed4b4f3e7a034cba8e7078c90",
+      "contracts/credential-installation/contract.json": "3dd34a2334b0df7ee905c69b03803b41654473533ffd7b1d6a4419ea601de772",
+      "contracts/credential-installation/policy.py": "fe36ea2e3893376383bb4e153ef8da01a080dc412be2c9c85d4f853a4e3f3253",
+      "contracts/credential-installation/proof.mjs": "ad2c7c5a97b4ec46267e1148a2910fd7ac0095a25989568d663dd749a11f6041",
+      "contracts/credential-installation/response.schema.json": "eda8789a86159ca5c809c7abc02c4de8b09d2f32f1565492c051c0764e465abf",
+      "contracts/credential-installation/status.schema.json": "84f5446af557abe410481aa15e70ce4f2b8e920095705eac0d6b12d12a8ae561",
+      "contracts/credential-installation/vectors.json": "6da52b7b25ceabb7fe79a6de7d7625f3eefbb9b2a8ed35b6c76ff0fa902340b3",
+      "contracts/credential-layout/policy.py": "c85a2546098c1d487f0b91f2f5ed3bb5f446a78dc3ca680059159551e4947635",
+      "contracts/credential-readiness/contract.json": "861fa572377335e9eba102656493e0c333ead748589f9bc794cc46f4734f5398",
+      "contracts/credential-readiness/policy.py": "0f0f5abc1d08a27c2a7a98150ccaeae11160dcdfd4b01629883c66b83b9dd01a",
+      "contracts/credential-readiness/response.schema.json": "696a265bd28508c661922808c703fcd653a9944164ec210d7c42ab33af214756",
+      "contracts/credential-readiness/vectors.json": "a4e342c15c1052015615f7006b931d873f3bf98bd212a3006403bf9101c45d29",
+      "contracts/device-credential/codec.py": "69aa7463b5bf22e2847008d721bf64d66493710c2b5b3c38e263c05ac512e752",
+      "contracts/usb-bench/contract.json": "acb95dd3608ff11d55bd67c5b307d9fd55f06e32f1f04abad525ab8507d84dc1",
+      "contracts/usb-bench/response.schema.json": "88790c0b752faa9921dc05b120502dff3c750976bca906d07954e17ed6620ddc",
+      "contracts/usb-bench/vectors.json": "ad4c49a23500c9bd4bf4ed3687b6522dd7be6cc1c91149a214692776dd53dc8a",
+      "credential-delivery.lock.json": "d4aa58cf1d71fd7204229499915ff5889cb0e115f8d7786cc51263faf0864d9b",
+      "credential-inspection.lock.json": "b843d64dcd323b144d481ec15909eecdd4a556e01531e343e8da5079f5dfd79c",
+      "credential-installation.lock.json": "ec7b7f244260b457cc202b8ef3276b9c6db490fbc4d04eeeb152e597196cd22c",
+      "credential-layout.lock.json": "20d90cd13aa61a10b2c9f49dc5fa0d009814a98a44c5d68d087a35f38bc4c7d3",
+      "credential-readiness.lock.json": "a0e002a5e3d90af704dd055cf85b6df0592321ee8b733807baf12a9c64a28074",
+      "device-credential.lock.json": "8d1a40c2388002c2bb5d546b580715bd58f321ab0d6dddde2674ba1ca292a0d0",
+      "tools/authority_inspection.py": "d5caa9e3c40c2c9734a618bccc336680d211931c7b99b24a0cf7151e3e78c170",
+      "tools/authority_layout_manifest.py": "4019185cea563cc092f8aa5f9e831aacbb69b8f21f8a2932ad6f7a326d018eab",
+      "tools/authority_preparation.py": "7d360fb269e94e75c56a3cae3bff8ec3de22445e3b7ae612233aef826cef74b2",
+      "tools/client_storage_manifest.py": "4349bcb283b8f9ec7b4f25ddca1b0da82c9e373c51517b2aa31cf5007b89defe",
+      "tools/control_storage_manifest.py": "ee8064907cfc42bb13f334abe1a7360d63d06b08be81a6e56334f1dab0eb3fe2",
+      "tools/credential_delivery.py": "b56d83337ff3ee9f45fdcdfa508cbe0bc36a424ab073893789ec20c95a217c36",
+      "tools/credential_inspection.py": "e760705d2659541cf348f788b8ba5578bb38731d2a0ff45c9027f7e532fe29e0",
+      "tools/credential_installation.py": "e30e4d2c8d846e57ba776ee4319fc7a8627014fb746dfb51333d515c2e0c4465",
+      "tools/credential_layout_manifest.py": "f0e7026373e9b8da62a16885bec99f27a95334109331c0d4c7da41e513f01afc",
+      "tools/credential_readiness.py": "31cd841e1e2a2b22a37b66a8e7177632a1bdbc543fcca0e7d37a3e1b186f396a",
+      "tools/linker/credential_reservation.ld": "632eae7afadb681dd5e6536e66c290791837a2eaad2cd5d9c2cee94e07853201",
+      "tools/rtc2_observe.py": "e232df727a36e75b750203525a93362d8b48b2119e1141640af403b9e63c655e",
+      "tools/startup_diagnostics.py": "93c3bbdf3564de7866cece952345c124aa9d6f11902429220a13ff922f0e3962",
+      "tools/validate_image.py": "46dff930a192f8ee828b206578a238d03f27cf529561cdadd8dd9706251e8a0c",
+      "tools/verify_authority_layout.py": "6158b04d6278b5785d289f6a2e6eddf3054a58528a818a106d52444a0db42bdb",
+      "tools/verify_authority_storage.py": "8d5347e5cc6daf59f21e5b002b44fbf7c5d5c5570b103fa94d5f30f060c776ef",
+      "tools/verify_credential_delivery.py": "bae835ff09c8974a6d8ca46c1eef43c019e762fe512fb939fa41a3b85a9dafee",
+      "tools/verify_credential_inspection.py": "565622170a5168a0fa44c68ec2193be88e3969058fd3a320629257148a5f1b4a",
+      "tools/verify_credential_installation.py": "cb5f9d524632d028c8d6ecd8ba13dd9e444ec1901f5a0c22e30273d3c6340efe",
+      "tools/verify_credential_layout.py": "6fc237c30fda57b4461935b6e580da8e344d7d6e509666bf1172dc9b4145712f",
+      "tools/verify_credential_readiness.py": "f3d21f7e12dd9569c98a21b50c313aaf01f2bfc84bb6410cb4a8f59c68e6cdab",
+      "tools/verify_device_authority.py": "6ae6200f45c6e8ca9668ab0fe32bf905890f7f264bfd6fce98bd6426a4ee1810",
+      "tools/verify_device_credential.py": "c49836c88bd60e8b96c6d090db361b22bf9a8df8b4d75c2e2ef6ef7cdf1e4136",
+      "usb-bench.lock.json": "dbc70680b66b5934da4068d57a8b6f18d5ee30b05e27ad2bd3d98f8fd6e195e6"
+    }
+  },
+  "capabilities": [
+    "usb.p1.identity-proof",
+    "usb.p1.authority-inspection.v1",
+    "usb.p1.authority-preparation.v1"
+  ],
+  "builds": [
+    {
+      "role": "Link",
+      "version": "0.4.0",
+      "source": "3f28cd50ae171372b4c4edfddf2bcfafa8edb065581ea4b60d2397933a42ebfd",
+      "artifact": "591568a072fc9d850ea23fcb39cd04113ea1bcc3c25f5e3ec3a215824bb049f1"
+    },
+    {
+      "role": "Core",
+      "version": "0.4.0",
+      "source": "3f28cd50ae171372b4c4edfddf2bcfafa8edb065581ea4b60d2397933a42ebfd",
+      "artifact": "68e45b30edc976d2880070b1878ea1c91fb0f6eb518f4db360132ebdba2c3026"
+    }
+  ],
+  "prerequisites": [
+    "Use this separate maintenance procedure for a provisioned development board with a verified registry key and a matching role build.",
+    "Use normal USB mode with the selected board powered and its Bluetooth session disconnected.",
+    "New device provisioning inspects blank storage automatically. The first LINK and CORE already returned blank on both reads."
+  ],
+  "steps": [
+    {
+      "number": 1,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Select the device and exact compatible firmware build.",
+      "expected": "Record its registry identity, role, source and artifact.",
+      "evidence": [
+        "Record its registry identity, role, source and artifact."
+      ]
+    },
+    {
+      "number": 2,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Save the started attempt locally.",
+      "expected": "The selected guide, runner, Workshop and firmware bindings are durable before USB.",
+      "evidence": [
+        "The selected guide, runner, Workshop and firmware bindings are durable before USB."
+      ]
+    },
+    {
+      "number": 3,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Connect the selected device in application mode.",
+      "expected": "Record the connection acknowledgement or cancellation.",
+      "evidence": [
+        "Record the connection acknowledgement or cancellation."
+      ]
+    },
+    {
+      "number": 4,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Inspect all six pages. If Workshop identifies a catalogued disposable image, check the serial, boot, firmware and digest before confirming Prepare.",
+      "expected": "Blank storage completes with zero erases. Only an exact disposable image can be approved. A confirmed erase requires a signed same-boot readback of the full blank region.",
+      "evidence": [
+        "Blank storage completes with zero erases. Only an exact disposable image can be approved. A confirmed erase requires a signed same-boot readback of the full blank region."
+      ]
+    },
+    {
+      "number": 5,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Review the maintenance result and save your observation.",
+      "expected": "The report identifies the selected board and distinguishes a blank region from six verified erases.",
+      "evidence": [
+        "The report identifies the selected board and distinguishes a blank region from six verified erases."
+      ]
+    },
+    {
+      "number": 6,
+      "actor": "runner",
+      "evaluation": "automatic",
+      "action": "Save and reopen the report.",
+      "expected": "The exact attempt and evidence survive reopening.",
+      "evidence": [
+        "The exact attempt and evidence survive reopening."
+      ]
+    },
+    {
+      "number": 7,
+      "actor": "tester",
+      "evaluation": "observation",
+      "action": "Export the reopened report.",
+      "expected": "Record the export outcome and retain the private local attempt.",
+      "evidence": [
+        "Record the export outcome and retain the private local attempt."
+      ]
+    }
+  ],
+  "rules": {
+    "pass": "All three banks and the full-region digest verify blank. The report specifies whether the region was already blank or prepared after consent.",
+    "fail": "Any unverified write or readback requires a separate read-only inspection.",
+    "blocked": "Unknown data, authority history, missing capability or identity evidence must be preserved for review.",
+    "incomplete": "Keep interrupted or cancelled attempts. Reinspect before deciding whether fresh approval is possible.",
+    "limits": "Only the two documented software fixture images are catalogued. Ordinary firmware updates use Existing device."
+  },
+  "range": {
+    "start": 921600,
+    "end_exclusive": 946176,
+    "page_size": 4096
+  },
+  "disposable_images": {
+    "Link": {
+      "name": "Link six-page disposable lab fixture v1",
+      "sha256": "d859f705bc0fdbf08d0747a477944359c71a17432707014e34d800eb4518f8f7"
+    },
+    "Core": {
+      "name": "Core six-page disposable lab fixture v1",
+      "sha256": "f9902a8d5e4ca99a624a22c6be2e9b3519532d142f400ddc764b43612d177ad8"
+    }
+  }
+}

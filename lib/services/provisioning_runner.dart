@@ -20,6 +20,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     this.evidenceRoot, {
     this.timeout = const Duration(seconds: 90),
     this.updateProofProgram,
+    this.factoryInspectionGuide,
     Future<Process> Function(String, List<String>)? startProcess,
     Future<String> Function(File) fileDigest = _fileDigest,
   }) : _digest = fileDigest,
@@ -35,6 +36,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
   final Directory evidenceRoot;
   final Duration timeout;
   final String? updateProofProgram;
+  final BenchDefinition? factoryInspectionGuide;
   final Future<Process> Function(String, List<String>) _startProcess;
   static Future<String> _fileDigest(File file) async =>
       sha256.convert(await file.readAsBytes()).toString();
@@ -87,6 +89,60 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
       if (await _digest(File('$firmwareRoot/${entry.key}')) != entry.value) {
         throw const FormatException('USB provisioning contract hash mismatch');
       }
+    }
+  }
+
+  Future<void> _verifyRunnerFiles(Map<String, String> runnerPins) async {
+    await verifyContract();
+    for (final pin in runnerPins.entries) {
+      if (await _digest(File('$firmwareRoot/${pin.key}')) != pin.value) {
+        throw const FormatException(
+          'Identity procedure runner or contract revision differs',
+        );
+      }
+    }
+  }
+
+  Future<bool> supportsAuthorityInspection(BenchDefinition guide) async {
+    if (guide.snapshotDigest != BenchDefinition.authorityDigest) return false;
+    try {
+      await _verifyRunnerFiles(guide.runnerFiles);
+      for (final build in guide.builds) {
+        final process = await _startProcess(
+          '$firmwareRoot/build/bench-venv/bin/python',
+          [
+            '-B',
+            '$firmwareRoot/tools/authority_inspection.py',
+            '--check-image',
+          ],
+        );
+        final timer = Timer(timeout, () => process.kill(ProcessSignal.sigkill));
+        try {
+          final reply = process.stdout.transform(utf8.decoder).join();
+          final errors = process.stderr.drain<void>();
+          process.stdin.write(
+            jsonEncode({
+              'role': build.role,
+              'source': build.source,
+              'artifact': build.artifact,
+            }),
+          );
+          await process.stdin.close();
+          final output = await reply;
+          await errors;
+          final replyBody = await process.exitCode == 0
+              ? jsonDecode(output)
+              : null;
+          if (replyBody is! Json || replyBody['compatible'] != true) {
+            return false;
+          }
+        } finally {
+          timer.cancel();
+        }
+      }
+      return true;
+    } on Exception {
+      return false;
     }
   }
 
@@ -608,6 +664,144 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     }
   }
 
+  // Computed independently from the erased bytes of all six 4 KiB pages.
+  static final String _blankAuthorityDigest = sha256
+      .convert(List<int>.filled(6 * 4096, 0xff))
+      .toString();
+
+  Future<Json> readAuthority(
+    String account,
+    ProvisionedIdentityRead read,
+    String publicKey, {
+    void Function(Json)? onDiagnostic,
+  }) async {
+    if (read.definition.snapshotDigest != BenchDefinition.authorityDigest) {
+      throw const BenchBlocked('Select the reviewed authority inspection.');
+    }
+    return _readAuthority(
+      account,
+      read.inspectionParameters(publicKey),
+      read.definition,
+      onDiagnostic,
+    );
+  }
+
+  Future<Json> _readAuthority(
+    String account,
+    Json selection,
+    BenchDefinition guide,
+    void Function(Json)? onDiagnostic,
+  ) async {
+    final result = await _execute(
+      account,
+      'authority-inspection',
+      selection,
+      guide.runnerFiles,
+      onDiagnostic,
+    );
+    final rows = result['observations'] as List;
+    if (rows case [
+      {'before_proof': final Json before},
+      {'scan': 1, 'frame': final Json first},
+      {'scan': 2, 'frame': final Json second},
+      {'after_proof': final Json after},
+      {'result': final Json summary},
+    ]) {
+      _checkBoundProofs(selection, before, after);
+      const states = {
+        2: 'blank',
+        3: 'existing',
+        4: 'interrupted',
+        5: 'unknown',
+        6: 'review',
+      };
+      final state = states[first['state']];
+      final banks = first['banks'];
+      if (state != null &&
+          banks is List &&
+          banks.length == 3 &&
+          banks.every(states.containsKey) &&
+          (state != 'blank' ||
+              (banks.every((bank) => bank == 2) &&
+                  summary['sha256'] == _blankAuthorityDigest)) &&
+          summary['classification'] == state &&
+          jsonEncode(summary['banks']) ==
+              jsonEncode(banks.map((bank) => states[bank]).toList()) &&
+          summary['definition'] == 'c852-authority-inspection.v1' &&
+          summary['revision'] == 1 &&
+          summary['outcome'] == 'passed' &&
+          summary['role'] == selection['role'] &&
+          summary['hardware'] == selection['hardware'] &&
+          summary['serial'] == selection['serial'] &&
+          summary['boot'] == before['boot'] &&
+          summary['build'] == selection['source'] &&
+          summary['artifact'] == selection['artifact'] &&
+          summary['sha256'] is String &&
+          hexId(summary['sha256'] as String, 64) &&
+          first['request'] != second['request'] &&
+          [first, second].every(
+            (scan) =>
+                scan['type'] == 'authority_storage' &&
+                scan['inspection_version'] == 1 &&
+                scan['busy'] == false &&
+                scan['request'] is int &&
+                scan['request'] > 0 &&
+                scan['boot'] == before['boot'] &&
+                scan['role'] == selection['role'] &&
+                scan['hardware'] == selection['hardware'] &&
+                scan['build'] == selection['source'] &&
+                scan['state'] == first['state'] &&
+                jsonEncode(scan['banks']) == jsonEncode(banks) &&
+                scan['sha256'] == summary['sha256'],
+          )) {
+        return {...summary, ...result};
+      }
+    }
+    throw const ProvisioningFailure(
+      'Authority storage reads did not confirm one stable result for this board.',
+    );
+  }
+
+  void _checkObservationProofs(
+    ProvisionedIdentityRead read,
+    String publicKey,
+    Json before,
+    Json after,
+  ) {
+    _checkBoundProofs(read.inspectionParameters(publicKey), before, after);
+  }
+
+  void _checkBoundProofs(Json selection, Json before, Json after) {
+    for (final proof in [before, after]) {
+      if (proof['state'] != 'ready' ||
+          proof['busy'] != false ||
+          proof['failed'] != false ||
+          [
+            'device_id',
+            'serial',
+            'article_id',
+            'article_revision_id',
+            'role',
+            'hardware',
+            'public_key',
+          ].any((key) => proof[key] != selection[key]) ||
+          proof['build'] != selection['source'] ||
+          !hexId(proof['boot'] as String? ?? '', 32) ||
+          !hexId(proof['signature'] as String? ?? '', 128) ||
+          !hexId(proof['challenge'] as String? ?? '', 64)) {
+        throw const ProvisioningFailure(
+          'USB identity proof differs from the selected device.',
+        );
+      }
+    }
+    if (after['boot'] != before['boot'] ||
+        before['challenge'] == after['challenge']) {
+      throw const ProvisioningFailure(
+        'USB proofs require fresh challenges on one boot.',
+      );
+    }
+  }
+
   Future<Json> readRtc2(
     String account,
     ProvisionedIdentityRead read,
@@ -643,26 +837,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         'RTC2 result differs from the selected test or build.',
       );
     }
-    for (final proof in [before, after]) {
-      read.checkRegistryIdentity(proof);
-      if (proof['role'] != read.build.role ||
-          proof['build'] != read.build.source ||
-          proof['hardware'] != read.device.hardwareUid ||
-          proof['public_key'] != publicKey ||
-          !hexId(proof['boot'] as String? ?? '', 32) ||
-          !hexId(proof['signature'] as String? ?? '', 128) ||
-          !hexId(proof['challenge'] as String? ?? '', 64)) {
-        throw const ProvisioningFailure(
-          'RTC2 identity proof differs from the selected device.',
-        );
-      }
-    }
-    if (after['boot'] != before['boot'] ||
-        before['challenge'] == after['challenge']) {
-      throw const ProvisioningFailure(
-        'RTC2 proofs require fresh challenges on one boot.',
-      );
-    }
+    _checkObservationProofs(read, publicKey, before, after);
     final samples = rows.sublist(2, rows.length - 2);
     Json? first, last;
     var idleRequested = false;
@@ -1132,6 +1307,126 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     return result;
   }
 
+  Future<Json> _prepareAuthority(
+    String account,
+    ProvisionedIdentityRead read,
+    String publicKey,
+    String attemptId,
+    Future<Json> Function(Json) confirm,
+    void Function(Json)? onDiagnostic,
+  ) async {
+    final guide = read.definition;
+    final selection = read.inspectionParameters(publicKey);
+    final image = guide.guide['disposable_images'][read.build.role] as Json;
+    final region = guide.guide['range'] as Json;
+    Json? approved;
+    bool same(Object? a, Object? b) {
+      if (a is Map && b is Map) {
+        return a.length == b.length &&
+            a.keys.every((k) => b.containsKey(k) && same(a[k], b[k]));
+      }
+      if (a is List && b is List) {
+        return a.length == b.length &&
+            List.generate(a.length, (i) => i).every((i) => same(a[i], b[i]));
+      }
+      return a == b;
+    }
+
+    bool bound(Json r) {
+      final seen = r['inspection'];
+      return r['attempt_id'] == attemptId &&
+          same(r['selection'], selection) &&
+          same(r['range'], region) &&
+          r['image'] == image['name'] &&
+          r['ticket'] is int &&
+          r['ticket'] > 0 &&
+          seen is Json &&
+          seen['outcome'] == 'passed' &&
+          seen['revision'] == 1 &&
+          seen['definition'] == 'c852-authority-inspection.v1' &&
+          seen['serial'] == read.device.serial &&
+          seen['role'] == read.build.role &&
+          seen['hardware'] == read.device.hardwareUid &&
+          seen['build'] == read.build.source &&
+          seen['artifact'] == read.build.artifact &&
+          hexId(seen['boot'] as String? ?? '', 32);
+    }
+
+    bool erased(Json seen) =>
+        seen['classification'] == 'blank' &&
+        same(seen['banks'], ['blank', 'blank', 'blank']) &&
+        seen['sha256'] == _blankAuthorityDigest;
+    final result = await _execute(
+      account,
+      'authority-preparation',
+      {'attempt_id': attemptId, 'selection': selection},
+      guide.runnerFiles,
+      onDiagnostic,
+      (review) async {
+        if (!bound(review) ||
+            review['inspection']['sha256'] != image['sha256'] ||
+            review['inspection']['classification'] != 'unknown' ||
+            !same(review['inspection']['banks'], [
+              'unknown',
+              'unknown',
+              'unknown',
+            ]) ||
+            review['expires_ms'] != 25000 ||
+            !hexId(review['review_token'] as String? ?? '', 64)) {
+          throw const ProvisioningFailure(
+            'Storage is ineligible for preparation.',
+          );
+        }
+        final reply = await confirm(review);
+        if (reply['confirm'] == true &&
+            reply['review_token'] == review['review_token']) {
+          approved = Map.of(review)
+            ..remove('expires_ms')
+            ..remove('review_token');
+        }
+        return reply;
+      },
+    );
+    final review = result['review'];
+    if (review is! Json || !bound(review)) {
+      throw const ProvisioningFailure(
+        'Preparation result belongs to a different review.',
+      );
+    }
+    if (result['outcome'] == 'cancelled') throw BenchCancelled();
+    if (result['outcome'] == 'preserved' && result['passed'] == false) {
+      throw const BenchBlocked(
+        'Storage preserved for review. The bytes differ from the approved disposable image.',
+      );
+    }
+    final original = Map<String, dynamic>.of(review);
+    final after = original.remove('after');
+    final alreadyBlank =
+        result['outcome'] == 'already_blank' &&
+        approved == null &&
+        after == null &&
+        erased(review['inspection'] as Json);
+    final prepared =
+        result['outcome'] == 'prepared' &&
+        approved != null &&
+        same(original, approved) &&
+        after is Json &&
+        erased(after) &&
+        bound({...original, 'inspection': after}) &&
+        after['boot'] == review['inspection']['boot'];
+    if (result['passed'] != true || !(alreadyBlank || prepared)) {
+      throw const ProvisioningFailure(
+        'Six-page blank readback did not verify. Inspect before recovery.',
+      );
+    }
+    return {
+      ...result,
+      'state': alreadyBlank
+          ? 'Already blank · zero erases'
+          : 'Prepared · six pages verified',
+    };
+  }
+
   Future<Json> readBenchPreparation(
     String account,
     ProvisionedIdentityRead read,
@@ -1140,6 +1435,17 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     Future<Json> Function(Json) confirm, {
     void Function(Json)? onDiagnostic,
   }) async {
+    if (read.definition.snapshotDigest ==
+        BenchDefinition.authorityPreparationDigest) {
+      return _prepareAuthority(
+        account,
+        read,
+        publicKey,
+        attemptId,
+        confirm,
+        onDiagnostic,
+      );
+    }
     Json? reviewed;
     final result = await _execute(
       account,
@@ -1234,7 +1540,19 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     required String account,
     required String command,
     Json parameters = const {},
-  }) => _execute(account, command, parameters, const {});
+  }) async {
+    if (command == 'factory-authority-inspection') {
+      final guide = factoryInspectionGuide;
+      if (guide == null ||
+          guide.snapshotDigest != BenchDefinition.authorityDigest) {
+        throw const ProvisioningFailure(
+          'Factory authority inspection is unavailable.',
+        );
+      }
+      return _readAuthority(account, parameters, guide, null);
+    }
+    return _execute(account, command, parameters, const {});
+  }
 
   Future<Json> _execute(
     String account,
@@ -1261,6 +1579,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           'credential-inspection',
           'credential-readiness',
           'startup-diagnostics',
+          'authority-inspection',
           'rtc2-observe',
           'connection-bench',
           'connection-recovery',
@@ -1270,6 +1589,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
           'credential-delivery',
           'credential-installation',
           'credential-preparation',
+          'authority-preparation',
           'update-proof',
         }.contains(command)) {
       throw const FormatException('Invalid provisioning request');
@@ -1283,10 +1603,13 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         'Update proof adapter differs from the reviewed version',
       );
     }
-    final args = command == 'credential-preparation'
+    final authorityMaintenance = command == 'authority-preparation';
+    final args = authorityMaintenance || command == 'credential-preparation'
         ? [
             '-B',
-            '$firmwareRoot/tools/credential_preparation.py',
+            authorityMaintenance
+                ? '$firmwareRoot/tools/authority_preparation.py'
+                : '$firmwareRoot/tools/credential_preparation.py',
             '--evidence-root',
             '${evidenceRoot.path}/$account/usb',
           ]
@@ -1304,6 +1627,8 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
             '-B',
             '$firmwareRoot/tools/${command == 'connection-recovery' ? 'connection_recovery.py' : 'connection_bench.py'}',
           ]
+        : command == 'authority-inspection'
+        ? ['-B', '$firmwareRoot/tools/authority_inspection.py']
         : command == 'rtc2-observe'
         ? ['-B', '$firmwareRoot/tools/rtc2_observe.py', 'quick']
         : command == 'startup-diagnostics'
@@ -1323,6 +1648,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         : ['-B', '$firmwareRoot/tools/provision.py', command];
     String? input;
     if (pairedCommand ||
+        command == 'authority-inspection' ||
         command == 'rtc2-observe' ||
         command == 'startup-diagnostics' ||
         command == 'crypto-probe' ||
@@ -1333,6 +1659,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         command == 'credential-delivery' ||
         command == 'credential-installation' ||
         command == 'credential-preparation' ||
+        authorityMaintenance ||
         command == 'update-proof') {
       input = jsonEncode(parameters);
       if (utf8.encode(input).length > 8192) {
@@ -1420,14 +1747,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
     var acceptingConfirmation = true;
     try {
       try {
-        await verifyContract();
-        for (final pin in runnerPins.entries) {
-          if (await _digest(File('$firmwareRoot/${pin.key}')) != pin.value) {
-            throw const FormatException(
-              'Identity procedure runner or contract revision differs',
-            );
-          }
-        }
+        await _verifyRunnerFiles(runnerPins);
       } on Object catch (e) {
         if (runnerPins.isNotEmpty) {
           throw BenchBlocked('Pinned runner unavailable: $e');
@@ -1501,7 +1821,14 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
                       process.kill();
                     });
               } else if (frame['event'] == 'result') {
-                if (reviews != 1 || resultReceived) {
+                final noWrite =
+                    authorityMaintenance &&
+                    reviews == 0 &&
+                    {
+                      'already_blank',
+                      'preserved',
+                    }.contains(frame['data']['outcome']);
+                if ((reviews != 1 && !noWrite) || resultReceived) {
                   throw const FormatException('Unexpected installation result');
                 }
                 resultReceived = true;
@@ -1574,6 +1901,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         if (command == 'identity' ||
             command == 'credential-inspection' ||
             command == 'credential-readiness' ||
+            command == 'authority-inspection' ||
             command == 'rtc2-observe' ||
             command == 'startup-diagnostics' ||
             command == 'crypto-probe' ||
@@ -1582,6 +1910,7 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
             command == 'credential-delivery' ||
             command == 'credential-installation' ||
             command == 'credential-preparation' ||
+            authorityMaintenance ||
             command == 'update-proof') {
           final error = utf8.decode(
             output[1] as List<int>,
@@ -1631,7 +1960,9 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
         );
       }
       final decoded = utf8.decode(output[0] as List<int>);
-      if (command == 'rtc2-observe' || pairedCommand) {
+      if (command == 'rtc2-observe' ||
+          command == 'authority-inspection' ||
+          pairedCommand) {
         return {
           'observations': [
             for (final line in const LineSplitter().convert(decoded))
@@ -1642,7 +1973,10 @@ final class ProcessProvisioningRunner implements ProvisioningRunner {
       final events = interactive
           ? const LineSplitter().convert(decoded)
           : <String>[];
-      if (interactive && (reviews != 1 || events.length != 2)) {
+      if (interactive &&
+          (!resultReceived ||
+              events.length != reviews + 1 ||
+              (reviews != 1 && !authorityMaintenance))) {
         throw const FormatException('Installation events are incomplete');
       }
       final result = interactive

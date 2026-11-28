@@ -89,6 +89,7 @@ void main() {
         expect(runner.commands, [
           'inspect-storage',
           'provision',
+          'factory-authority-inspection',
           'inspect-control-storage',
         ]);
         expect(gateway.completes, 0);

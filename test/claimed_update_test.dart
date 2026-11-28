@@ -282,6 +282,32 @@ void main() {
     expect(update.guide['after_artifact'], next.artifact);
   });
 
+  test(
+    'inspection update binds the prior CORE and the new qualified artifact',
+    () {
+      final previous = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.recoveryAsset).readAsStringSync(),
+      );
+      definition = BenchDefinition.fromSnapshot(
+        File(BenchDefinition.authorityAsset).readAsStringSync(),
+      );
+      final selected = definition.builds.singleWhere(
+        (build) => build.role == 'Core',
+      );
+      final update = session(
+        snapshot: File('assets/bench/claimed-firmware-update.v12.json')
+            .readAsStringSync(),
+      );
+      expect(
+        update.guide['before_source'],
+        previous.builds.singleWhere((build) => build.role == 'Core').source,
+      );
+      expect(update.guide['after_source'], selected.source);
+      expect(update.guide['after_artifact'], selected.artifact);
+      expect(update.guide['revision'], 12);
+    },
+  );
+
   test('Recovery update starts on the permanent-pair image and selects the recovery CORE build', () {
     final update = session(
       snapshot: File('assets/bench/claimed-firmware-update.v11.json')

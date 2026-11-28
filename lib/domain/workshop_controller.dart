@@ -669,6 +669,34 @@ final class WorkshopController extends ChangeNotifier {
           // It cannot be uploaded until the distinct control inspection completes.
           await retain(report);
           _provisionCheckpoint(epoch);
+          _stage('Checking all six authority storage pages…');
+          final after = report['after'] as Json;
+          final selection = <String, dynamic>{
+            for (final key in [
+              'device_id',
+              'serial',
+              'article_id',
+              'article_revision_id',
+              'hardware',
+              'source',
+              'artifact',
+            ])
+              key: attempt[key],
+            'role': article.role,
+            'public_key': after['public_key'],
+          };
+          final authority = await provisioner!.execute(
+            account: account,
+            command: 'factory-authority-inspection',
+            parameters: selection,
+          );
+          _provisionCheckpoint(epoch);
+          if (authority['classification'] != 'blank' ||
+              !hexId(authority['boot'] as String? ?? '', 32)) {
+            throw const ProvisioningFailure(
+              'Authority storage needs review. Keep this board with its reservation for a factory storage review.',
+            );
+          }
           _stage('Inspecting control storage…');
           final control = await inspect(
             'inspect-control-storage',
@@ -720,7 +748,11 @@ final class WorkshopController extends ChangeNotifier {
         await retain(report);
         if (epoch != _epoch) return;
         _provisionCheckpoint(epoch);
-        await journal.confirmControlStorage(account, record!);
+        // An already-completed server attempt can be reconciled after a crash.
+        // Only a run which actually checked both stores earns a local receipt.
+        if (attempt['state'] == 'started') {
+          await journal.confirmControlStorage(account, record!);
+        }
         _provisionCheckpoint(epoch);
         _stage('Confirming provisioning with the server…');
         await backend.completeProvisioning(
@@ -759,7 +791,7 @@ final class WorkshopController extends ChangeNotifier {
           if (record['requires_control_storage'] == true &&
               !await journal.controlStorageConfirmed(account, record)) {
             throw const ProvisioningFailure(
-              'Control storage verification is pending. Use Verify and provision with the device in normal USB mode before uploading.',
+              'Control storage verification is pending, or the authority inspection is missing. Use Verify and provision with the device in normal USB mode before uploading.',
             );
           }
           final report = record['report'] as Json;

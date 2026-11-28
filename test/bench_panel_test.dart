@@ -263,7 +263,7 @@ void main() {
       expect(f.seenDiscovery, isFalse);
     },
   );
-  for (final mode in ['install', 'stop', 'prepare']) {
+  for (final mode in ['install', 'stop', 'prepare', 'authority']) {
     testWidgets(
       '$mode shows a separate enabled confirmation during the running action',
       (t) async {
@@ -276,6 +276,10 @@ void main() {
         f.preparation = BenchDefinition.fromSnapshot(
           File(BenchDefinition.preparationAsset).readAsStringSync(),
         );
+        f.authorityPreparation = BenchDefinition.fromSnapshot(
+          File(BenchDefinition.authorityPreparationAsset).readAsStringSync(),
+        );
+        final preparing = mode == 'prepare' || mode == 'authority';
         var writes = 0;
         f.installReader =
             (a, r, k, credential, id, fault, confirm, {onDiagnostic}) async {
@@ -304,7 +308,14 @@ void main() {
           final answer = await confirm({
             'review_token': 'aa' * 32,
             'expires_ms': 25000,
+            'selection': {
+              'serial': r.device.serial,
+              'hardware': 'abcd',
+              'source': r.build.source,
+            },
+            'image': 'LINK fixture',
             'inspection': {
+              'boot': 'ef01',
               'identity_proof': {'serial': r.device.serial},
               'role': r.build.role,
               'sha256': 'dd' * 32,
@@ -313,11 +324,14 @@ void main() {
           if (answer['confirm'] != true) throw BenchCancelled();
           writes++;
           return {
+            if (mode == 'authority') 'state': 'prepared',
             'preparation_result': {'state': 'blank'},
           };
         };
         await show(t);
-        final definition = mode == 'prepare'
+        final definition = mode == 'authority'
+            ? f.authorityPreparation!
+            : mode == 'prepare'
             ? f.preparation!
             : mode == 'stop'
             ? f.intentStop!
@@ -328,7 +342,7 @@ void main() {
         await t.pumpAndSettle();
         await tap(t, 'Start guided test');
         final connect = find.text(
-          mode == 'prepare'
+          preparing
               ? 'USB connected · inspect for preparation'
               : 'USB connected · verify for installation',
         );
@@ -340,7 +354,7 @@ void main() {
         expect(writes, 0);
         final confirm = find.widgetWithText(
           FilledButton,
-          mode == 'prepare'
+          preparing
               ? 'Confirm preparation'
               : mode == 'stop'
               ? 'Confirm controlled stop'
@@ -354,7 +368,9 @@ void main() {
         expect(controller.bench!.report!['steps'][3]['status'], 'Passed');
         expect(
           find.textContaining(
-            mode == 'prepare'
+            mode == 'authority'
+                ? 'Authority storage · prepared'
+                : mode == 'prepare'
                 ? 'Preparation result · blank'
                 : mode == 'stop'
                 ? 'Installation result · pending'
@@ -362,6 +378,10 @@ void main() {
           ),
           findsOneWidget,
         );
+        if (mode == 'authority') {
+          await tap(t, 'I reviewed the results');
+          expect(controller.bench!.report!['outcome'], 'Awaiting export');
+        }
       },
     );
   }

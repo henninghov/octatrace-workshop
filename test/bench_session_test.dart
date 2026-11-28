@@ -101,6 +101,7 @@ void main() {
     await expectLater(s.export(out.path), throwsStateError);
     await f.connected(s);
     expect(s.next, 5);
+    await expectLater(s.reviewStartupResults(), throwsStateError);
     await expectLater(f.connected(s), throwsStateError);
     await expectLater(s.observe('  '), throwsFormatException);
     await s.observe(' D000000000001 ');

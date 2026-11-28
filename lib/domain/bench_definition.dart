@@ -33,6 +33,16 @@ final class BenchDefinition {
       key == 'c83-permanent-peer-handshake-device' || key == recoveryKey;
   static const pairedDigest =
       '0292bff31887e676c12bb978f404c1a41fb52fdec98d2992c07f45289b9e2459';
+  static const authorityAsset =
+      'assets/bench/c852-authority-inspection.v1.json';
+  static const authorityPreparationAsset =
+      'assets/bench/c853-authority-preparation.v1.json';
+  static const authorityPreparationKey = 'c853-authority-preparation-device';
+  static const authorityPreparationDigest =
+      '8496d7d4ff9aa7b9a49220405e110cd02b693f7eefaa353d5115c9b7add00cc1';
+  static const authorityKey = 'c852-authority-inspection-device';
+  static const authorityDigest =
+      'dbf267bcc97f61a4bbf6734fc9dd1c888162fbdd5c304d7d44f468e7678074fa';
   static const rtc2Asset = 'assets/bench/c83-rtc2-observation.v2.json';
   static const legacyRtc2Asset = 'assets/bench/c83-rtc2-observation.v1.json';
   static const legacyRtc2Digest =
@@ -88,6 +98,8 @@ final class BenchDefinition {
         snapshotDigest != cryptoReentryDigest &&
         snapshotDigest != pairedDigest &&
         snapshotDigest != recoveryDigest &&
+        snapshotDigest != authorityDigest &&
+        snapshotDigest != authorityPreparationDigest &&
         snapshotDigest != rtc2Digest &&
         snapshotDigest != legacyRtc2Digest &&
         snapshotDigest != cryptoKeysDigest &&

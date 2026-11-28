@@ -126,6 +126,7 @@ void main() {
         'inspect-storage',
         'prepare-storage',
         'provision',
+        'factory-authority-inspection',
         'inspect-control-storage',
       ]);
       expect(runner.received!['inspection_token'], 'd' * 64);

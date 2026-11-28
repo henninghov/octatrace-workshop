@@ -52,6 +52,7 @@ final class ClaimedUpdateSession {
       'b3b61fe8a2d5f3b4d0db525fd36fc21c4c7486c98f5aa41f0f75e4393e582679',
       'e1a5bf79c6ece16a30b85b7278e69b87cd8c9151dfa7e1f23320ddfcd340983d',
       '1b0f31d41d881d832d4319f8c91208860b13505b81494d430a8b584b46ba0ba0',
+      'a5617e7cccb7df215693b281c089ab8c52ba0809a9c7185f109d586ea65cef71',
     }.contains(guideHash)) {
       throw const FormatException('Unknown firmware update guide');
     }

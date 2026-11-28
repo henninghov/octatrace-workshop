@@ -10,7 +10,7 @@ import 'support/bench_fixture.dart' as base;
 import 'widget_test.dart' as fixtures;
 
 void main() {
-  late BenchDefinition identity, probe, reentry, keys, rtc2;
+  late BenchDefinition identity, probe, reentry, keys, rtc2, authority;
   late base.BenchFixture fixture;
   setUp(() async {
     identity = BenchDefinition.fromSnapshot(
@@ -25,6 +25,9 @@ void main() {
     keys = BenchDefinition.fromSnapshot(
       File(BenchDefinition.cryptoKeysAsset).readAsStringSync(),
     );
+    authority = BenchDefinition.fromSnapshot(
+      File(BenchDefinition.authorityAsset).readAsStringSync(),
+    );
     rtc2 = BenchDefinition.fromSnapshot(
       File(BenchDefinition.rtc2Asset).readAsStringSync(),
     );
@@ -38,6 +41,7 @@ void main() {
     bool reentryTest = false,
     bool keysTest = false,
     bool clockTest = false,
+    bool authorityTest = false,
   }) =>
       BenchSession(
         fixtures.actor,
@@ -54,11 +58,15 @@ void main() {
         cryptoReentryDefinition: reentry,
         cryptoKeysDefinition: keys,
         readCryptoProbe: reader,
+        authorityDefinition: authority,
+        readAuthority: reader,
         rtc2Definition: rtc2,
         readRtc2: reader,
         lookupPublicKey: key ?? (device, article) async => '04${'11' * 64}',
       )..selectDefinition(
-        clockTest
+        authorityTest
+            ? authority
+            : clockTest
             ? rtc2
             : keysTest
             ? keys
@@ -66,6 +74,36 @@ void main() {
             ? reentry
             : probe,
       );
+
+  test('authority inspection retains the procedure, board and both scans in the export', () async {
+    final s = session(
+      authorityTest: true,
+      reader: (account, read, key, {onDiagnostic}) async {
+        expect(read.definition.snapshotDigest, authority.snapshotDigest);
+        return {
+          'outcome': 'passed',
+          'classification': 'unknown',
+          'sha256': 'ab' * 32,
+          'observations': [1, 2],
+        };
+      },
+    );
+    final d = fixture.registry.devices.single,
+        a = fixture.registry.articles.single;
+    await s.start(d, a);
+    await s.connected(d, a);
+    expect(s.report!['steps'][3]['status'], 'Passed');
+    await s.reviewStartupResults();
+    await s.export('/synthetic');
+    final report = await fixture.store.reopenBench(
+      fixtures.actor,
+      s.report!['id'],
+    );
+    expect(report['definition_sha256'], authority.snapshotDigest);
+    expect(report['device']['serial'], d.serial);
+    expect(report['steps'][3]['evidence']['frame']['observations'], [1, 2]);
+    expect(report['outcome'], 'Passed');
+  });
 
   test(
     'RTC2 records the quick observation under its own version and reopens it',

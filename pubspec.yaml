@@ -42,6 +42,8 @@ flutter:
     - assets/bench/c83-crypto-keys.v1.json
     - assets/bench/c83-rtc2-observation.v1.json
     - assets/bench/c83-rtc2-observation.v2.json
+    - assets/bench/c852-authority-inspection.v1.json
+    - assets/bench/c853-authority-preparation.v1.json
     - assets/bench/c83-permanent-peer-handshake.v1.json
     - assets/bench/c841-phone-link-discovery.v1.txt
     - assets/bench/c842-phone-link-identity.v1.txt
@@ -69,6 +71,7 @@ flutter:
     - assets/bench/claimed-firmware-update.v9.json
     - assets/bench/claimed-firmware-update.v10.json
     - assets/bench/claimed-firmware-update.v11.json
+    - assets/bench/claimed-firmware-update.v12.json
   fonts:
     - family: Excon
       fonts:

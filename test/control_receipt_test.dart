@@ -30,7 +30,7 @@ void main() {
       false,
     );
     final receipt = (await Directory(
-      '${root.path}/${f.actor}/control-confirmations',
+      '${root.path}/${f.actor}/factory-storage-confirmations-v1',
     ).list().toList()).whereType<File>().single;
     await receipt.writeAsString('damaged receipt');
     expect(await reopened.controlStorageConfirmed(f.actor, record), false);

@@ -87,6 +87,9 @@ class _BenchPanelState extends State<BenchPanel> {
     final startupDiagnostics =
         guide['key'] == 'cleanup-startup-diagnostics-device';
     final reentry = guide['key'] == 'c83-crypto-reentry-device';
+    final authority = guide['key'] == BenchDefinition.authorityKey;
+    final authorityPreparation =
+        guide['key'] == BenchDefinition.authorityPreparationKey;
     final rtc2 = guide['key'] == 'c83-rtc2-observation-device';
     final recovery = guide['key'] == BenchDefinition.recoveryKey;
     final paired = BenchDefinition.isPairedKey(guide['key']);
@@ -109,7 +112,7 @@ class _BenchPanelState extends State<BenchPanel> {
     final cryptoProbe =
         guide['key'] == 'c83-crypto-probe-device' || reentry || keys;
     final measuredDiagnostic =
-        startupDiagnostics || cryptoProbe || rtc2 || paired;
+        startupDiagnostics || cryptoProbe || rtc2 || authority || paired;
     final readiness = guide['key'] == 'c82-credential-startup-device';
     final inspection = guide['key'] == 'c82-credential-inspection-device';
     final delivery = guide['key'] == 'c822-credential-delivery-device';
@@ -117,7 +120,9 @@ class _BenchPanelState extends State<BenchPanel> {
       'c823-credential-installation-device',
       'c823-credential-intent-stop-device',
     }.contains(guide['key']);
-    final preparation = guide['key'] == 'c823-credential-preparation-device';
+    final preparation =
+        authorityPreparation ||
+        guide['key'] == 'c823-credential-preparation-device';
     final restartFlow =
         (installation || preparation || readiness) && guide['revision'] == 2;
     if (report?['id'] != restartAttempt) {
@@ -271,6 +276,8 @@ class _BenchPanelState extends State<BenchPanel> {
             s.cryptoKeysDefinition == null &&
             s.pairedDefinition == null &&
             s.recoveryDefinition == null &&
+            s.authorityDefinition == null &&
+            s.authorityPreparationDefinition == null &&
             s.rtc2Definition == null &&
             s.inspectionDefinition == null &&
             s.readinessDefinition == null &&
@@ -319,6 +326,9 @@ class _BenchPanelState extends State<BenchPanel> {
                   if (s.cryptoReentryDefinition != null)
                     s.cryptoReentryDefinition!,
                   if (s.cryptoKeysDefinition != null) s.cryptoKeysDefinition!,
+                  if (s.authorityDefinition != null) s.authorityDefinition!,
+                  if (s.authorityPreparationDefinition != null)
+                    s.authorityPreparationDefinition!,
                   if (s.rtc2Definition != null) s.rtc2Definition!,
                   if (s.pairedDefinition != null) s.pairedDefinition!,
                   if (s.recoveryDefinition != null) s.recoveryDefinition!,
@@ -496,6 +506,8 @@ class _BenchPanelState extends State<BenchPanel> {
             SelectableText(
               paired
                   ? "Confirmed with peer ${report['steps'][3]['evidence']['peer_device_id']} · attempt ${report['steps'][3]['evidence']['attempt']}"
+                  : authority
+                  ? "Authority storage · ${report['steps'][3]['evidence']['frame']['classification']} · SHA-256 ${report['steps'][3]['evidence']['frame']['sha256']}"
                   : measuredDiagnostic
                   ? "${rtc2
                         ? 'RTC2 observation'
@@ -506,6 +518,8 @@ class _BenchPanelState extends State<BenchPanel> {
                         : cryptoProbe
                         ? 'Crypto probe'
                         : 'Startup diagnostics'} · ${report['steps'][3]['evidence']['frame']['outcome']}"
+                  : authorityPreparation
+                  ? "Authority storage · ${report['steps'][3]['evidence']['frame']['state']}"
                   : preparation
                   ? "Preparation result · ${report['steps'][3]['evidence']['frame']['state']}"
                   : installation
@@ -731,11 +745,18 @@ class _BenchPanelState extends State<BenchPanel> {
                 style: theme.textTheme.titleMedium,
               ),
               SelectableText(
-                'Device ${review['inspection']['identity_proof']['serial']} · ${review['inspection']['role']}\n'
-                'Unknown storage SHA-256 ${review['inspection']['sha256']}',
+                authorityPreparation
+                    ? "Device ${review['selection']['serial']} · ${review['image']}\n"
+                          "USB ${review['selection']['hardware']} · boot ${review['inspection']['boot']}\n"
+                          "Firmware ${review['selection']['source']}\n"
+                          "Authority SHA-256 ${review['inspection']['sha256']}"
+                    : 'Device ${review['inspection']['identity_proof']['serial']} · ${review['inspection']['role']}\n'
+                          'Unknown storage SHA-256 ${review['inspection']['sha256']}',
               ),
-              const Text(
-                'Erase only the inspected unknown bytes in the credential reservation. Recognizable partial records are protected. Confirmation expires after 25 seconds.',
+              Text(
+                authorityPreparation
+                    ? 'Erase six 4 KiB authority pages (0xe1000–0xe6fff) on this board. Confirmation expires after 25 seconds.'
+                    : 'Erase only the inspected unknown bytes in the credential reservation. Recognizable partial records are protected. Confirmation expires after 25 seconds.',
               ),
               Wrap(
                 spacing: 12,
@@ -794,7 +815,7 @@ class _BenchPanelState extends State<BenchPanel> {
             ],
           ],
           if (next == 5) ...[
-            if (measuredDiagnostic) ...[
+            if (measuredDiagnostic || authorityPreparation) ...[
               const Text(
                 'Review the measured checks before saving your acknowledgement.',
               ),

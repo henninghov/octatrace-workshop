@@ -42,9 +42,13 @@ Future<void> main() async {
     evidenceRoot,
     updateLocks: Directory('${evidenceRoot.parent.path}/update-locks'),
   );
+  final authorityGuide = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.authorityAsset),
+  );
   final provisioner = ProcessProvisioningRunner(
     firmware,
     evidenceRoot,
+    factoryInspectionGuide: authorityGuide,
     updateProofProgram: await rootBundle.loadString(
       'assets/bench/claimed_update_proof.py',
     ),
@@ -73,6 +77,13 @@ Future<void> main() async {
   final pairedDefinition = BenchDefinition.fromSnapshot(
     await rootBundle.loadString(BenchDefinition.pairedAsset),
   );
+  final authorityPreparation = BenchDefinition.fromSnapshot(
+    await rootBundle.loadString(BenchDefinition.authorityPreparationAsset),
+  );
+  final authorityAvailable =
+      configured &&
+      firmware.isNotEmpty &&
+      await provisioner.supportsAuthorityInspection(authorityGuide);
   final rtc2Definition = BenchDefinition.fromSnapshot(
     await rootBundle.loadString(BenchDefinition.rtc2Asset),
   );
@@ -92,7 +103,9 @@ Future<void> main() async {
     await rootBundle.loadString(BenchDefinition.preparationAsset),
   );
   final updateGuide = await rootBundle.loadString(
-    'assets/bench/claimed-firmware-update.v11.json',
+    authorityAvailable
+        ? 'assets/bench/claimed-firmware-update.v12.json'
+        : 'assets/bench/claimed-firmware-update.v11.json',
   );
   final firmwareTestAdapter = await rootBundle.loadString(
     'tools/firmware_test_adapter.py',
@@ -134,7 +147,9 @@ Future<void> main() async {
                     runner: provisioner,
                     prove: provisioner.proveUpdateIdentity,
                     store: journal,
-                    definition: inspectionDefinition,
+                    definition: authorityAvailable
+                        ? authorityGuide
+                        : inspectionDefinition,
                     guideSnapshot: updateGuide,
                     newId: newRequestId,
                     now: DateTime.now,
@@ -162,6 +177,9 @@ Future<void> main() async {
                 pairedDefinition: pairedDefinition,
                 recoveryDefinition: recoveryDefinition,
                 readPair: provisioner.readPairedHandshake,
+                authorityDefinition: authorityAvailable ? authorityGuide : null,
+                authorityPreparationDefinition: authorityPreparation,
+                readAuthority: provisioner.readAuthority,
                 rtc2Definition: rtc2Definition,
                 readRtc2: provisioner.readRtc2,
                 cryptoKeysDefinition: cryptoKeysDefinition,

@@ -108,7 +108,7 @@ final class EvidenceJournal
 
   Future<File> _controlReceipt(String account, Json record) async {
     final dir = await _account(account);
-    final receipts = Directory('${dir.path}/control-confirmations');
+    final receipts = Directory('${dir.path}/factory-storage-confirmations-v1');
     await receipts.create(recursive: true);
     return File('${receipts.path}/${_key(jsonEncode(record))}.json');
   }

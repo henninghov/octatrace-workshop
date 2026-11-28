@@ -73,7 +73,7 @@ class BenchFixture {
   BenchDefinition? cryptoProbe, paired;
   InspectionReader? cryptoProbeReader;
   BenchDefinition? delivery;
-  BenchDefinition? installation, intentStop, preparation;
+  BenchDefinition? installation, intentStop, preparation, authorityPreparation;
   InstallationReader? installReader;
   PreparationReader? preparationReader;
   InspectionReader? readinessReader, inspectionReader;
@@ -134,6 +134,7 @@ class BenchFixture {
     installationDefinition: installation,
     intentStopDefinition: intentStop,
     preparationDefinition: preparation,
+    authorityPreparationDefinition: authorityPreparation,
     readInstallation: installReader,
     readPreparation: preparationReader,
     lookupCredential: (device, article, publicKey) async {

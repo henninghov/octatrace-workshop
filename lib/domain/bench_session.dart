@@ -100,10 +100,13 @@ final class BenchSession {
     this.cryptoProbeDefinition,
     this.cryptoReentryDefinition,
     this.cryptoKeysDefinition,
+    this.authorityDefinition,
+    this.authorityPreparationDefinition,
     this.rtc2Definition,
     this.pairedDefinition,
     this.recoveryDefinition,
     this.readPair,
+    this.readAuthority,
     this.readRtc2,
     this.readCryptoProbe,
     this.lookupPublicKey,
@@ -129,12 +132,14 @@ final class BenchSession {
   final BenchDefinition? cryptoProbeDefinition;
   final BenchDefinition? cryptoReentryDefinition;
   final BenchDefinition? cryptoKeysDefinition;
+  final BenchDefinition? authorityDefinition, authorityPreparationDefinition;
   final BenchDefinition? rtc2Definition;
   final BenchDefinition? pairedDefinition;
   final BenchDefinition? recoveryDefinition;
   final PairedHandshakeReader? readPair;
   BenchSession? _paired;
   bool get isPaired => BenchDefinition.isPairedKey(definition.guide['key']);
+  final InspectionReader? readAuthority;
   final InspectionReader? readRtc2;
   final InspectionReader? readCryptoProbe;
   static const startupChecks = [
@@ -174,9 +179,15 @@ final class BenchSession {
       definition.guide['key'] == 'c83-crypto-probe-device' ||
       definition.guide['key'] == 'c83-crypto-reentry-device' ||
       definition.guide['key'] == 'c83-crypto-keys-device';
+  bool get isAuthority =>
+      definition.guide['key'] == BenchDefinition.authorityKey;
   bool get isRtc2 => definition.guide['key'] == 'c83-rtc2-observation-device';
   bool get isMeasuredDiagnostic =>
-      isStartupDiagnostics || isCryptoProbe || isRtc2 || isPaired;
+      isStartupDiagnostics ||
+      isCryptoProbe ||
+      isAuthority ||
+      isRtc2 ||
+      isPaired;
   bool get isInspection =>
       definition.guide['key'] == 'c82-credential-inspection-device';
 
@@ -189,7 +200,10 @@ final class BenchSession {
       isIntentStop;
   bool get isIntentStop =>
       definition.guide['key'] == 'c823-credential-intent-stop-device';
+  bool get isAuthorityPreparation =>
+      definition.guide['key'] == BenchDefinition.authorityPreparationKey;
   bool get isPreparation =>
+      isAuthorityPreparation ||
       definition.guide['key'] == 'c823-credential-preparation-device';
   bool get isWrite => isInstallation || isPreparation;
   bool get isCredentialTest =>
@@ -204,6 +218,8 @@ final class BenchSession {
         value != cryptoProbeDefinition &&
         value != cryptoReentryDefinition &&
         value != cryptoKeysDefinition &&
+        value != authorityDefinition &&
+        value != authorityPreparationDefinition &&
         value != rtc2Definition &&
         value != pairedDefinition &&
         value != recoveryDefinition &&
@@ -701,7 +717,11 @@ final class BenchSession {
       );
       late final Json frame;
       if (isMeasuredDiagnostic) {
-        final reader = isRtc2 ? readRtc2 : readCryptoProbe;
+        final reader = isAuthority
+            ? readAuthority
+            : isRtc2
+            ? readRtc2
+            : readCryptoProbe;
         if ((isStartupDiagnostics
                 ? readStartupDiagnostics == null
                 : reader == null) ||
@@ -744,7 +764,7 @@ final class BenchSession {
         if (_stopReason != null) throw BenchCancelled();
       } else if (isPreparation) {
         if (readPreparation == null ||
-            readInspection == null ||
+            (!isAuthorityPreparation && readInspection == null) ||
             lookupPublicKey == null) {
           throw const BenchBlocked(
             'Preparation runner or verified identity key unavailable',
@@ -762,7 +782,9 @@ final class BenchSession {
           _reviewInstallation,
           onDiagnostic: (data) => diagnostic = data,
         );
-        frame = {'state': prepared['preparation_result']['state'], ...prepared};
+        frame = isAuthorityPreparation
+            ? prepared
+            : {'state': prepared['preparation_result']['state'], ...prepared};
       } else if (isCredentialTest) {
         final reader = isReadiness ? readReadiness : readInspection;
         if (lookupPublicKey == null ||
@@ -937,7 +959,9 @@ final class BenchSession {
 
   Future<void> reviewStartupResults() async {
     _require(5);
-    if (!isMeasuredDiagnostic) throw StateError('Not a measured diagnostic');
+    if (!isMeasuredDiagnostic && !isAuthorityPreparation) {
+      throw StateError('No automatic result to review');
+    }
     if (isPaired) {
       final peer = await _verifiedPeer();
       if (peer.next == 5) await peer._reviewOne();

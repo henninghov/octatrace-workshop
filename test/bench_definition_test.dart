@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:octatrace_workshop/domain/bench_definition.dart';
 import 'package:octatrace_workshop/domain/bench_session.dart';
 import 'package:octatrace_workshop/domain/factory_enrollment.dart';
+import 'package:octatrace_workshop/domain/ports.dart';
 import 'package:octatrace_workshop/domain/provisioning.dart';
 import 'package:octatrace_workshop/domain/registry.dart';
 import 'package:octatrace_workshop/services/provisioning_runner.dart';
@@ -1354,6 +1355,382 @@ void main() {
       throwsA(isA<ProvisioningFailure>()),
     );
   });
+  test('authority maintenance binds one confirmation and records verified blank or preserved bytes', () async {
+    final guide = BenchDefinition.fromSnapshot(
+      await rootBundle.loadString(BenchDefinition.authorityPreparationAsset),
+    );
+    final root = await Directory.systemTemp.createTemp(
+      'authority-maintenance-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    for (final name in [
+      'usb-provisioning.lock.json',
+      'control-storage.lock.json',
+    ]) {
+      await File('vendor/$name').copy('${root.path}/$name');
+    }
+    final pins = {
+      ...ProcessProvisioningRunner.pins,
+      ...ProcessProvisioningRunner.controlPins,
+      ...guide.runnerFiles,
+    };
+    final read = admit(guide.builds.first, guide: guide);
+    final publicKey = '04${'11' * 64}';
+    final selection = read.inspectionParameters(publicKey);
+    final image = guide.guide['disposable_images'][read.build.role];
+    final blank = {
+      'definition': 'c852-authority-inspection.v1',
+      'revision': 1,
+      'outcome': 'passed',
+      'boot': 'ab' * 16,
+      'role': read.build.role,
+      'serial': read.device.serial,
+      'build': read.build.source,
+      'artifact': read.build.artifact,
+      'hardware': read.device.hardwareUid,
+      'classification': 'blank',
+      'banks': ['blank', 'blank', 'blank'],
+      'sha256':
+          '1df8949b2e345ab8c00cb81fb6b83686e20a4080f969e5cd8b8d520a07cdaba2',
+    };
+    final seen = {
+      ...blank,
+      'classification': 'unknown',
+      'sha256': image['sha256'],
+      'banks': ['unknown', 'unknown', 'unknown'],
+    };
+    final reviewed = {
+      'selection': selection,
+      'image': image['name'],
+      'range': guide.guide['range'],
+      'ticket': 13,
+      'attempt_id': fixtures.device,
+      'inspection': seen,
+    };
+    final envelope = {
+      ...reviewed,
+      'expires_ms': 25000,
+      'review_token': 'bc' * 32,
+    };
+    final blankReview = {...reviewed, 'inspection': blank};
+    for (final mode in [
+      'blank',
+      'prepared',
+      'preserved',
+      'cancelled',
+      'wrong_review',
+      'wrong_result',
+      'bad_readback',
+      'approval_lost',
+      'zero_reviews',
+      'abandoned',
+    ]) {
+      final writes = !{'blank', 'preserved', 'zero_reviews'}.contains(mode);
+      final review = {
+        ...envelope,
+        if (mode == 'wrong_review')
+          'selection': {...selection, 'hardware': '0' * 16},
+      };
+      final result = <String, dynamic>{
+        'passed': !{'cancelled', 'preserved'}.contains(mode),
+        'outcome': mode == 'blank'
+            ? 'already_blank'
+            : {'preserved', 'cancelled'}.contains(mode)
+            ? mode
+            : 'prepared',
+        'review': mode == 'blank'
+            ? blankReview
+            : {
+                ...reviewed,
+                if (mode == 'wrong_result') 'attempt_id': fixtures.other,
+                if (!{'cancelled', 'preserved'}.contains(mode))
+                  'after': {
+                    ...blank,
+                    if (mode == 'bad_readback') 'boot': 'fe' * 16,
+                  },
+              },
+      };
+      final runner = ProcessProvisioningRunner(
+        root.path,
+        root,
+        fileDigest: (file) async =>
+            pins[file.path.substring(root.path.length + 1)]!,
+        startProcess: (program, args) {
+          expect(args, contains('${root.path}/tools/authority_preparation.py'));
+          return Process.start('/usr/bin/python3', [
+            '-c',
+            'import sys,json\njson.loads(sys.stdin.readline())\n'
+                'if sys.argv[1]=="yes":\n print(sys.argv[2],flush=True)\n sys.stdin.readline()\n'
+                'if sys.argv[4]!="abandoned": print(sys.argv[3],flush=True)\n',
+            writes ? 'yes' : 'no',
+            jsonEncode({'event': 'review', 'data': review}),
+            jsonEncode({'event': 'result', 'data': result}),
+            mode,
+          ]);
+        },
+      );
+      int confirmations = 0;
+      final resultFuture = runner.readBenchPreparation(
+        fixtures.actor,
+        read,
+        publicKey,
+        fixtures.device,
+        (r) async {
+          confirmations++;
+          return {
+            'confirm': !{'cancelled', 'approval_lost'}.contains(mode),
+            'review_token': r['review_token'],
+          };
+        },
+      );
+      if (mode == 'blank' || mode == 'prepared') {
+        final value = await resultFuture;
+        expect(
+          value['state'],
+          contains(mode == 'blank' ? 'zero erases' : 'six pages verified'),
+        );
+        expect(confirmations, mode == 'blank' ? 0 : 1);
+      } else if (mode == 'cancelled') {
+        await expectLater(resultFuture, throwsA(isA<BenchCancelled>()));
+      } else if (mode == 'preserved') {
+        await expectLater(resultFuture, throwsA(isA<BenchBlocked>()));
+      } else {
+        await expectLater(
+          resultFuture,
+          throwsA(anyOf(isA<FormatException>(), isA<ProvisioningFailure>())),
+        );
+      }
+    }
+  });
+
+  test('authority inspection checks both qualified images before USB and validates two fresh reads', () async {
+    final guide = BenchDefinition.fromSnapshot(
+      await rootBundle.loadString(BenchDefinition.authorityAsset),
+    );
+    final root = await Directory.systemTemp.createTemp('authority-usb-');
+    addTearDown(() => root.delete(recursive: true));
+    for (final name in [
+      'usb-provisioning.lock.json',
+      'control-storage.lock.json',
+    ]) {
+      await File('vendor/$name').copy('${root.path}/$name');
+    }
+    final pins = {
+      ...ProcessProvisioningRunner.pins,
+      ...ProcessProvisioningRunner.controlPins,
+      ...guide.runnerFiles,
+    };
+    final key = '04${'11' * 64}';
+    final read = admit(guide.builds.first, guide: guide);
+    final digest = 'a5' * 32;
+    final proof = <String, dynamic>{
+      'state': 'ready',
+      'busy': false,
+      'failed': false,
+      'boot': '12' * 16,
+      'challenge': '01' * 32,
+      'signature': 'ac' * 64,
+      'device_id': read.device.id,
+      'serial': read.device.serial,
+      'article_id': read.article.articleId,
+      'article_revision_id': read.article.id,
+      'public_key': key,
+      'role': read.build.role,
+      'build': read.build.source,
+      'hardware': read.device.hardwareUid,
+    };
+    final scan = <String, dynamic>{
+      'type': 'authority_storage',
+      'inspection_version': 1,
+      'busy': false,
+      'request': 21,
+      'boot': proof['boot'],
+      'role': read.build.role,
+      'build': read.build.source,
+      'hardware': read.device.hardwareUid,
+      'state': 6,
+      'banks': [2, 5, 2],
+      'sha256': digest,
+    };
+    final summary = <String, dynamic>{
+      'definition': 'c852-authority-inspection.v1',
+      'revision': 1,
+      'outcome': 'passed',
+      'role': read.build.role,
+      'hardware': read.device.hardwareUid,
+      'serial': read.device.serial,
+      'boot': proof['boot'],
+      'build': read.build.source,
+      'artifact': read.build.artifact,
+      'classification': 'review',
+      'banks': ['blank', 'unknown', 'blank'],
+      'sha256': digest,
+    };
+    final valid = <Json>[
+      {'before_proof': proof},
+      {'scan': 1, 'frame': scan},
+      {
+        'scan': 2,
+        'frame': {...scan, 'request': 29},
+      },
+      {
+        'after_proof': {...proof, 'challenge': '02' * 32},
+      },
+      {'result': summary},
+    ];
+    var rows = valid;
+    var checks = 0;
+    var compatible = true;
+    var corruptPin = false;
+    var runExit = 0;
+    ProcessProvisioningRunner runnerFor({
+      Duration timeout = const Duration(seconds: 10),
+      bool hang = false,
+      BenchDefinition? factoryGuide,
+    }) => ProcessProvisioningRunner(
+      root.path,
+      root,
+      factoryInspectionGuide: factoryGuide,
+      timeout: timeout,
+      fileDigest: (f) async =>
+          corruptPin ? '' : pins[f.path.substring(root.path.length + 1)]!,
+      startProcess: (python, args) {
+        if (args.contains('--check-image')) {
+          checks++;
+          return Process.start('/usr/bin/python3', [
+            '-c',
+            hang ? 'import time; time.sleep(10)' : 'import sys,json; r=json.load(sys.stdin); assert r["role"] in ["Link","Core"]; print(sys.argv[1])',
+            jsonEncode({'compatible': compatible}),
+          ]);
+        }
+        expect(args, ['-B', '${root.path}/tools/authority_inspection.py']);
+        return Process.start('/usr/bin/python3', [
+          '-c',
+          'import sys;sys.stdin.read();print(sys.argv[1]);sys.exit(int(sys.argv[2]))',
+          rows.map(jsonEncode).join('\n'),
+          runExit.toString(),
+        ]);
+      },
+    );
+    final runner = runnerFor();
+    expect(await runner.supportsAuthorityInspection(definition), isFalse);
+    expect(await runner.supportsAuthorityInspection(guide), isTrue);
+    expect(checks, 2);
+    compatible = false;
+    expect(await runner.supportsAuthorityInspection(guide), isFalse);
+    corruptPin = true;
+    expect(await runner.supportsAuthorityInspection(guide), isFalse);
+    corruptPin = false;
+    expect(
+      await runnerFor(
+        timeout: const Duration(milliseconds: 150),
+        hang: true,
+      ).supportsAuthorityInspection(guide),
+      isFalse,
+    );
+    final good = await runner.readAuthority(fixtures.actor, read, key);
+    expect(good['classification'], 'review');
+    expect(good['sha256'], digest);
+    expect(good['observations'], valid);
+    List<Json> blankReport(String hash, List<int> bankStates) {
+      final blank = {...scan, 'state': 2, 'banks': bankStates, 'sha256': hash};
+      return [
+        valid.first,
+        {'scan': 1, 'frame': blank},
+        {
+          'scan': 2,
+          'frame': {...blank, 'request': 29},
+        },
+        valid[3],
+        {
+          'result': {
+            ...summary,
+            'classification': 'blank',
+            'banks': [
+              for (final bank in bankStates) bank == 2 ? 'blank' : 'unknown',
+            ],
+            'sha256': hash,
+          },
+        },
+      ];
+    }
+
+    const erasedDigest =
+        '1df8949b2e345ab8c00cb81fb6b83686e20a4080f969e5cd8b8d520a07cdaba2';
+    rows = blankReport(erasedDigest, [2, 2, 2]);
+    expect(
+      (await runner.readAuthority(fixtures.actor, read, key))['classification'],
+      'blank',
+    );
+    Future<Json> factoryRead(BenchDefinition? guide) =>
+        runnerFor(factoryGuide: guide).execute(
+          account: fixtures.actor,
+          command: 'factory-authority-inspection',
+          parameters: read.inspectionParameters(key),
+        );
+    expect((await factoryRead(guide))['classification'], 'blank');
+    await expectLater(factoryRead(null), throwsA(isA<ProvisioningFailure>()));
+    await expectLater(
+      factoryRead(definition),
+      throwsA(isA<ProvisioningFailure>()),
+    );
+    for (final bad in <List<Json>>[
+      blankReport(digest, [2, 2, 2]),
+      blankReport(erasedDigest, [2, 5, 2]),
+      valid.sublist(1),
+      [
+        valid[0],
+        valid[1],
+        {'scan': 2, 'frame': scan},
+        ...valid.skip(3),
+      ],
+      [
+        valid[0],
+        valid[1],
+        {
+          'scan': 2,
+          'frame': {...scan, 'request': 23, 'sha256': '99' * 32},
+        },
+        ...valid.skip(3),
+      ],
+      [
+        ...valid.take(4),
+        {
+          'result': {...summary, 'classification': 'blank'},
+        },
+      ],
+      [
+        ...valid.take(3),
+        {
+          'after_proof': {...proof, 'boot': 'aa' * 16},
+        },
+        valid.last,
+      ],
+    ]) {
+      rows = bad;
+      await expectLater(
+        runner.readAuthority(fixtures.actor, read, key),
+        throwsA(isA<ProvisioningFailure>()),
+      );
+    }
+    await expectLater(
+      runner.readAuthority(fixtures.actor, admit(definition.builds.first), key),
+      throwsA(isA<BenchBlocked>()),
+    );
+    runExit = 1;
+    Json? diagnostic;
+    await expectLater(
+      runner.readAuthority(
+        fixtures.actor,
+        read,
+        key,
+        onDiagnostic: (d) => diagnostic = d,
+      ),
+      throwsA(isA<ProvisioningFailure>()),
+    );
+    expect(diagnostic?['exit_code'], 1);
+  });
+
   test(
     'RTC2 runner validates boot, build, signed identity and timed waits',
     () async {
